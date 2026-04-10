@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { signIn } from "../api/auth";
 import { useNavigate, Link } from "react-router-dom";
+import { useToast } from "../context/ToastContext";
 
 function Login() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -17,11 +19,30 @@ function Login() {
 
     try {
       const res = await signIn({ email, password });
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      navigate("/home");
+      console.log("Login response:", res.data); // Debug
+      
+      // Handle response - support different backend formats
+      const token = res.data?.token || res.data?.accessToken;
+      const user = res.data?.user || res.data?.data || { role: "customer" };
+      
+      if (!token) {
+        setError("Lỗi: Backend không trả về token. Kiểm tra API.");
+        return;
+      }
+      
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      
+      addToast("Đăng nhập thành công", "success");
+      
+      setTimeout(() => {
+        navigate("/");
+      }, 500);
     } catch (err) {
-      setError(err.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại.");
+      console.error("Login error:", err); // Debug
+      const errorMsg = err.response?.data?.message || "Đăng nhập thất bại";
+      setError(errorMsg);
+      addToast("Đăng nhập thất bại", "error");
     } finally {
       setLoading(false);
     }

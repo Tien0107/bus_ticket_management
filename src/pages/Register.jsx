@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { customerSignUp } from "../api/auth";
 import { useNavigate, Link } from "react-router-dom";
+import { useToast } from "../context/ToastContext";
 
 function Register() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -51,25 +53,35 @@ function Register() {
     const payload = {
       username: form.username,
       fullName: form.fullName,
-      email: form.email,
-      phone: form.phone,
+      contactInfo: {
+        email: form.email,
+        phone: form.phone,
+      },
       password: form.password,
     };
 
     try {
       const res = await customerSignUp(payload);
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      navigate("/home");
+      
+      addToast("Đăng ký thành công", "success");
+      
+      setTimeout(() => {
+        navigate("/login");
+      }, 500);
     } catch (err) {
       const data = err.response?.data;
+      let errorMsg = "Đăng ký thất bại";
+      
       if (data?.issues && Array.isArray(data.issues)) {
         // Backend trả về mảng issues với field + reason
-        const msgs = data.issues.map((i) => i.reason || i.field).join(". ");
-        setError(msgs);
+        errorMsg = data.issues.map((i) => i.reason || i.field).join(". ");
+        setError(errorMsg);
       } else {
-        setError(data?.message || "Đăng ký thất bại. Vui lòng thử lại.");
+        errorMsg = data?.message || "Đăng ký thất bại";
+        setError(errorMsg);
       }
+      
+      addToast("Đăng ký thất bại", "error");
     } finally {
       setLoading(false);
     }
