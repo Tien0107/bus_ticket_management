@@ -18,6 +18,7 @@ import Booking from "./pages/customer/Booking";
 import MyTickets from "./pages/customer/MyTickets";
 
 // Driver Pages
+import DriverSignup from "./pages/DriverSignup";
 import DriverDashboard from "./pages/driver/DriverDashboard";
 import TripDetail from "./pages/driver/TripDetail";
 
@@ -42,6 +43,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/driver-signup" element={<DriverSignup />} />
 
           {/* Customer Routing */}
           <Route path="/booking/:tripId" element={<Booking />} />
