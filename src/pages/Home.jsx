@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCompanies } from "../api/public";
+import { getTripSchedules } from "../api/customer";
 
 
 // Data features
@@ -36,6 +37,34 @@ const Home = () => {
   const [date, setDate] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Search states
+  const [schedules, setSchedules] = useState([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+  const [searchInitiated, setSearchInitiated] = useState(false);
+
+  const handleSearch = async () => {
+    setSearchInitiated(true);
+    setLoadingSearch(true);
+    setSearchError(null);
+    try {
+      const response = await getTripSchedules({
+        from: departure,
+        to: destination,
+        date: date,
+        limit: 10,
+        orderBy: "asc"
+      });
+      const data = response.data?.trip || [];
+      setSchedules(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Lỗi tìm chuyến:", err);
+      setSearchError("Không thể tìm chuyến. Vui lòng thử lại sau.");
+    } finally {
+      setLoadingSearch(false);
+    }
+  };
 
   // Lấy user từ localStorage
   const [user, setUser] = useState(null);
@@ -267,15 +296,113 @@ const Home = () => {
                   </div>
                 </div>
 
-                <button className="w-full bg-primary-container text-on-primary-container py-4 rounded-xl font-extrabold text-lg flex justify-center items-center gap-2 hover:bg-primary hover:text-on-primary transition-colors">
-                  <span>Tìm chuyến</span>
-                  <span className="material-symbols-outlined">arrow_forward</span>
+                <button 
+                  onClick={handleSearch}
+                  disabled={loadingSearch}
+                  className="w-full bg-primary-container text-on-primary-container py-4 rounded-xl font-extrabold text-lg flex justify-center items-center gap-2 hover:bg-primary hover:text-on-primary transition-colors disabled:opacity-50">
+                  <span>{loadingSearch ? "Đang tìm..." : "Tìm chuyến"}</span>
+                  {!loadingSearch && <span className="material-symbols-outlined">arrow_forward</span>}
                 </button>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* ===== KẾT QUẢ TÌM KIẾM ===== */}
+      {searchInitiated && (
+        <section id="search-results" className="py-16 bg-surface">
+          <div className="max-w-7xl mx-auto px-6">
+            <h2 className="text-3xl font-black text-on-surface mb-8">Kết quả tìm kiếm</h2>
+            
+            {loadingSearch && (
+              <div className="flex justify-center items-center py-10">
+                <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+              </div>
+            )}
+            
+            {searchError && !loadingSearch && (
+              <div className="bg-red-50 text-red-600 p-4 rounded-xl text-center">
+                {searchError}
+              </div>
+            )}
+
+            {!loadingSearch && !searchError && schedules.length === 0 && (
+              <div className="text-center py-10 text-on-surface-variant font-medium">
+                <span className="material-symbols-outlined text-4xl block mb-2 opacity-50">sentiment_dissatisfied</span>
+                Không tìm thấy chuyến xe nào phù hợp. Vui lòng thử thay đổi điểm đi/đến hoặc ngày đi.
+              </div>
+            )}
+
+            {!loadingSearch && !searchError && schedules.length > 0 && (
+              <div className="space-y-4">
+                {schedules.map((schedule, idx) => (
+                  <div key={schedule.id || idx} className="bg-white border text-left border-outline-variant/20 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="flex-1 w-full">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          {schedule.logoUrl ? (
+                            <img src={schedule.logoUrl} alt="Logo" className="w-10 h-10 rounded-lg object-contain border border-outline-variant/20" />
+                          ) : (
+                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                              <span className="material-symbols-outlined text-primary">directions_bus</span>
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-bold text-on-surface">{schedule.name || "Chuyến xe"}</p>
+                            <p className="text-xs text-on-surface-variant flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">call</span> {schedule.hotline || "Đang cập nhật"}</p>
+                          </div>
+                        </div>
+                        <span className="px-2.5 py-1 bg-surface-container text-on-surface-variant text-xs font-bold rounded-md uppercase">
+                           {schedule.distanceKm ? `${schedule.distanceKm} km` : ""}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-4 relative">
+                        {/* Điểm đi */}
+                        <div className="flex-1">
+                          <p className="font-extrabold text-xl text-on-surface text-primary">{schedule.departureTime ? schedule.departureTime.slice(0,5) : "??:??"}</p>
+                          <p className="text-sm text-on-surface-variant font-medium mt-1">{schedule.fromLocation || departure || "Điểm đi"}</p>
+                        </div>
+                        {/* Thanh nối lộ trình */}
+                        <div className="flex-1 flex flex-col items-center px-4 relative">
+                           <p className="text-xs text-outline mb-1">{schedule.durationMinutes ? `${Math.floor(schedule.durationMinutes/60)}h ${schedule.durationMinutes%60}m` : "Di chuyển"}</p>
+                           <div className="w-full h-0.5 bg-outline-variant/30 flex items-center justify-center relative">
+                             <div className="absolute w-2 h-2 rounded-full bg-outline-variant -left-1"></div>
+                             <div className="absolute w-2 h-2 rounded-full border-2 border-outline-variant bg-white -right-1"></div>
+                           </div>
+                        </div>
+                        {/* Điểm đến */}
+                        <div className="flex-1 text-right">
+                          <p className="font-extrabold text-xl text-on-surface text-primary">
+                            {(() => {
+                               if (!schedule.departureTime || !schedule.durationMinutes) return "--:--";
+                               let [h, m] = schedule.departureTime.split(":").map(Number);
+                               if (isNaN(h) || isNaN(m)) return "--:--";
+                               let d = new Date(); d.setHours(h); d.setMinutes(m + schedule.durationMinutes);
+                               return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+                            })()}
+                          </p>
+                          <p className="text-sm text-on-surface-variant font-medium mt-1">{schedule.toLocation || destination || "Điểm đến"}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Hành động & Giá */}
+                    <div className="w-full md:w-auto md:min-w-[180px] flex flex-col items-end border-t md:border-t-0 md:border-l border-outline-variant/20 pt-4 md:pt-0 md:pl-6">
+                       <p className="text-secondary font-black text-xl tracking-tight mb-3">
+                         Liên hệ
+                       </p>
+                       <Link to={`/booking/${schedule.id || ''}`} className="w-full text-center bg-secondary-container text-on-secondary-container py-2.5 px-6 rounded-xl font-bold hover:bg-secondary hover:text-white transition-colors">
+                         Chọn vé
+                       </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ===== WHY CHOOSE US ===== */}
       <section className="bg-surface-container-low py-24">
