@@ -51,10 +51,8 @@ function Register() {
     const payload = {
       username: form.username,
       fullName: form.fullName,
-      contactInfo: {
-        email: form.email,
-        phone: form.phone,
-      },
+      email: form.email,
+      phone: form.phone,
       password: form.password,
     };
 
