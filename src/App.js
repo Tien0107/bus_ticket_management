@@ -24,8 +24,12 @@ import DriverProfile from "./pages/driver/DriverProfile";
 import TripDetail from "./pages/driver/TripDetail";
 
 // Company Pages
+import CompanySignup from "./pages/CompanySignup";
 import CompanyDashboard from "./pages/company/CompanyDashboard";
 import Vehicles from "./pages/company/Vehicles";
+import Drivers from "./pages/company/Drivers";
+import Staff from "./pages/company/Staff";
+import CompanyProfile from "./pages/company/CompanyProfile";
 import Schedules from "./pages/company/Schedules";
 
 // Super Admin Pages
@@ -45,6 +49,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/driver-signup" element={<DriverSignup />} />
+          <Route path="/company-signup" element={<CompanySignup />} />
 
           {/* Customer Routing */}
           <Route path="/booking/:tripId" element={<Booking />} />
@@ -63,6 +68,9 @@ function App() {
             <Route path="/company" element={<Navigate to="/company/dashboard" replace />} />
             <Route path="/company/dashboard" element={<CompanyDashboard />} />
             <Route path="/company/vehicles" element={<Vehicles />} />
+            <Route path="/company/drivers" element={<Drivers />} />
+            <Route path="/company/staff" element={<Staff />} />
+            <Route path="/company/profile" element={<CompanyProfile />} />
             <Route path="/company/schedules" element={<Schedules />} />
 
             {/* Dashboard Super Admin */}

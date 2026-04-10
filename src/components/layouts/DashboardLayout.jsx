@@ -91,9 +91,21 @@ export default function DashboardLayout() {
                 <span className="material-symbols-outlined">directions_bus</span>
                 {sidebarOpen && <span>Phương tiện</span>}
               </Link>
+              <Link to="/company/drivers" className={getLinkClass("/company/drivers")}>
+                <span className="material-symbols-outlined">people</span>
+                {sidebarOpen && <span>Tài xế</span>}
+              </Link>
+              <Link to="/company/staff" className={getLinkClass("/company/staff")}>
+                <span className="material-symbols-outlined">group</span>
+                {sidebarOpen && <span>Nhân viên</span>}
+              </Link>
               <Link to="/company/schedules" className={getLinkClass("/company/schedules")}>
                 <span className="material-symbols-outlined">schedule</span>
                 {sidebarOpen && <span>Lịch biểu</span>}
+              </Link>
+              <Link to="/company/profile" className={getLinkClass("/company/profile")}>
+                <span className="material-symbols-outlined">person</span>
+                {sidebarOpen && <span>Hồ sơ</span>}
               </Link>
             </>
           )}
