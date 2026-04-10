@@ -35,8 +35,18 @@ function Login() {
       
       addToast("Đăng nhập thành công", "success");
       
+      // Redirect dựa vào role
+      let redirectUrl = "/";
+      if (user.role === "driver") {
+        redirectUrl = "/driver/dashboard";
+      } else if (user.role === "company") {
+        redirectUrl = "/company/dashboard";
+      } else if (user.role === "super_admin" || user.role === "superadmin") {
+        redirectUrl = "/super-admin/dashboard";
+      }
+      
       setTimeout(() => {
-        navigate("/");
+        navigate(redirectUrl);
       }, 500);
     } catch (err) {
       console.error("Login error:", err); // Debug

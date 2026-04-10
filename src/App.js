@@ -20,6 +20,7 @@ import MyTickets from "./pages/customer/MyTickets";
 // Driver Pages
 import DriverSignup from "./pages/DriverSignup";
 import DriverDashboard from "./pages/driver/DriverDashboard";
+import DriverProfile from "./pages/driver/DriverProfile";
 import TripDetail from "./pages/driver/TripDetail";
 
 // Company Pages
@@ -56,6 +57,7 @@ function App() {
             <Route path="/driver" element={<Navigate to="/driver/dashboard" replace />} />
             <Route path="/driver/dashboard" element={<DriverDashboard />} />
             <Route path="/driver/trip/:tripId" element={<TripDetail />} />
+            <Route path="/driver/profile" element={<DriverProfile />} />
 
             {/* Dashboard Nhà xe */}
             <Route path="/company" element={<Navigate to="/company/dashboard" replace />} />
