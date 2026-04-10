@@ -1,17 +1,20 @@
 import { useState } from "react";
 import { customerSignUp } from "../api/auth";
+import { driverSignUp } from "../api/driver";
+import { companySignUp } from "../api/company";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 
 function Register() {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const [registerType, setRegisterType] = useState("customer"); // customer, driver, company
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
 
-  const [form, setForm] = useState({
+  const [customerForm, setCustomerForm] = useState({
     fullName: "",
     username: "",
     email: "",
@@ -20,30 +23,63 @@ function Register() {
     confirmPassword: "",
   });
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const [driverForm, setDriverForm] = useState({
+    fullName: "",
+    username: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+    licenseNumber: "",
+    vehicleNumber: "",
+    vehicleType: "bus",
+    companyName: "",
+  });
+
+  const [companyForm, setCompanyForm] = useState({
+    companyName: "",
+    email: "",
+    phone: "",
+    username: "",
+    password: "",
+    confirmPassword: "",
+    businessRegistration: "",
+    address: "",
+    city: "",
+    taxCode: "",
+  });
+
+  const handleCustomerChange = (e) => {
+    setCustomerForm({ ...customerForm, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleDriverChange = (e) => {
+    setDriverForm({ ...driverForm, [e.target.name]: e.target.value });
+  };
+
+  const handleCompanyChange = (e) => {
+    setCompanyForm({ ...companyForm, [e.target.name]: e.target.value });
+  };
+
+  // CUSTOMER SUBMIT
+  const handleCustomerSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Validate
     if (!agreeTerms) {
       setError("Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật.");
       return;
     }
-    if (form.password !== form.confirmPassword) {
+    if (customerForm.password !== customerForm.confirmPassword) {
       setError("Mật khẩu xác nhận không khớp.");
       return;
     }
-    // Validate password theo yêu cầu backend
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#@$%&!*?^_])[^\s]+$/;
-    if (!passwordRegex.test(form.password)) {
+    if (!passwordRegex.test(customerForm.password)) {
       setError("Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt (#@$%&!*?^_), không có dấu cách.");
       return;
     }
-    if (form.password.length < 6) {
+    if (customerForm.password.length < 6) {
       setError("Mật khẩu phải có ít nhất 6 ký tự.");
       return;
     }
@@ -51,19 +87,18 @@ function Register() {
     setLoading(true);
 
     const payload = {
-      username: form.username,
-      fullName: form.fullName,
+      username: customerForm.username,
+      fullName: customerForm.fullName,
       contactInfo: {
-        email: form.email,
-        phone: form.phone,
+        email: customerForm.email,
+        phone: customerForm.phone,
       },
-      password: form.password,
+      password: customerForm.password,
     };
 
     try {
-      const res = await customerSignUp(payload);
-      
-      addToast("Đăng ký thành công", "success");
+      await customerSignUp(payload);
+      addToast("Đăng ký khách hàng thành công", "success");
       
       setTimeout(() => {
         navigate("/login");
@@ -73,7 +108,6 @@ function Register() {
       let errorMsg = "Đăng ký thất bại";
       
       if (data?.issues && Array.isArray(data.issues)) {
-        // Backend trả về mảng issues với field + reason
         errorMsg = data.issues.map((i) => i.reason || i.field).join(". ");
         setError(errorMsg);
       } else {
@@ -82,6 +116,131 @@ function Register() {
       }
       
       addToast("Đăng ký thất bại", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // DRIVER SUBMIT
+  const handleDriverSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!agreeTerms) {
+      setError("Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật.");
+      return;
+    }
+    if (driverForm.password !== driverForm.confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#@$%&!*?^_])[^\s]+$/;
+    if (!passwordRegex.test(driverForm.password)) {
+      setError("Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt (#@$%&!*?^_), không có dấu cách.");
+      return;
+    }
+    if (driverForm.password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự.");
+      return;
+    }
+
+    setLoading(true);
+
+    const payload = {
+      username: driverForm.username,
+      fullName: driverForm.fullName,
+      email: driverForm.email,
+      phone: driverForm.phone,
+      password: driverForm.password,
+      licenseNumber: driverForm.licenseNumber,
+      vehicleNumber: driverForm.vehicleNumber,
+      vehicleType: driverForm.vehicleType,
+      companyName: driverForm.companyName,
+      contactInfo: {},
+    };
+
+    try {
+      await driverSignUp(payload);
+      addToast("Đăng ký tài xế thành công", "success");
+      
+      setTimeout(() => {
+        navigate("/login");
+      }, 500);
+    } catch (err) {
+      const data = err.response?.data;
+      let errorMsg = "Đăng ký thất bại";
+      
+      if (data?.issues && Array.isArray(data.issues)) {
+        errorMsg = data.issues.map((i) => i.reason || i.field).join(". ");
+        setError(errorMsg);
+      } else {
+        errorMsg = data?.message || "Đăng ký thất bại";
+        setError(errorMsg);
+      }
+      
+      addToast("Đăng ký thất bại", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // COMPANY SUBMIT
+  const handleCompanySubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    // Validation
+    const newErrors = {};
+    if (!companyForm.companyName.trim()) newErrors.companyName = "Tên công ty bắt buộc";
+    if (!companyForm.email.trim()) newErrors.email = "Email bắt buộc";
+    if (!companyForm.phone.trim()) newErrors.phone = "Số điện thoại bắt buộc";
+    if (!companyForm.username.trim()) newErrors.username = "Tên đăng nhập bắt buộc";
+    if (companyForm.username.length < 3) newErrors.username = "Tên đăng nhập tối thiểu 3 ký tự";
+    if (!companyForm.password) newErrors.password = "Mật khẩu bắt buộc";
+    if (companyForm.password.length < 6) newErrors.password = "Mật khẩu tối thiểu 6 ký tự";
+    if (companyForm.password !== companyForm.confirmPassword) {
+      newErrors.confirmPassword = "Mật khẩu không khớp";
+    }
+    if (!companyForm.businessRegistration.trim()) newErrors.businessRegistration = "Số ĐKKD bắt buộc";
+    if (!companyForm.address.trim()) newErrors.address = "Địa chỉ bắt buộc";
+    if (!companyForm.city.trim()) newErrors.city = "Thành phố bắt buộc";
+
+    if (Object.keys(newErrors).length > 0) {
+      setError(Object.values(newErrors)[0]);
+      return;
+    }
+
+    if (!agreeTerms) {
+      setError("Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật.");
+      return;
+    }
+
+    setLoading(true);
+
+    const payload = {
+      companyName: companyForm.companyName,
+      email: companyForm.email,
+      phone: companyForm.phone,
+      username: companyForm.username,
+      password: companyForm.password,
+      businessRegistration: companyForm.businessRegistration,
+      address: companyForm.address,
+      city: companyForm.city,
+      taxCode: companyForm.taxCode || null,
+    };
+
+    try {
+      await companySignUp(payload);
+      addToast("Đăng ký công ty thành công", "success");
+      
+      setTimeout(() => {
+        navigate("/login");
+      }, 500);
+    } catch (err) {
+      console.error("Signup error:", err);
+      const errorMsg = err.response?.data?.message || "Đăng ký thất bại";
+      setError(errorMsg);
+      addToast(errorMsg, "error");
     } finally {
       setLoading(false);
     }
@@ -109,120 +268,399 @@ function Register() {
 
       {/* Main Content */}
       <main className="flex-grow flex pt-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 w-full max-w-[1440px] mx-auto px-4 lg:px-0">
-          {/* Side Decoration */}
-          <div className="hidden lg:flex lg:col-span-5 relative overflow-hidden bg-surface-container-high p-12 flex-col justify-end">
-            <div className="absolute inset-0 z-0">
-              <img
-                alt="Xe khách du lịch"
-                className="w-full h-full object-cover opacity-80"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBobC3C5DJQKBldYhJuagSS9twisoy1uKKIv0C9y3KvYxaMRvaB4E_F6DkbCGYow0EX0PM0Jy1Ey5Dqm7y_6iF1xUstDRJ-ma7f9q978PkZjKJeHXAn3XjBjmIPbVsVn5_U4OGnUj-1OSY7c7k4IbLq60yQyDbpTHkQfh6qr6OM4KWuMZXQE1imOYryzDVqxM3485-egGzCSngoNz0bZ75wHN5w_7LEg7N_MUgI0wpDDlVUPqdb3y2lwy_3Gv2a7ixZ7b2P-0vp5V0"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent"></div>
+        <div className="w-full max-w-4xl mx-auto px-4 lg:px-12 py-12 lg:py-20">
+          <div className="bg-white rounded-3xl p-8 lg:p-10 shadow-editorial">
+            {/* Tabs */}
+            <div className="mb-8">
+              <h2 className="text-3xl font-extrabold text-on-surface mb-6 tracking-tight">
+                Chọn loại tài khoản
+              </h2>
+              
+              <div className="flex flex-wrap gap-3 md:gap-4">
+                <button
+                  onClick={() => {
+                    setRegisterType("customer");
+                    setError("");
+                    setAgreeTerms(false);
+                  }}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                    registerType === "customer"
+                      ? "bg-primary text-white shadow-lg shadow-primary/30"
+                      : "bg-surface-container-high text-on-surface hover:bg-surface-container-highest"
+                  }`}
+                >
+                  <span className="material-symbols-outlined">person</span>
+                  Khách hàng
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setRegisterType("driver");
+                    setError("");
+                    setAgreeTerms(false);
+                  }}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                    registerType === "driver"
+                      ? "bg-primary text-white shadow-lg shadow-primary/30"
+                      : "bg-surface-container-high text-on-surface hover:bg-surface-container-highest"
+                  }`}
+                >
+                  <span className="material-symbols-outlined">directions_car</span>
+                  Tài xế
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setRegisterType("company");
+                    setError("");
+                    setAgreeTerms(false);
+                  }}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                    registerType === "company"
+                      ? "bg-primary text-white shadow-lg shadow-primary/30"
+                      : "bg-surface-container-high text-on-surface hover:bg-surface-container-highest"
+                  }`}
+                >
+                  <span className="material-symbols-outlined">business</span>
+                  Công ty
+                </button>
+              </div>
             </div>
-            <div className="relative z-10 space-y-4 max-w-md">
-              <h1 className="text-4xl font-extrabold text-white leading-tight drop-shadow-md">
-                Hành trình xanh, <br />Trải nghiệm mới.
-              </h1>
-              <p className="text-white/90 text-lg font-medium">
-                Khám phá Việt Nam cùng BusGo. Tiết kiệm thời gian, bảo vệ môi trường.
-              </p>
-            </div>
-          </div>
 
-          {/* Registration Form Area */}
-          <div className="col-span-1 lg:col-span-7 flex items-center justify-center py-12 lg:py-20 bg-surface">
-            <div className="w-full max-w-xl px-4 lg:px-12">
-              <div className="bg-white rounded-3xl p-8 lg:p-10 shadow-editorial">
-                {/* Form Header */}
-                <div className="mb-10">
-                  <h2 className="text-3xl font-extrabold text-on-surface mb-2 tracking-tight">
-                    Đăng ký tài khoản
-                  </h2>
-                  <p className="text-on-surface-variant text-base">
-                    Tạo tài khoản để đặt vé dễ dàng hơn
-                  </p>
+            {/* Error Message */}
+            {error && (
+              <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 p-4 rounded-xl mb-6">
+                <span className="material-symbols-outlined text-red-500">error</span>
+                <span className="text-sm font-medium">{error}</span>
+              </div>
+            )}
+
+            {/* CUSTOMER FORM */}
+            {registerType === "customer" && (
+              <form onSubmit={handleCustomerSubmit} className="space-y-5">
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-on-surface mb-2">Đăng ký Khách hàng</h3>
+                  <p className="text-on-surface-variant">Tạo tài khoản để đặt vé dễ dàng hơn</p>
                 </div>
 
-                {/* Error Message */}
-                {error && (
-                  <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 p-4 rounded-xl mb-6">
-                    <span className="material-symbols-outlined text-red-500">error</span>
-                    <span className="text-sm font-medium">{error}</span>
-                  </div>
-                )}
+                {/* Full Name */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                    Họ và tên
+                  </label>
+                  <input
+                    name="fullName"
+                    className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                    placeholder="Nguyễn Văn A"
+                    type="text"
+                    value={customerForm.fullName}
+                    onChange={handleCustomerChange}
+                    required
+                  />
+                </div>
 
-                {/* Registration Form */}
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  {/* Full Name */}
+                {/* Username */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                    Tên đăng nhập
+                  </label>
+                  <input
+                    name="username"
+                    className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                    placeholder="nguyenvana"
+                    type="text"
+                    value={customerForm.username}
+                    onChange={handleCustomerChange}
+                    required
+                  />
+                </div>
+
+                {/* Email & Phone */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-on-surface-variant ml-1">
-                      Họ và tên
+                      Email
                     </label>
                     <input
-                      name="fullName"
+                      name="email"
                       className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
-                      placeholder="Nguyễn Văn A"
-                      type="text"
-                      value={form.fullName}
-                      onChange={handleChange}
+                      placeholder="example@email.com"
+                      type="email"
+                      value={customerForm.email}
+                      onChange={handleCustomerChange}
                       required
                     />
                   </div>
-
-                  {/* Username */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-on-surface-variant ml-1">
-                      Tên đăng nhập
+                      Số điện thoại
                     </label>
                     <input
-                      name="username"
+                      name="phone"
                       className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
-                      placeholder="nguyenvana"
-                      type="text"
-                      value={form.username}
-                      onChange={handleChange}
+                      placeholder="09xx xxx xxx"
+                      type="tel"
+                      value={customerForm.phone}
+                      onChange={handleCustomerChange}
                       required
                     />
                   </div>
+                </div>
 
-                  {/* Email & Phone */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-on-surface-variant ml-1">
-                        Email
-                      </label>
+                {/* Password Info */}
+                <p className="text-xs text-on-surface-variant bg-surface-container-low rounded-lg px-3 py-2 flex items-start gap-2">
+                  <span className="material-symbols-outlined text-sm text-primary mt-0.5">info</span>
+                  Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt (#@$%&!*?^_)
+                </p>
+
+                {/* Password & Confirm */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                      Mật khẩu
+                    </label>
+                    <div className="relative">
                       <input
-                        name="email"
-                        className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
-                        placeholder="example@email.com"
-                        type="email"
-                        value={form.email}
-                        onChange={handleChange}
+                        name="password"
+                        className="w-full bg-white border-0 rounded-xl p-4 pr-12 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                        placeholder="••••••••"
+                        type={showPassword ? "text" : "password"}
+                        value={customerForm.password}
+                        onChange={handleCustomerChange}
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          {showPassword ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                      Xác nhận mật khẩu
+                    </label>
+                    <input
+                      name="confirmPassword"
+                      className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                      placeholder="••••••••"
+                      type={showPassword ? "text" : "password"}
+                      value={customerForm.confirmPassword}
+                      onChange={handleCustomerChange}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Terms & Conditions */}
+                <div className="flex items-start gap-4 py-2 px-1 relative">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary-container rounded-full"></div>
+                  <div className="pl-4 flex items-center">
+                    <input
+                      type="checkbox"
+                      id="terms-customer"
+                      checked={agreeTerms}
+                      onChange={(e) => setAgreeTerms(e.target.checked)}
+                      className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
+                    />
+                    <label className="ml-3 text-sm text-on-surface-variant leading-tight" htmlFor="terms-customer">
+                      Tôi đồng ý với{" "}
+                      <span className="text-primary font-semibold cursor-pointer hover:underline">
+                        Điều khoản sử dụng
+                      </span>{" "}
+                      và{" "}
+                      <span className="text-primary font-semibold cursor-pointer hover:underline">
+                        Chính sách bảo mật
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-primary to-primary-container text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Đang đăng ký...</span>
+                    </>
+                  ) : (
+                    <span>Đăng ký khách hàng</span>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* DRIVER FORM */}
+            {registerType === "driver" && (
+              <form onSubmit={handleDriverSubmit} className="space-y-5">
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-on-surface mb-2">Đăng ký Tài xế</h3>
+                  <p className="text-on-surface-variant">Tham gia mạng lưới tài xế chuyên nghiệp của BusGo</p>
+                </div>
+
+                {/* Personal Info */}
+                <div className="border-t pt-4">
+                  <h4 className="text-lg font-bold text-on-surface mb-4">Thông tin cá nhân</h4>
+                  
+                  <div className="space-y-4">
+                    {/* Full Name & Phone */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                          Họ và tên
+                        </label>
+                        <input
+                          name="fullName"
+                          className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                          placeholder="Nguyễn Văn A"
+                          type="text"
+                          value={driverForm.fullName}
+                          onChange={handleDriverChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                          Số điện thoại
+                        </label>
+                        <input
+                          name="phone"
+                          className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                          placeholder="09xx xxx xxx"
+                          type="tel"
+                          value={driverForm.phone}
+                          onChange={handleDriverChange}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Username & Email */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                          Tên đăng nhập
+                        </label>
+                        <input
+                          name="username"
+                          className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                          placeholder="taixe_nguyen"
+                          type="text"
+                          value={driverForm.username}
+                          onChange={handleDriverChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                          Email
+                        </label>
+                        <input
+                          name="email"
+                          className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                          placeholder="example@email.com"
+                          type="email"
+                          value={driverForm.email}
+                          onChange={handleDriverChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* License Info */}
+                <div className="border-t pt-4">
+                  <h4 className="text-lg font-bold text-on-surface mb-4">Thông tin bằng cấp</h4>
+                  
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-on-surface-variant ml-1">
-                        Số điện thoại
+                        Số giấy phép lái xe
                       </label>
                       <input
-                        name="phone"
+                        name="licenseNumber"
                         className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
-                        placeholder="09xx xxx xxx"
-                        type="tel"
-                        value={form.phone}
-                        onChange={handleChange}
+                        placeholder="123456789"
+                        type="text"
+                        value={driverForm.licenseNumber}
+                        onChange={handleDriverChange}
                         required
                       />
                     </div>
                   </div>
+                </div>
 
-                  {/* Password & Confirm */}
-                  <p className="text-xs text-on-surface-variant bg-surface-container-low rounded-lg px-3 py-2 flex items-start gap-2">
+                {/* Vehicle Info */}
+                <div className="border-t pt-4">
+                  <h4 className="text-lg font-bold text-on-surface mb-4">Thông tin xe</h4>
+                  
+                  <div className="space-y-4">
+                    {/* Vehicle Number & Type */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                          Biển số xe
+                        </label>
+                        <input
+                          name="vehicleNumber"
+                          className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                          placeholder="29A-12345"
+                          type="text"
+                          value={driverForm.vehicleNumber}
+                          onChange={handleDriverChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                          Loại xe
+                        </label>
+                        <select
+                          name="vehicleType"
+                          className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all"
+                          value={driverForm.vehicleType}
+                          onChange={handleDriverChange}
+                        >
+                          <option value="bus">Xe bus</option>
+                          <option value="minibus">Minibus</option>
+                          <option value="coach">Xe khách</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Company Name */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                        Tên công ty (nếu có)
+                      </label>
+                      <input
+                        name="companyName"
+                        className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                        placeholder="Công ty vận tải ABC"
+                        type="text"
+                        value={driverForm.companyName}
+                        onChange={handleDriverChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Password Info */}
+                <div className="border-t pt-4">
+                  <p className="text-xs text-on-surface-variant bg-surface-container-low rounded-lg px-3 py-2 flex items-start gap-2 mb-4">
                     <span className="material-symbols-outlined text-sm text-primary mt-0.5">info</span>
                     Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt (#@$%&!*?^_)
                   </p>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-on-surface-variant ml-1">
@@ -234,8 +672,8 @@ function Register() {
                           className="w-full bg-white border-0 rounded-xl p-4 pr-12 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
                           placeholder="••••••••"
                           type={showPassword ? "text" : "password"}
-                          value={form.password}
-                          onChange={handleChange}
+                          value={driverForm.password}
+                          onChange={handleDriverChange}
                           required
                         />
                         <button
@@ -258,91 +696,288 @@ function Register() {
                         className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
                         placeholder="••••••••"
                         type={showPassword ? "text" : "password"}
-                        value={form.confirmPassword}
-                        onChange={handleChange}
+                        value={driverForm.confirmPassword}
+                        onChange={handleDriverChange}
                         required
                       />
                     </div>
                   </div>
+                </div>
 
-                  {/* Terms & Conditions */}
-                  <div className="flex items-start gap-4 py-2 px-1 relative">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary-container rounded-full"></div>
-                    <div className="pl-4 flex items-center">
+                {/* Terms & Conditions */}
+                <div className="flex items-start gap-4 py-2 px-1 relative">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary-container rounded-full"></div>
+                  <div className="pl-4 flex items-center">
+                    <input
+                      type="checkbox"
+                      id="terms-driver"
+                      checked={agreeTerms}
+                      onChange={(e) => setAgreeTerms(e.target.checked)}
+                      className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
+                    />
+                    <label className="ml-3 text-sm text-on-surface-variant leading-tight" htmlFor="terms-driver">
+                      Tôi đồng ý với{" "}
+                      <span className="text-primary font-semibold cursor-pointer hover:underline">
+                        Điều khoản sử dụng
+                      </span>{" "}
+                      và{" "}
+                      <span className="text-primary font-semibold cursor-pointer hover:underline">
+                        Chính sách bảo mật
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-primary to-primary-container text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Đang đăng ký...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined">directions_car</span>
+                      <span>Đăng ký tài xế</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* COMPANY FORM */}
+            {registerType === "company" && (
+              <form onSubmit={handleCompanySubmit} className="space-y-6">
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-on-surface mb-2">Đăng ký Công ty</h3>
+                  <p className="text-on-surface-variant">Tham gia BusGo để quản lý xe buýt của bạn</p>
+                </div>
+
+                {/* Company Info Section */}
+                <div>
+                  <h4 className="text-lg font-bold text-on-surface mb-4">Thông tin công ty</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-on-surface mb-2">Tên công ty *</label>
                       <input
-                        type="checkbox"
-                        id="terms"
-                        checked={agreeTerms}
-                        onChange={(e) => setAgreeTerms(e.target.checked)}
-                        className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
+                        type="text"
+                        name="companyName"
+                        value={companyForm.companyName}
+                        onChange={handleCompanyChange}
+                        className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                        placeholder="Công ty vận tải ABC"
+                        required
                       />
-                      <label className="ml-3 text-sm text-on-surface-variant leading-tight" htmlFor="terms">
-                        Tôi đồng ý với{" "}
-                        <span className="text-primary font-semibold cursor-pointer hover:underline">
-                          Điều khoản sử dụng
-                        </span>{" "}
-                        và{" "}
-                        <span className="text-primary font-semibold cursor-pointer hover:underline">
-                          Chính sách bảo mật
-                        </span>
-                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-on-surface mb-2">Số ĐKKD *</label>
+                        <input
+                          type="text"
+                          name="businessRegistration"
+                          value={companyForm.businessRegistration}
+                          onChange={handleCompanyChange}
+                          className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                          placeholder="0101234567890"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-on-surface mb-2">Mã số thuế</label>
+                        <input
+                          type="text"
+                          name="taxCode"
+                          value={companyForm.taxCode}
+                          onChange={handleCompanyChange}
+                          className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                          placeholder="012345678"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-on-surface mb-2">Địa chỉ *</label>
+                      <input
+                        type="text"
+                        name="address"
+                        value={companyForm.address}
+                        onChange={handleCompanyChange}
+                        className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                        placeholder="123 Đường Nguyễn Huệ"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-on-surface mb-2">Thành phố *</label>
+                      <input
+                        type="text"
+                        name="city"
+                        value={companyForm.city}
+                        onChange={handleCompanyChange}
+                        className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                        placeholder="TP. Hồ Chí Minh"
+                        required
+                      />
                     </div>
                   </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-gradient-to-r from-primary to-primary-container text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>Đang đăng ký...</span>
-                      </>
-                    ) : (
-                      <span>Đăng ký</span>
-                    )}
-                  </button>
-                </form>
-
-                {/* Social Divider */}
-                <div className="relative my-8 flex items-center">
-                  <div className="flex-grow border-t border-outline-variant/20"></div>
-                  <span className="flex-shrink mx-4 text-on-surface-variant text-sm font-medium">hoặc</span>
-                  <div className="flex-grow border-t border-outline-variant/20"></div>
                 </div>
 
-                {/* Social Buttons */}
-                <div className="grid grid-cols-2 gap-4">
-                  <button className="flex items-center justify-center gap-3 bg-surface-container-high text-on-surface font-semibold py-3 px-4 rounded-xl hover:bg-surface-container-highest transition-colors active:scale-95">
-                    <img
-                      alt="Google"
-                      className="w-5 h-5"
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuCariVLBls2Idh5tkIwWWIk-8TLFIfoy4y_mf1Vbq9ElNbpC2169v_2VnpaJKEb5wvPNL03ePg53T4MqWlW1j4r_IYTXhqdFXR2bwsO36TKl1q5OP0r-KaXRm7u-c9SwQIT8a3fuvYnIqLwvFNkGgVmlpK_uiWww9bPdAGhHTJzB7hplVIbhBaEitZ4gKKF1hSS_TjU0-MKtyzFlJwzZA2AWsU78aUtuq96tr78hRorXUEV2cQmXMOakSGStz0wXZsFQ1FbgctT7_A"
+                {/* Contact Info Section */}
+                <div>
+                  <h4 className="text-lg font-bold text-on-surface mb-4">Thông tin liên hệ</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-on-surface mb-2">Email *</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={companyForm.email}
+                        onChange={handleCompanyChange}
+                        className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                        placeholder="company@example.com"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-on-surface mb-2">Số điện thoại *</label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={companyForm.phone}
+                        onChange={handleCompanyChange}
+                        className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                        placeholder="0901234567"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Account Section */}
+                <div>
+                  <h4 className="text-lg font-bold text-on-surface mb-4">Tài khoản đăng nhập</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-on-surface mb-2">Tên đăng nhập *</label>
+                      <input
+                        type="text"
+                        name="username"
+                        value={companyForm.username}
+                        onChange={handleCompanyChange}
+                        className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                        placeholder="company_admin"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-on-surface mb-2">Mật khẩu *</label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            name="password"
+                            value={companyForm.password}
+                            onChange={handleCompanyChange}
+                            className="w-full px-4 py-3 pr-12 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                            placeholder="••••••"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-xl">
+                              {showPassword ? "visibility_off" : "visibility"}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-bold text-on-surface mb-2">Xác nhận mật khẩu *</label>
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="confirmPassword"
+                          value={companyForm.confirmPassword}
+                          onChange={handleCompanyChange}
+                          className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                          placeholder="••••••"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Terms & Conditions */}
+                <div className="flex items-start gap-4 py-2 px-1 relative">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary-container rounded-full"></div>
+                  <div className="pl-4 flex items-center">
+                    <input
+                      type="checkbox"
+                      id="terms-company"
+                      checked={agreeTerms}
+                      onChange={(e) => setAgreeTerms(e.target.checked)}
+                      className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
                     />
-                    <span>Google</span>
-                  </button>
-                  <button className="flex items-center justify-center gap-3 bg-surface-container-high text-on-surface font-semibold py-3 px-4 rounded-xl hover:bg-surface-container-highest transition-colors active:scale-95">
-                    <img
-                      alt="Facebook"
-                      className="w-5 h-5"
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcyTvtc6CRrUIWGcVG3juYnFYM4cRSlEm5en0dxABopP-LVSSQAD9a3OJ10FT4mHImAnu3BxAMSx1cILTq3hMMd4FzwKbnuE0xLc7w-SYlqYAoUfWsd7JqgXP4Do-YRszsdi2CbFDiL7CeZYlllEn4Tki1di1jFCxUPl5AmKOZDGuv7Hi2hAqkJhpeOBs1Q0RmDDo3C9MdiLoFrU2Ycz-EfbHA-2s0-nFn3wqbvl7YPDdMk1i6eH6pQXsWuH6lBT3Z6D-DqQZrtwU"
-                    />
-                    <span>Facebook</span>
-                  </button>
+                    <label className="ml-3 text-sm text-on-surface-variant leading-tight" htmlFor="terms-company">
+                      Tôi đồng ý với{" "}
+                      <span className="text-primary font-semibold cursor-pointer hover:underline">
+                        Điều khoản sử dụng
+                      </span>{" "}
+                      và{" "}
+                      <span className="text-primary font-semibold cursor-pointer hover:underline">
+                        Chính sách bảo mật
+                      </span>
+                    </label>
+                  </div>
                 </div>
 
-                {/* Login Redirect */}
-                <div className="mt-8 text-center">
-                  <p className="text-on-surface-variant">
-                    Đã có tài khoản?{" "}
-                    <Link to="/login" className="text-primary font-bold ml-1 hover:underline">
-                      Đăng nhập
-                    </Link>
-                  </p>
-                </div>
-              </div>
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-primary text-white px-6 py-4 rounded-xl font-bold hover:bg-primary/80 disabled:opacity-60 transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Đang đăng ký...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined">business</span>
+                      <span>Đăng ký công ty</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* Divider */}
+            <div className="relative my-8 flex items-center">
+              <div className="flex-grow border-t border-outline-variant/20"></div>
+              <span className="flex-shrink mx-4 text-on-surface-variant text-sm font-medium">hoặc</span>
+              <div className="flex-grow border-t border-outline-variant/20"></div>
+            </div>
+
+            {/* Login Redirect */}
+            <div className="text-center">
+              <p className="text-on-surface-variant">
+                Đã có tài khoản?{" "}
+                <Link to="/login" className="text-primary font-bold hover:underline">
+                  Đăng nhập
+                </Link>
+              </p>
             </div>
           </div>
         </div>
