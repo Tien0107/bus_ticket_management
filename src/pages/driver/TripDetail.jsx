@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getTripDetail, getTripPassengers, getTripRoute, updateTrip } from "../../api/driver";
+import { getTripDetail, getTripPassengers, getTripRoute, updateTrip, getDriverTrips } from "../../api/driver";
 import { useToast } from "../../context/ToastContext";
 import PassengerList from "../../components/driver/PassengerList";
 import CheckInPanel from "../../components/driver/CheckInPanel";
@@ -25,19 +25,55 @@ export default function TripDetail() {
   const fetchTripDetails = async () => {
     try {
       setLoading(true);
-      const [tripRes, passengersRes, routeRes] = await Promise.all([
-        getTripDetail(tripId),
+      let tripData = null;
+
+      // Thử lấy chi tiết chuyến trực tiếp
+      try {
+        const tripRes = await getTripDetail(tripId);
+        tripData = tripRes.data?.trip || tripRes.data;
+      } catch (err) {
+        // Nếu endpoint không tồn tại (404), lấy từ danh sách chuyến
+        console.warn("Endpoint GET /driver/trip/{id} không tồn tại, lấy từ danh sách chuyến");
+        const tripsRes = await getDriverTrips();
+        const tripsList = Array.isArray(tripsRes.data?.trips) ? tripsRes.data.trips : [];
+        const foundTrip = tripsList.find(t => t.id === parseInt(tripId));
+        
+        if (!foundTrip) {
+          throw new Error("Không tìm thấy chuyến");
+        }
+
+        // Transform API data để match frontend format
+        tripData = {
+          ...foundTrip,
+          id: foundTrip.id,
+          date: foundTrip.departureDate?.split('T')[0],
+          departure: foundTrip.fromLocation,
+          destination: foundTrip.toLocation,
+          departureTime: foundTrip.departureTime,
+          status: foundTrip.status || 'scheduled',
+          passengerCount: foundTrip.passengerCount || 0,
+          revenue: foundTrip.revenue || 0,
+          totalSeats: foundTrip.totalSeats || 45,
+          vehicleNumber: foundTrip.plateNumber,
+          durationMinutes: foundTrip.durationMinutes,
+          distanceKm: foundTrip.distanceKm,
+          type: foundTrip.type,
+        };
+      }
+
+      // Lấy hành khách và tuyến đường song song
+      const [passengersRes, routeRes] = await Promise.all([
         getTripPassengers(tripId),
         getTripRoute(tripId),
       ]);
-      
-      setTrip(tripRes.data?.trip || tripRes.data);
+
+      setTrip(tripData);
       setPassengers(Array.isArray(passengersRes.data?.passengers) ? passengersRes.data.passengers : []);
-      setRoute(routeRes.data?.route || routeRes.data);
+      setRoute(routeRes.data?.stops ? { stops: routeRes.data.stops } : routeRes.data);
       setError(null);
     } catch (err) {
       console.error("Lỗi tải chi tiết chuyến:", err);
-      setError("Không thể tải chi tiết chuyến");
+      setError(err.response?.status === 404 ? "Không tìm thấy chuyến này" : "Không thể tải chi tiết chuyến");
     } finally {
       setLoading(false);
     }
@@ -46,9 +82,9 @@ export default function TripDetail() {
   const handleStartTrip = async () => {
     try {
       setUpdating(true);
-      await updateTrip(tripId, { status: "in_progress" });
+      await updateTrip(tripId, { status: "running" });
       addToast("Bắt đầu chuyến thành công", "success");
-      setTrip({ ...trip, status: "in_progress" });
+      setTrip({ ...trip, status: "running" });
     } catch (err) {
       console.error("Lỗi bắt đầu chuyến:", err);
       addToast("Bắt đầu chuyến thất bại", "error");
@@ -107,6 +143,8 @@ export default function TripDetail() {
     const statusMap = {
       pending: { label: "Sắp tới", color: "bg-blue-100 text-blue-700" },
       upcoming: { label: "Sắp tới", color: "bg-blue-100 text-blue-700" },
+      scheduled: { label: "Sắp tới", color: "bg-blue-100 text-blue-700" },
+      running: { label: "Đang chạy", color: "bg-green-100 text-green-700" },
       in_progress: { label: "Đang chạy", color: "bg-green-100 text-green-700" },
       completed: { label: "Hoàn thành", color: "bg-gray-100 text-gray-700" },
       cancelled: { label: "Hủy", color: "bg-red-100 text-red-700" },
@@ -176,9 +214,7 @@ export default function TripDetail() {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {trip.status === "pending" || trip.status === "upcoming" ? (
+        {/*(trip.status === "pending" || trip.status === "upcoming" || trip.status === "scheduled") ? (
             <button
               onClick={handleStartTrip}
               disabled={updating}
@@ -186,6 +222,8 @@ export default function TripDetail() {
             >
               <span className="material-symbols-outlined">play_arrow</span>
               Bắt đầu chuyến
+            </button>
+          ) : (trip.status === "in_progress" || trip.status === "running")
             </button>
           ) : trip.status === "in_progress" ? (
             <button
@@ -196,7 +234,7 @@ export default function TripDetail() {
               <span className="material-symbols-outlined">check_circle</span>
               Kết thúc chuyến
             </button>
-          ) : null}
+          )(trip.status === "in_progress" || trip.status === "running" || trip.status === "pending" || trip.status === "upcoming" || trip.status === "scheduled")
 
           {trip.status === "in_progress" || trip.status === "pending" || trip.status === "upcoming" ? (
             <button
