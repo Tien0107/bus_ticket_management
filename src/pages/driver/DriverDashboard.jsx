@@ -21,7 +21,7 @@ const DriverDashboard = () => {
   const fetchTrips = async () => {
     try {
       setLoading(true);
-      const response = await getDriverTrips({ limit: 20 });
+      const response = await getDriverTrips();
       setTrips(Array.isArray(response.data?.trips) ? response.data.trips : []);
       setError(null);
     } catch (err) {
