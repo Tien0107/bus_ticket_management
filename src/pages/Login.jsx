@@ -39,7 +39,7 @@ function Login() {
       let redirectUrl = "/";
       if (user.role === "driver") {
         redirectUrl = "/driver/dashboard";
-      } else if (user.role === "company") {
+      } else if (user.role === "admin") {
         redirectUrl = "/company/dashboard";
       } else if (user.role === "super_admin" || user.role === "superadmin") {
         redirectUrl = "/super-admin/dashboard";
