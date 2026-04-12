@@ -21,10 +21,13 @@ const DriverDashboard = () => {
   const fetchTrips = async () => {
     try {
       setLoading(true);
+      
       const response = await getDriverTrips();
-      console.log("API Response:", response); // DEBUG
-      let tripsData = Array.isArray(response.data?.trips) ? response.data.trips : [];
-      console.log("Trips from API:", tripsData); // DEBUG
+      let tripsData = Array.isArray(response.data?.trips) 
+        ? response.data.trips 
+        : Array.isArray(response.data?.data) 
+        ? response.data.data 
+        : [];
       
       // Transform API data to match frontend format
       tripsData = tripsData.map(trip => ({
@@ -38,17 +41,6 @@ const DriverDashboard = () => {
         totalSeats: trip.totalSeats || 45
       }));
       
-      console.log("Transformed trips:", tripsData); // DEBUG
-      if (tripsData.length > 0) {
-        console.log("First trip fields:", {
-          id: tripsData[0].id,
-          date: tripsData[0].date,
-          departure: tripsData[0].departure,
-          destination: tripsData[0].destination,
-          status: tripsData[0].status,
-          departureTime: tripsData[0].departureTime
-        });
-      }
       setTrips(tripsData);
       setError(null);
     } catch (err) {
@@ -60,7 +52,7 @@ const DriverDashboard = () => {
   };
 
   // Filter trips by status
-  const upcomingTrips = trips.filter((t) => t.status === "pending" || t.status === "upcoming" || t.status === "scheduled");
+  const upcomingTrips = trips.filter((t) => t.status === "pending" || t.status === "upcoming" || t.status === "scheduled" || t.status === "running");
   const inProgressTrips = trips.filter((t) => t.status === "in_progress" || t.status === "running");
   const completedTrips = trips.filter((t) => t.status === "completed");
 
