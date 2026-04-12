@@ -21,7 +21,7 @@ export default function CompanyProfile() {
     try {
       setLoading(true);
       const response = await getCompanyProfile();
-      const data = response.data?.company || response.data;
+      const data = response.data?.user || response.data;
       setProfile(data);
       setFormData(data);
     } catch (err) {

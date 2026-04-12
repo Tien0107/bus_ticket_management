@@ -21,7 +21,6 @@ export default function Vehicles() {
   });
   const [seats, setSeats] = useState([]);
   const [seatInput, setSeatInput] = useState("");
-
   useEffect(() => {
     fetchVehicles();
   }, []);
@@ -43,17 +42,6 @@ export default function Vehicles() {
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-  };
-
-  const handleAddSeat = () => {
-    if (seatInput.trim()) {
-      setSeats([...seats, seatInput]);
-      setSeatInput("");
-    }
-  };
-
-  const handleRemoveSeat = (idx) => {
-    setSeats(seats.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = async (e) => {
@@ -80,19 +68,25 @@ export default function Vehicles() {
         await updateVehicle(editingVehicle.id, payload);
         addToast("Cập nhật xe thành công", "success");
       } else {
-        await createVehicle(payload);
+        const createResponse = await createVehicle(payload);
         addToast("Tạo xe mới thành công", "success");
-      }
-
-      // Add seats if any
-      if (seats.length > 0 && !editingVehicle) {
-        // POST seats after creating vehicle
-        // This requires the new vehicle ID from response
+        
+        // Call manageSeat to create seats
+        if (createResponse.data?.vehicle?.id) {
+          try {
+            await manageSeat({
+              vehicleId: createResponse.data.vehicle.id,
+              seatCount: payload.totalSeats.toString(),
+            });
+            console.log(`Tạo ${payload.totalSeats} ghế thành công`);
+          } catch (seatErr) {
+            console.warn("Cảnh báo: Tạo ghế thất bại, nhưng xe đã tạo", seatErr);
+          }
+        }
       }
 
       setShowModal(false);
       setEditingVehicle(null);
-      setSeats([]);
       fetchVehicles();
     } catch (err) {
       console.error("Lỗi lưu xe:", err);
