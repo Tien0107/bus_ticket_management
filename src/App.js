@@ -7,6 +7,7 @@ import Toast from "./components/Toast";
 // Auth & Public
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import CompanySignup from "./pages/CompanySignup";
 import Home from "./pages/Home";
 
 // Layouts
@@ -45,6 +46,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/company-signup" element={<CompanySignup />} />
 
           {/* Customer Routing */}
           <Route path="/booking/:tripId" element={<Booking />} />

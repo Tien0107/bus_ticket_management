@@ -19,12 +19,10 @@ export default function Drivers() {
     try {
       setLoading(true);
       const response = await getDrivers();
-      console.log("API Response:", response.data); // DEBUG
       setDrivers(Array.isArray(response.data?.drivers) ? response.data.drivers : []);
       setError(null);
     } catch (err) {
       console.error("Lỗi tải danh sách tài xế:", err);
-      console.error("Error details:", err.response?.data); // DEBUG
       setError("Không thể tải danh sách tài xế");
     } finally {
       setLoading(false);

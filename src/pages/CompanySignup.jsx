@@ -14,10 +14,6 @@ export default function CompanySignup() {
     username: "",
     password: "",
     confirmPassword: "",
-    businessRegistration: "",
-    address: "",
-    city: "",
-    taxCode: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -33,7 +29,9 @@ export default function CompanySignup() {
 
     if (!formData.companyName.trim()) newErrors.companyName = "Tên công ty bắt buộc";
     if (!formData.email.trim()) newErrors.email = "Email bắt buộc";
+    if (!formData.email.includes("@")) newErrors.email = "Email không hợp lệ";
     if (!formData.phone.trim()) newErrors.phone = "Số điện thoại bắt buộc";
+    if (formData.phone.length < 10) newErrors.phone = "Số điện thoại tối thiểu 10 ký tự";
     if (!formData.username.trim()) newErrors.username = "Tên đăng nhập bắt buộc";
     if (formData.username.length < 3) newErrors.username = "Tên đăng nhập tối thiểu 3 ký tự";
 
@@ -42,10 +40,6 @@ export default function CompanySignup() {
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Mật khẩu không khớp";
     }
-
-    if (!formData.businessRegistration.trim()) newErrors.businessRegistration = "Số đăng ký kinh doanh bắt buộc";
-    if (!formData.address.trim()) newErrors.address = "Địa chỉ bắt buộc";
-    if (!formData.city.trim()) newErrors.city = "Thành phố bắt buộc";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -78,6 +72,7 @@ export default function CompanySignup() {
       }, 500);
     } catch (err) {
       console.error("Signup error:", err);
+      console.error("Error response:", err.response?.data); // ← Debug: xem lỗi từ BE
       const errorMsg = err.response?.data?.message || "Đăng ký thất bại";
       addToast(errorMsg, "error");
     } finally {
@@ -111,58 +106,6 @@ export default function CompanySignup() {
                   placeholder="Công ty vận tải ABC"
                 />
                 {errors.companyName && <p className="text-red-600 text-sm mt-1">{errors.companyName}</p>}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2">Số ĐKKD *</label>
-                  <input
-                    type="text"
-                    name="businessRegistration"
-                    value={formData.businessRegistration}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                    placeholder="0101234567890"
-                  />
-                  {errors.businessRegistration && <p className="text-red-600 text-sm mt-1">{errors.businessRegistration}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2">Mã số thuế</label>
-                  <input
-                    type="text"
-                    name="taxCode"
-                    value={formData.taxCode}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                    placeholder="012345678"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-2">Địa chỉ *</label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                  placeholder="123 Đường Nguyễn Huệ"
-                />
-                {errors.address && <p className="text-red-600 text-sm mt-1">{errors.address}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-2">Thành phố *</label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                  placeholder="TP. Hồ Chí Minh"
-                />
-                {errors.city && <p className="text-red-600 text-sm mt-1">{errors.city}</p>}
               </div>
             </div>
           </div>

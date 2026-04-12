@@ -189,7 +189,7 @@ function Register() {
     e.preventDefault();
     setError("");
 
-    // Validation
+    // Validation - chỉ những field cần thiết
     const newErrors = {};
     if (!companyForm.companyName.trim()) newErrors.companyName = "Tên công ty bắt buộc";
     if (!companyForm.email.trim()) newErrors.email = "Email bắt buộc";
@@ -201,9 +201,6 @@ function Register() {
     if (companyForm.password !== companyForm.confirmPassword) {
       newErrors.confirmPassword = "Mật khẩu không khớp";
     }
-    if (!companyForm.businessRegistration.trim()) newErrors.businessRegistration = "Số ĐKKD bắt buộc";
-    if (!companyForm.address.trim()) newErrors.address = "Địa chỉ bắt buộc";
-    if (!companyForm.city.trim()) newErrors.city = "Thành phố bắt buộc";
 
     if (Object.keys(newErrors).length > 0) {
       setError(Object.values(newErrors)[0]);
@@ -217,17 +214,19 @@ function Register() {
 
     setLoading(true);
 
+    // Map payload đúng theo API contract
     const payload = {
-      companyName: companyForm.companyName,
-      email: companyForm.email,
-      phone: companyForm.phone,
       username: companyForm.username,
+      fullName: companyForm.companyName,
+      contactInfo: {
+        email: companyForm.email,
+        phone: companyForm.phone,
+      },
       password: companyForm.password,
-      businessRegistration: companyForm.businessRegistration,
-      address: companyForm.address,
-      city: companyForm.city,
-      taxCode: companyForm.taxCode || null,
+      companyId: 1,
     };
+
+    console.log("Company signup payload:", payload);
 
     try {
       await companySignUp(payload);
@@ -311,15 +310,9 @@ function Register() {
                 
                 <button
                   onClick={() => {
-                    setRegisterType("company");
-                    setError("");
-                    setAgreeTerms(false);
+                    navigate("/company-signup");
                   }}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
-                    registerType === "company"
-                      ? "bg-primary text-white shadow-lg shadow-primary/30"
-                      : "bg-surface-container-high text-on-surface hover:bg-surface-container-highest"
-                  }`}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all bg-surface-container-high text-on-surface hover:bg-surface-container-highest`}
                 >
                   <span className="material-symbols-outlined">business</span>
                   Công ty
