@@ -37,6 +37,10 @@ function DriverSignup() {
       setError("Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật.");
       return;
     }
+    if (form.phone.length < 10) {
+      setError("Số điện thoại phải có ít nhất 10 ký tự.");
+      return;
+    }
     if (form.password !== form.confirmPassword) {
       setError("Mật khẩu xác nhận không khớp.");
       return;
@@ -56,28 +60,41 @@ function DriverSignup() {
     const payload = {
       username: form.username,
       fullName: form.fullName,
-      email: form.email,
-      phone: form.phone,
       password: form.password,
       licenseNumber: form.licenseNumber,
       vehicleNumber: form.vehicleNumber,
       vehicleType: form.vehicleType,
       companyName: form.companyName,
-      contactInfo: {},
+      companyId: 1,  // ← ADD missing companyId
+      contactInfo: {
+        email: form.email,    // ← MOVE into contactInfo
+        phone: form.phone,    // ← MOVE into contactInfo
+      },
     };
 
     try {
+      console.log("📤 Driver Signup Payload:", payload);
       const res = await driverSignUp(payload);
+      console.log("📥 Response:", res.data);
       addToast("Đăng ký thành công", "success");
       
       setTimeout(() => {
         navigate("/login");
       }, 500);
     } catch (err) {
+      console.log("🔴 ERROR Full:", err);
+      console.log("🔴 ERROR Response:", err.response);
+      console.log("🔴 ERROR Data:", err.response?.data);
+      console.log("🔴 ERROR Status:", err.response?.status);
+      
       const data = err.response?.data;
       let errorMsg = "Đăng ký thất bại";
       
       if (data?.issues && Array.isArray(data.issues)) {
+        console.log("🔴 Issues detailed:");
+        data.issues.forEach((issue, idx) => {
+          console.log(`  Issue ${idx + 1}: Field="${issue.field}", Reason="${issue.reason}"`);
+        });
         errorMsg = data.issues.map((i) => i.reason || i.field).join(". ");
         setError(errorMsg);
       } else {
