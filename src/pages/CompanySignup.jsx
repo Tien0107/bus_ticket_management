@@ -58,17 +58,17 @@ export default function CompanySignup() {
     try {
       setLoading(true);
       const payload = {
-        companyName: formData.companyName,
-        email: formData.email,
-        phone: formData.phone,
         username: formData.username,
+        fullName: formData.companyName,
+        contactInfo: {
+          email: formData.email,
+          phone: formData.phone,
+        },
         password: formData.password,
-        businessRegistration: formData.businessRegistration,
-        address: formData.address,
-        city: formData.city,
-        taxCode: formData.taxCode || null,
+        companyId: 1, // Default company ID
       };
 
+      console.log("Signup payload:", payload);
       const res = await companySignUp(payload);
       
       addToast("Đăng ký công ty thành công!", "success");
