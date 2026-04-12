@@ -32,27 +32,32 @@ export const updateVehicle = (vehicleId, data) => {
   return axiosClient.put(`/company-admin/vehicle/${vehicleId}`, data);
 };
 
-// 7. Delete Vehicle Seat
+// 7. Delete Vehicle
+export const deleteVehicle = (vehicleId) => {
+  return axiosClient.delete(`/company-admin/vehicle/${vehicleId}`);
+};
+
+// 8. Delete Vehicle Seat
 export const deleteVehicleSeat = (vehicleId) => {
   return axiosClient.delete(`/company-admin/vehicle/${vehicleId}/seat`);
 };
 
-// 8. Add/Update Seat Configuration
+// 9. Add/Update Seat Configuration
 export const manageSeat = (data) => {
   return axiosClient.post("/company-admin/seat", data);
 };
 
-// 9. Get All Drivers
+// 10. Get All Drivers
 export const getDrivers = (params = {}) => {
   return axiosClient.get("/company-admin/driver", { params });
 };
 
-// 10. Get All Staff
+// 11. Get All Staff
 export const getStaff = (params = {}) => {
   return axiosClient.get("/company-admin/staff", { params });
 };
 
-// 11. Update Staff Role
+// 12. Update Staff Role
 export const updateStaffRole = (userId, roleData) => {
   return axiosClient.put(`/company-admin/staff/${userId}/role`, roleData);
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getVehicles, createVehicle, updateVehicle, manageSeat, deleteVehicleSeat } from "../../api/company";
+import { getVehicles, createVehicle, updateVehicle, deleteVehicle, manageSeat, deleteVehicleSeat } from "../../api/company";
 import { useToast } from "../../context/ToastContext";
 
 export default function Vehicles() {
@@ -114,6 +114,20 @@ export default function Vehicles() {
     setShowModal(true);
   };
 
+  const handleDelete = async (vehicleId) => {
+    if (!window.confirm("Bạn chắc chắn muốn xóa xe này?")) {
+      return;
+    }
+    try {
+      await deleteVehicle(vehicleId);
+      addToast("Xóa xe thành công", "success");
+      fetchVehicles();
+    } catch (err) {
+      console.error("Lỗi xóa xe:", err);
+      addToast("Lỗi xóa xe", "error");
+    }
+  };
+
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingVehicle(null);
@@ -216,7 +230,10 @@ export default function Vehicles() {
                     <span className="material-symbols-outlined text-lg">edit</span>
                     <span>Sửa</span>
                   </button>
-                  <button className="flex-1 px-3 py-2 bg-red-100 text-red-600 rounded-lg font-semibold hover:bg-red-200 transition-all flex items-center justify-center gap-1">
+                  <button
+                    onClick={() => handleDelete(vehicle.id)}
+                    className="flex-1 px-3 py-2 bg-red-100 text-red-600 rounded-lg font-semibold hover:bg-red-200 transition-all flex items-center justify-center gap-1"
+                  >
                     <span className="material-symbols-outlined text-lg">delete</span>
                     <span>Xóa</span>
                   </button>
