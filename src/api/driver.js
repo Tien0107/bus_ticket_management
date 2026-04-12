@@ -8,8 +8,10 @@ export const driverSignUp = (data) => {
 // ===== Quản lý chuyến =====
 
 // Lấy danh sách chuyến của tài xế
-export const getDriverTrips = (params) => {
-  return axiosClient.get("/driver/trip", { params });
+export const getDriverTrips = () => {
+  return axiosClient.get("/driver/trip", {
+    params: { orderBy: "asc" }
+  });
 };
 
 // Cập nhật thông tin chuyến

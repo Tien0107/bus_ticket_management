@@ -21,8 +21,27 @@ const DriverDashboard = () => {
   const fetchTrips = async () => {
     try {
       setLoading(true);
-      const response = await getDriverTrips({ limit: 20 });
-      setTrips(Array.isArray(response.data?.trips) ? response.data.trips : []);
+      
+      const response = await getDriverTrips();
+      let tripsData = Array.isArray(response.data?.trips) 
+        ? response.data.trips 
+        : Array.isArray(response.data?.data) 
+        ? response.data.data 
+        : [];
+      
+      // Transform API data to match frontend format
+      tripsData = tripsData.map(trip => ({
+        ...trip,
+        date: trip.departureDate?.split('T')[0], // "2026-04-11"
+        departure: trip.fromLocation,
+        destination: trip.toLocation,
+        status: trip.status || 'scheduled', // Default: scheduled nếu API không trả về
+        passengerCount: trip.passengerCount || 0,
+        revenue: trip.revenue || 0,
+        totalSeats: trip.totalSeats || 45
+      }));
+      
+      setTrips(tripsData);
       setError(null);
     } catch (err) {
       console.error("Lỗi khi lấy danh sách chuyến:", err);
@@ -33,8 +52,8 @@ const DriverDashboard = () => {
   };
 
   // Filter trips by status
-  const upcomingTrips = trips.filter((t) => t.status === "pending" || t.status === "upcoming");
-  const inProgressTrips = trips.filter((t) => t.status === "in_progress");
+  const upcomingTrips = trips.filter((t) => t.status === "pending" || t.status === "upcoming" || t.status === "scheduled" || t.status === "running");
+  const inProgressTrips = trips.filter((t) => t.status === "in_progress" || t.status === "running");
   const completedTrips = trips.filter((t) => t.status === "completed");
 
   // Calculate stats
