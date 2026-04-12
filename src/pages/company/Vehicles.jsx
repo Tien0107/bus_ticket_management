@@ -102,7 +102,15 @@ export default function Vehicles() {
 
   const handleEdit = (vehicle) => {
     setEditingVehicle(vehicle);
-    setFormData(vehicle);
+    setFormData({
+      vehicleNumber: vehicle.plateNumber || vehicle.vehicleNumber,
+      type: vehicle.type,
+      capacity: vehicle.totalSeats || vehicle.capacity,
+      model: vehicle.model,
+      year: vehicle.year,
+      status: vehicle.status,
+      description: vehicle.description,
+    });
     setShowModal(true);
   };
 
@@ -173,7 +181,7 @@ export default function Vehicles() {
               <div key={vehicle.id} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-xl font-bold text-on-surface">{vehicle.vehicleNumber}</h3>
+                    <h3 className="text-xl font-bold text-on-surface">{vehicle.plateNumber || vehicle.vehicleNumber}</h3>
                     <p className="text-on-surface-variant text-sm">{vehicle.model}</p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -192,7 +200,7 @@ export default function Vehicles() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-on-surface-variant">Sức chứa:</span>
-                    <span className="font-semibold">{vehicle.capacity} chỗ</span>
+                    <span className="font-semibold">{vehicle.totalSeats || vehicle.capacity} chỗ</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-on-surface-variant">Năm sản xuất:</span>
