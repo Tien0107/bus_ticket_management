@@ -35,7 +35,7 @@ export default function CompanyDashboard() {
         vehicles: vehiclesRes.data?.vehicles?.length || 0,
         drivers: driversRes.data?.drivers?.length || 0,
         staff: staffRes.data?.staff?.length || 0,
-        company: profileRes.data?.company || profileRes.data,
+        company: profileRes.data?.user || profileRes.data,
       });
     } catch (err) {
       console.error("Lỗi tải dashboard:", err);

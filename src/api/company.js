@@ -33,8 +33,8 @@ export const updateVehicle = (vehicleId, data) => {
 };
 
 // 7. Delete Vehicle Seat
-export const deleteVehicleSeat = (vehicleId, seatId) => {
-  return axiosClient.delete(`/company-admin/vehicle/${vehicleId}/seat/${seatId}`);
+export const deleteVehicleSeat = (vehicleId) => {
+  return axiosClient.delete(`/company-admin/vehicle/${vehicleId}/seat`);
 };
 
 // 8. Add/Update Seat Configuration

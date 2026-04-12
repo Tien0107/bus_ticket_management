@@ -33,7 +33,7 @@ export default function Staff() {
 
   const handleRoleChange = async () => {
     try {
-      await updateStaffRole(selectedStaff.id, { role: newRole });
+      await updateStaffRole(selectedStaff.userId, { role: newRole });
       addToast("Cập nhật chức vụ thành công", "success");
       setShowRoleModal(false);
       setSelectedStaff(null);

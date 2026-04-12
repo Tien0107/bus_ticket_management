@@ -12,8 +12,8 @@ export default function Vehicles() {
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [formData, setFormData] = useState({
     vehicleNumber: "",
-    type: "sedan",
-    capacity: 4,
+    type: "seat",
+    capacity: 24,
     model: "",
     year: new Date().getFullYear(),
     status: "active",
@@ -59,11 +59,22 @@ export default function Vehicles() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Validate type field
+      if (formData.type !== "seat" && formData.type !== "bed") {
+        addToast("Loại xe phải là 'seat' hoặc 'bed'", "error");
+        return;
+      }
+
+      // Map field names to API requirements
       const payload = {
-        ...formData,
-        capacity: parseInt(formData.capacity),
-        year: parseInt(formData.year),
+        plateNumber: formData.vehicleNumber || "",
+        type: formData.type,
+        totalSeats: parseInt(formData.capacity) || 24,
+        status: formData.status || "active",
+        companyId: 1,
       };
+
+      console.log("Payload gửi đi:", payload);
 
       if (editingVehicle) {
         await updateVehicle(editingVehicle.id, payload);
@@ -100,8 +111,8 @@ export default function Vehicles() {
     setEditingVehicle(null);
     setFormData({
       vehicleNumber: "",
-      type: "sedan",
-      capacity: 4,
+      type: "seat",
+      capacity: 24,
       model: "",
       year: new Date().getFullYear(),
       status: "active",
@@ -125,8 +136,8 @@ export default function Vehicles() {
               setEditingVehicle(null);
               setFormData({
                 vehicleNumber: "",
-                type: "sedan",
-                capacity: 4,
+                type: "seat",
+                capacity: 24,
                 model: "",
                 year: new Date().getFullYear(),
                 status: "active",
@@ -262,10 +273,8 @@ export default function Vehicles() {
                       onChange={handleFormChange}
                       className="w-full px-4 py-2 bg-surface-container-low border-0 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                     >
-                      <option value="sedan">Sedan</option>
-                      <option value="bus">Bus</option>
-                      <option value="coach">Coach</option>
-                      <option value="minibus">Minibus</option>
+                      <option value="seat">Ghế ngồi (Seat)</option>
+                      <option value="bed">Giường nằm (Bed)</option>
                     </select>
                   </div>
                   <div>
