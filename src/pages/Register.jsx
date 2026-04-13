@@ -143,20 +143,26 @@ function Register() {
       setError("Mật khẩu phải có ít nhất 6 ký tự.");
       return;
     }
+    if (driverForm.phone.length < 10) {
+      setError("Số điện thoại phải có ít nhất 10 ký tự.");
+      return;
+    }
 
     setLoading(true);
 
     const payload = {
       username: driverForm.username,
       fullName: driverForm.fullName,
-      email: driverForm.email,
-      phone: driverForm.phone,
       password: driverForm.password,
       licenseNumber: driverForm.licenseNumber,
       vehicleNumber: driverForm.vehicleNumber,
       vehicleType: driverForm.vehicleType,
       companyName: driverForm.companyName,
-      contactInfo: {},
+      companyId: 1,
+      contactInfo: {
+        email: driverForm.email,
+        phone: driverForm.phone,
+      },
     };
 
     try {
@@ -310,9 +316,15 @@ function Register() {
                 
                 <button
                   onClick={() => {
-                    navigate("/company-signup");
+                    setRegisterType("company");
+                    setError("");
+                    setAgreeTerms(false);
                   }}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all bg-surface-container-high text-on-surface hover:bg-surface-container-highest`}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                    registerType === "company"
+                      ? "bg-primary text-white shadow-lg shadow-primary/30"
+                      : "bg-surface-container-high text-on-surface hover:bg-surface-container-highest"
+                  }`}
                 >
                   <span className="material-symbols-outlined">business</span>
                   Công ty
