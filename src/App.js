@@ -6,12 +6,13 @@ import Register from "./pages/Register";
 import Home from "./pages/Home";
 
 // Layouts
-import MainLayout from "./components/layouts/MainLayout";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 
 // Customer Pages
 import Booking from "./pages/customer/Booking";
 import MyTickets from "./pages/customer/MyTickets";
+import TicketDetail from "./pages/customer/TicketDetail";
+import MyCoupons from "./pages/customer/MyCoupons";
 
 // Driver Pages
 import DriverDashboard from "./pages/driver/DriverDashboard";
@@ -40,6 +41,8 @@ function App() {
         {/* Customer Routing */}
         <Route path="/booking/:tripId" element={<Booking />} />
         <Route path="/my-tickets" element={<MyTickets />} />
+        <Route path="/my-tickets/:ticketId" element={<TicketDetail />} />
+        <Route path="/my-coupons" element={<MyCoupons />} />
 
         {/* 2. Admin & Driver Dashboard Routes (Dùng chung DashboardLayout) */}
         <Route element={<DashboardLayout />}>

@@ -50,9 +50,9 @@ const Home = () => {
     setSearchError(null);
     try {
       const response = await getTripSchedules({
-        from: departure,
-        to: destination,
-        date: date,
+        from: departure ? departure : undefined,
+        to: destination ? destination : undefined,
+        date: date ? date : undefined,
         limit: 10,
         orderBy: "asc"
       });
@@ -60,7 +60,11 @@ const Home = () => {
       setSchedules(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Lỗi tìm chuyến:", err);
-      setSearchError("Không thể tìm chuyến. Vui lòng thử lại sau.");
+      if (err.response?.status === 401) {
+         setSearchError("Vui lòng Đăng nhập ở góc trên bên phải để tìm và đặt vé.");
+      } else {
+         setSearchError("Không thể tìm chuyến. Vui lòng thử lại sau.");
+      }
     } finally {
       setLoadingSearch(false);
     }
@@ -95,9 +99,9 @@ const Home = () => {
     const fetchCompanies = async () => {
       try {
         setCompaniesLoading(true);
-        const response = await getCompanies();
-        // API có thể trả về data ở response.data hoặc response.data.data
-        const data = response.data?.data || response.data || [];
+        const response = await getCompanies({ limit: 10 });
+        // API trả về object có chứa mảng companies
+        const data = response.data?.companies || response.data?.data || [];
         setCompanies(Array.isArray(data) ? data : []);
         setCompaniesError(null);
       } catch (err) {
@@ -158,6 +162,21 @@ const Home = () => {
                     <p className="text-sm font-bold text-on-surface truncate">{user.fullName || user.username}</p>
                     <p className="text-xs text-on-surface-variant truncate">{user.email}</p>
                   </div>
+                  <button
+                    onClick={() => { navigate("/my-tickets"); setShowUserMenu(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-lg text-primary">confirmation_number</span>
+                    Vé của tôi
+                  </button>
+                  <button
+                    onClick={() => { navigate("/my-coupons"); setShowUserMenu(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-lg text-secondary">sell</span>
+                    Khuyến mãi của tôi
+                  </button>
+                  <div className="border-t border-outline-variant/10"></div>
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -387,15 +406,16 @@ const Home = () => {
                       </div>
                     </div>
                     
-                    {/* Hành động & Giá */}
-                    <div className="w-full md:w-auto md:min-w-[180px] flex flex-col items-end border-t md:border-t-0 md:border-l border-outline-variant/20 pt-4 md:pt-0 md:pl-6">
-                       <p className="text-secondary font-black text-xl tracking-tight mb-3">
-                         Liên hệ
-                       </p>
-                       <Link to={`/booking/${schedule.id || ''}`} className="w-full text-center bg-secondary-container text-on-secondary-container py-2.5 px-6 rounded-xl font-bold hover:bg-secondary hover:text-white transition-colors">
+                       <Link 
+                         to={`/booking/${schedule.id || ''}`} 
+                         state={{ 
+                           schedule: schedule, 
+                           companyId: schedule.company?.id || schedule.companyId, 
+                           date: date 
+                         }} 
+                         className="w-full md:w-auto md:px-10 shrink-0 text-center bg-secondary-container text-on-secondary-container py-2.5 px-6 rounded-xl font-bold hover:bg-secondary hover:text-white transition-colors">
                          Chọn vé
                        </Link>
-                    </div>
                   </div>
                 ))}
               </div>

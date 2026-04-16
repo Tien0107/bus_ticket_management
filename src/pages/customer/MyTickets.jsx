@@ -92,16 +92,23 @@ export default function MyTickets() {
                    </div>
                    
                    <div className="flex gap-3 w-full md:w-auto">
-                      {isPending && (
+                      {isPending ? (
                          <>
                            <button onClick={() => handlePayVNPay(t.id)} className="flex-1 md:flex-none border border-primary text-primary hover:bg-primary hover:text-white transition-colors px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm">
                              <span className="material-symbols-outlined text-[18px]">account_balance</span>
                              Thanh toán VNPay
                            </button>
+                           <button onClick={() => navigate(`/my-tickets/${t.id}`)} className="flex-1 md:flex-none border border-primary text-primary hover:bg-primary hover:text-white transition-colors px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm">
+                             Xem chi tiết
+                           </button>
                            <button onClick={() => handleCancel(t.id)} className="flex-1 md:flex-none bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2 rounded-xl font-bold transition-colors">
                              Hủy
                            </button>
                          </>
+                      ) : (
+                         <button onClick={() => navigate(`/my-tickets/${t.id}`)} className="flex-1 md:flex-none border border-primary text-primary hover:bg-primary hover:text-white transition-colors px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm">
+                           Xem vé
+                         </button>
                       )}
                    </div>
                  </div>

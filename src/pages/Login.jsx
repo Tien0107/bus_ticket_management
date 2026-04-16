@@ -19,7 +19,7 @@ function Login() {
       const res = await signIn({ email, password });
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-      navigate("/home");
+      navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại.");
     } finally {

@@ -62,7 +62,7 @@ export default function Booking() {
       await Promise.all(bookingPromises);
 
       alert("Đặt vé thành công! Bạn sẽ được chuyển sang trang quản lý vé.");
-      navigate("/home"); // Tạm thời về Home trước khi làm My Tickets
+      navigate("/my-tickets"); // Chuyển sang trang quản lý vé
     } catch (err) {
       console.error("Booking Error:", err);
       // Hiển thị mảng validation lỗi của backend nếu có
