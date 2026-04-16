@@ -13,12 +13,18 @@ export default function Drivers() {
 
   useEffect(() => {
     fetchDrivers();
-  }, []);
+  }, [filterStatus]);
 
   const fetchDrivers = async () => {
     try {
       setLoading(true);
-      const response = await getDrivers();
+      const params = {
+        status: filterStatus !== "all" ? filterStatus : undefined,
+        limit: 100,
+      };
+      Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
+      
+      const response = await getDrivers(params);
       setDrivers(Array.isArray(response.data?.drivers) ? response.data.drivers : []);
       setError(null);
     } catch (err) {
@@ -53,8 +59,10 @@ export default function Drivers() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-on-surface">Quản lý tài xế</h1>
-          <p className="text-on-surface-variant mt-2">Danh sách tất cả tài xế của công ty</p>
+          <div>
+            <h1 className="text-4xl font-extrabold text-on-surface">Quản lý tài xế</h1>
+            <p className="text-on-surface-variant mt-2">Danh sách tất cả tài xế của công ty</p>
+          </div>
         </div>
 
         {/* Filters */}
@@ -110,8 +118,6 @@ export default function Drivers() {
                     <th className="px-6 py-4 text-left text-sm font-bold text-on-surface">Tên</th>
                     <th className="px-6 py-4 text-left text-sm font-bold text-on-surface">Email</th>
                     <th className="px-6 py-4 text-left text-sm font-bold text-on-surface">SĐT</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-on-surface">Bằng lái</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-on-surface">Xe</th>
                     <th className="px-6 py-4 text-left text-sm font-bold text-on-surface">Trạng thái</th>
                     <th className="px-6 py-4 text-center text-sm font-bold text-on-surface">Hành động</th>
                   </tr>
@@ -124,10 +130,7 @@ export default function Drivers() {
                           <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
                             <span className="material-symbols-outlined text-primary">person</span>
                           </div>
-                          <div>
-                            <p className="font-semibold text-on-surface">{driver.fullName}</p>
-                            <p className="text-xs text-on-surface-variant">ID: {driver.id}</p>
-                          </div>
+                          <p className="font-semibold text-on-surface">{driver.fullName}</p>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -137,16 +140,8 @@ export default function Drivers() {
                         <p className="text-on-surface">{driver.phone}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-on-surface font-mono">{driver.licenseNumber}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-on-surface">{driver.vehicleNumber || "—"}</p>
-                      </td>
-                      <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(driver.status)}`}>
-                          {driver.status === "active" ? "Hoạt động" : 
-                           driver.status === "inactive" ? "Không hoạt động" :
-                           driver.status === "on_leave" ? "Nghỉ phép" : "Tạm ngừng"}
+                          {driver.status === "active" ? "Hoạt động" : driver.status === "inactive" ? "Không hoạt động" : "Tạm ngừng"}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -160,8 +155,8 @@ export default function Drivers() {
           </div>
         )}
 
-        {/* Stats Footer */}
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Stats */}
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-primary">{drivers.length}</p>
             <p className="text-sm text-on-surface-variant">Tổng tài xế</p>
@@ -171,11 +166,7 @@ export default function Drivers() {
             <p className="text-sm text-on-surface-variant">Hoạt động</p>
           </div>
           <div className="bg-white rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-yellow-600">{drivers.filter((d) => d.status === "on_leave").length}</p>
-            <p className="text-sm text-on-surface-variant">Nghỉ phép</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-red-600">{drivers.filter((d) => d.status === "inactive" || d.status === "suspended").length}</p>
+            <p className="text-2xl font-bold text-red-600">{drivers.filter((d) => d.status === "inactive").length}</p>
             <p className="text-sm text-on-surface-variant">Không hoạt động</p>
           </div>
         </div>

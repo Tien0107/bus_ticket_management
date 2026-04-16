@@ -2,6 +2,7 @@ import { useState } from "react";
 import { signIn } from "../api/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
+import { jwtDecode } from "jwt-decode";
 
 function Login() {
   const navigate = useNavigate();
@@ -20,15 +21,21 @@ function Login() {
     try {
       const res = await signIn({ email, password });
       console.log("Login response:", res.data); // Debug
+      console.log("User object:", res.data?.user); // Debug user
       
       // Handle response - support different backend formats
       const token = res.data?.token || res.data?.accessToken;
-      const user = res.data?.user || res.data?.data || { role: "customer" };
+      let user = res.data?.user || res.data?.data || { role: "customer" };
       
       if (!token) {
         setError("Lỗi: Backend không trả về token. Kiểm tra API.");
         return;
       }
+      
+      // Decode token để lấy companyId
+      const decoded = jwtDecode(token);
+      user.companyId = decoded.companyId;
+      console.log("After decode - companyId:", user.companyId); // Debug
       
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getVehicles, createVehicle, updateVehicle, deleteVehicle, manageSeat, deleteVehicleSeat } from "../../api/company";
+import { getVehicles, createVehicle, updateVehicle, manageSeat, deleteVehicleSeat } from "../../api/company";
 import { useToast } from "../../context/ToastContext";
 
 export default function Vehicles() {
@@ -28,7 +28,7 @@ export default function Vehicles() {
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-      const response = await getVehicles();
+      const response = await getVehicles({ limit: 100 });
       setVehicles(Array.isArray(response.data?.vehicles) ? response.data.vehicles : []);
       setError(null);
     } catch (err) {
@@ -109,16 +109,16 @@ export default function Vehicles() {
   };
 
   const handleDelete = async (vehicleId) => {
-    if (!window.confirm("Bạn chắc chắn muốn xóa xe này?")) {
+    if (!window.confirm("Bạn chắc chắn muốn xóa tất cả ghế của xe này? (Xe sẽ không thể sử dụng)")) {
       return;
     }
     try {
-      await deleteVehicle(vehicleId);
-      addToast("Xóa xe thành công", "success");
+      await deleteVehicleSeat(vehicleId);
+      addToast("Xóa ghế xe thành công", "success");
       fetchVehicles();
     } catch (err) {
-      console.error("Lỗi xóa xe:", err);
-      addToast("Lỗi xóa xe", "error");
+      console.error("Lỗi xóa ghế xe:", err);
+      addToast("Lỗi xóa ghế xe", "error");
     }
   };
 
@@ -226,10 +226,11 @@ export default function Vehicles() {
                   </button>
                   <button
                     onClick={() => handleDelete(vehicle.id)}
+                    title="Xóa tất cả ghế của xe (xe sẽ không thể sử dụng)"
                     className="flex-1 px-3 py-2 bg-red-100 text-red-600 rounded-lg font-semibold hover:bg-red-200 transition-all flex items-center justify-center gap-1"
                   >
                     <span className="material-symbols-outlined text-lg">delete</span>
-                    <span>Xóa</span>
+                    <span>Xóa ghế</span>
                   </button>
                 </div>
               </div>

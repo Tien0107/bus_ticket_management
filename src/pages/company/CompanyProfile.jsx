@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getCompanyProfile, updateCompanyProfile } from "../../api/company";
+import { getCompanyInfo, updateCompanyInfo } from "../../api/company";
 import { useToast } from "../../context/ToastContext";
 import { useNavigate } from "react-router-dom";
 
@@ -20,8 +20,8 @@ export default function CompanyProfile() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const response = await getCompanyProfile();
-      const data = response.data?.user || response.data;
+      const response = await getCompanyInfo();
+      const data = response.data?.company || response.data;
       setProfile(data);
       setFormData(data);
     } catch (err) {
@@ -40,7 +40,7 @@ export default function CompanyProfile() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await updateCompanyProfile(formData);
+      await updateCompanyInfo(formData);
       setProfile(formData);
       setIsEditing(false);
       addToast("Cập nhật hồ sơ thành công", "success");

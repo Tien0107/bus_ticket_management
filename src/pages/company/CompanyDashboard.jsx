@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getVehicles, getDrivers, getStaff, getCompanyProfile } from "../../api/company";
+import { getVehicles, getDrivers, getStaff, getCompanyInfo, getCompanyProfile } from "../../api/company";
 import { useToast } from "../../context/ToastContext";
 
 export default function CompanyDashboard() {
@@ -12,6 +12,7 @@ export default function CompanyDashboard() {
     drivers: 0,
     staff: 0,
     company: null,
+    userProfile: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -24,21 +25,68 @@ export default function CompanyDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [vehiclesRes, driversRes, staffRes, profileRes] = await Promise.all([
-        getVehicles(),
-        getDrivers(),
-        getStaff(),
-        getCompanyProfile(),
+      
+      // Fetch với error handling riêng để partial success
+      const results = await Promise.allSettled([
+        getVehicles({ limit: 100 }),  // Pass limit parameter
+        getDrivers({ limit: 100 }),   // Pass limit parameter
+        getStaff({ limit: 100 }),     // Pass limit parameter
+        getCompanyInfo(),
+        getCompanyProfile(),          // NEW: Lấy profile của user
       ]);
 
+      const [vehiclesRes, driversRes, staffRes, companyRes, profileRes] = results;
+
+      // Xử lý từng response
+      const vehicles = vehiclesRes.status === "fulfilled" 
+        ? vehiclesRes.value.data?.vehicles?.length || 0
+        : 0;
+      
+      const drivers = driversRes.status === "fulfilled"
+        ? driversRes.value.data?.drivers?.length || 0
+        : 0;
+      
+      const staff = staffRes.status === "fulfilled"
+        ? staffRes.value.data?.staff?.length || 0
+        : 0;
+      
+      const company = companyRes.status === "fulfilled"
+        ? companyRes.value.data?.company || null
+        : null;
+
+      const userProfile = profileRes.status === "fulfilled"
+        ? profileRes.value.data?.user || null
+        : null;
+
       setData({
-        vehicles: vehiclesRes.data?.vehicles?.length || 0,
-        drivers: driversRes.data?.drivers?.length || 0,
-        staff: staffRes.data?.staff?.length || 0,
-        company: profileRes.data?.user || profileRes.data,
+        vehicles,
+        drivers,
+        staff,
+        company: company || { name: user?.fullName || "Công ty của tôi" },
+        userProfile,
       });
+
+      // Show warnings nếu có request fail
+      if (vehiclesRes.status === "rejected") {
+        console.warn("⚠️ Lỗi tải danh sách xe:", vehiclesRes.reason);
+      }
+      if (driversRes.status === "rejected") {
+        console.warn("⚠️ Lỗi tải danh sách tài xế:", driversRes.reason);
+      }
+      if (staffRes.status === "rejected") {
+        console.warn("⚠️ Lỗi tải danh sách nhân viên:", staffRes.reason);
+      }
+      if (companyRes.status === "rejected") {
+        console.warn("⚠️ Lỗi tải thông tin công ty:", companyRes.reason);
+      }
+      if (profileRes.status === "rejected") {
+        console.warn("⚠️ Lỗi tải profile user:", profileRes.reason);
+      }
+
     } catch (err) {
       console.error("Lỗi tải dashboard:", err);
+      const errorMsg = err.response?.data?.message || "Lỗi tải dashboard.";
+      addToast(errorMsg, "error");
     } finally {
       setLoading(false);
     }
@@ -61,10 +109,10 @@ export default function CompanyDashboard() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-extrabold text-on-surface tracking-tight mb-2">
-            Xin chào, {user?.fullName || "Nhà xe"}! 👋
+            Xin chào, {data.userProfile?.fullName || user?.fullName || "Nhà xe"}! 👋
           </h1>
           <p className="text-on-surface-variant text-lg">
-            {data.company?.companyName || "Tổng quan kinh doanh"}
+            {data.company?.name || data.userProfile?.position || "Tổng quan kinh doanh"}
           </p>
         </div>
 

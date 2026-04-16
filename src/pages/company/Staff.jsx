@@ -20,11 +20,12 @@ export default function Staff() {
   const fetchStaff = async () => {
     try {
       setLoading(true);
-      const response = await getStaff();
+      const response = await getStaff({ limit: 100 });
       setStaff(Array.isArray(response.data?.staff) ? response.data.staff : []);
       setError(null);
     } catch (err) {
       console.error("Lỗi tải danh sách nhân viên:", err);
+      setStaff([]);
       setError("Không thể tải danh sách nhân viên");
     } finally {
       setLoading(false);
@@ -33,7 +34,8 @@ export default function Staff() {
 
   const handleRoleChange = async () => {
     try {
-      await updateStaffRole(selectedStaff.userId, { role: newRole });
+      // Swagger show request body là string, không object
+      await updateStaffRole(selectedStaff.userId, newRole);
       addToast("Cập nhật chức vụ thành công", "success");
       setShowRoleModal(false);
       setSelectedStaff(null);
