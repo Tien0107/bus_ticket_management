@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getStaff, updateStaffRole } from "../../api/company";
+import { getStaff, updateStaffRole, updateStaff } from "../../api/company";
 import { useToast } from "../../context/ToastContext";
 
 export default function Staff() {
@@ -12,6 +12,14 @@ export default function Staff() {
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [newRole, setNewRole] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    status: "active",
+  });
 
   useEffect(() => {
     fetchStaff();
@@ -43,6 +51,48 @@ export default function Staff() {
     } catch (err) {
       console.error("Lỗi cập nhật chức vụ:", err);
       addToast("Cập nhật chức vụ thất bại", "error");
+    }
+  };
+
+  const handleOpenEditModal = (staffMember) => {
+    setEditingStaff(staffMember);
+    setEditFormData({
+      fullName: staffMember.fullName || "",
+      email: staffMember.email || "",
+      phone: staffMember.phone || "",
+      status: staffMember.status || "active",
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData({ ...editFormData, [name]: value });
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      if (!editFormData.fullName?.trim()) {
+        addToast("Vui lòng nhập tên đầy đủ", "error");
+        return;
+      }
+      if (!editFormData.email?.trim()) {
+        addToast("Vui lòng nhập email", "error");
+        return;
+      }
+      if (!editFormData.phone?.trim()) {
+        addToast("Vui lòng nhập số điện thoại", "error");
+        return;
+      }
+
+      await updateStaff(editingStaff.userId, editFormData);
+      addToast("Cập nhật thông tin nhân viên thành công", "success");
+      setShowEditModal(false);
+      setEditingStaff(null);
+      fetchStaff();
+    } catch (err) {
+      console.error("Lỗi cập nhật nhân viên:", err);
+      addToast(err.response?.data?.message || "Cập nhật thông tin thất bại", "error");
     }
   };
 
@@ -119,54 +169,51 @@ export default function Staff() {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-surface-container-low border-b border-outline-variant/20">
+                <thead className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-outline-variant/20">
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-on-surface">Tên</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-on-surface">Email</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-on-surface">SĐT</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-on-surface">Chức vụ</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-on-surface">Ngày tham gia</th>
-                    <th className="px-6 py-4 text-center text-sm font-bold text-on-surface">Hành động</th>
+                    <th className="px-6 py-4 text-left text-base font-extrabold text-primary">Tên</th>
+                    <th className="px-6 py-4 text-left text-base font-extrabold text-primary">Email</th>
+                    <th className="px-6 py-4 text-center text-base font-extrabold text-primary">SĐT</th>
+                    <th className="px-6 py-4 text-center text-base font-extrabold text-primary">Chức vụ</th>
+                    <th className="px-6 py-4 text-center text-base font-extrabold text-primary">Vị trí</th>
+                    <th className="px-6 py-4 text-center text-base font-extrabold text-primary">Ngày tham gia</th>
+                    <th className="px-6 py-4 text-center text-base font-extrabold text-primary">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/20">
                   {filteredStaff.map((member) => (
-                    <tr key={member.id} className="hover:bg-surface-container-low transition-colors">
+                    <tr key={member.id} className="hover:bg-surface-container-low transition-colors align-middle">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
-                            <span className="material-symbols-outlined text-primary">person</span>
+                            <span className="material-symbols-outlined text-primary text-2xl">person</span>
                           </div>
-                          <p className="font-semibold text-on-surface">{member.fullName}</p>
+                          <p className="font-semibold text-on-surface break-words max-w-[140px]">{member.fullName}</p>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-on-surface">{member.email}</p>
+                        <p className="text-on-surface break-words max-w-[180px]">{member.email}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-on-surface">{member.phone || "—"}</p>
+                        <p className="text-on-surface text-center">{member.phone || "—"}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${getRoleColor(member.role)}`}>
-                          {getRoleLabel(member.role)}
+                        <span className={`inline-block px-4 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 border border-gray-200`} style={{minWidth: 90, textAlign: 'center'}}>
+                          {getRoleLabel(member.role || member.staffProfileRole) || member.role || member.staffProfileRole || "—"}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-on-surface text-sm">
-                          {member.joinDate ? new Date(member.joinDate).toLocaleDateString("vi-VN") : "—"}
-                        </p>
+                        <p className="text-on-surface text-center font-semibold">{member.position || "—"}</p>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => {
-                            setSelectedStaff(member);
-                            setNewRole(member.role);
-                            setShowRoleModal(true);
-                          }}
-                          className="text-primary hover:text-primary/80 font-bold text-sm"
-                        >
-                          Đổi chức vụ
-                        </button>
+                        <span className="inline-block text-sm font-semibold">
+                          {member.hireDate ? new Date(member.hireDate).toLocaleDateString("vi-VN") : "—"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-block px-4 py-1 rounded-full text-xs font-bold ${member.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`} style={{minWidth: 90, textAlign: 'center'}}>
+                          {member.status === "active" ? "Hoạt động" : member.status === "inactive" ? "Không hoạt động" : member.status || "—"}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -225,6 +272,85 @@ export default function Staff() {
                     className="flex-1 px-6 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary/80 transition-all"
                   >
                     Xác nhận
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Staff Modal */}
+        {showEditModal && editingStaff && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md">
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6">
+                <h2 className="text-2xl font-bold">Sửa thông tin nhân viên</h2>
+                <p className="text-white/80 mt-1">{editingStaff.fullName}</p>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2">Tên đầy đủ</label>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={editFormData.fullName}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={editFormData.email}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2">Số điện thoại</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={editFormData.phone}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2">Trạng thái</label>
+                  <select
+                    name="status"
+                    value={editFormData.status}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="active">Hoạt động</option>
+                    <option value="inactive">Không hoạt động</option>
+                    <option value="banned">Bị chặn</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditingStaff(null);
+                    }}
+                    className="flex-1 px-6 py-3 border-2 border-blue-500 text-blue-500 rounded-lg font-bold hover:bg-blue-50 transition-all"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition-all"
+                  >
+                    Lưu
                   </button>
                 </div>
               </div>

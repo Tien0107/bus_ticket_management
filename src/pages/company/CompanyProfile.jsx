@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getCompanyInfo, updateCompanyInfo } from "../../api/company";
+import { getCompanyInfo, updateCompanyInfo, getCompanyProfile, updateCompanyProfile } from "../../api/company";
 import { useToast } from "../../context/ToastContext";
 import { useNavigate } from "react-router-dom";
 
@@ -12,6 +12,9 @@ export default function CompanyProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({});
+  const [userProfile, setUserProfile] = useState(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [userFormData, setUserFormData] = useState({});
 
   useEffect(() => {
     fetchProfile();
@@ -24,9 +27,15 @@ export default function CompanyProfile() {
       const data = response.data?.company || response.data;
       setProfile(data);
       setFormData(data);
+
+      // Fetch user profile
+      const userResponse = await getCompanyProfile();
+      const userData = userResponse.data?.user || userResponse.data;
+      setUserProfile(userData);
+      setUserFormData(userData);
     } catch (err) {
       console.error("Lỗi tải hồ sơ:", err);
-      addToast("Không thể tải hồ sơ công ty", "error");
+      addToast("Không thể tải hồ sơ", "error");
     } finally {
       setLoading(false);
     }
@@ -57,6 +66,26 @@ export default function CompanyProfile() {
     localStorage.removeItem("user");
     addToast("Đã đăng xuất", "success");
     navigate("/login");
+  };
+
+  const handleUserProfileChange = (e) => {
+    const { name, value } = e.target;
+    setUserFormData({ ...userFormData, [name]: value });
+  };
+
+  const handleSaveUserProfile = async () => {
+    try {
+      setSaving(true);
+      await updateCompanyProfile(userFormData);
+      setUserProfile(userFormData);
+      setIsEditingProfile(false);
+      addToast("Cập nhật thông tin cá nhân thành công", "success");
+    } catch (err) {
+      console.error("Lỗi cập nhật thông tin:", err);
+      addToast("Cập nhật thông tin thất bại", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -311,6 +340,150 @@ export default function CompanyProfile() {
             </div>
           </div>
         </div>
+
+        {/* User Profile Card */}
+        {userProfile && (
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
+            {/* Header */}
+            <div className="h-32 bg-gradient-to-r from-blue-400 to-blue-500 flex items-end justify-start p-6">
+              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center border-4 border-blue-500 shadow-lg">
+                <span className="material-symbols-outlined text-5xl text-blue-500">person</span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 pt-0">
+              {isEditingProfile ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface mb-2">Tên đầy đủ</label>
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={userFormData.fullName || ""}
+                      onChange={handleUserProfileChange}
+                      className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface mb-2">Chức vụ</label>
+                    <input
+                      type="text"
+                      name="position"
+                      value={userFormData.position || ""}
+                      onChange={handleUserProfileChange}
+                      className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface mb-2">Phòng ban</label>
+                    <input
+                      type="text"
+                      name="department"
+                      value={userFormData.department || ""}
+                      onChange={handleUserProfileChange}
+                      className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface mb-2">Mã nhân viên</label>
+                    <input
+                      type="text"
+                      name="staffCode"
+                      value={userFormData.staffCode || ""}
+                      onChange={handleUserProfileChange}
+                      className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface mb-2">Số CMND/CCCD</label>
+                    <input
+                      type="text"
+                      name="identityNumber"
+                      value={userFormData.identityNumber || ""}
+                      onChange={handleUserProfileChange}
+                      className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={() => {
+                        setIsEditingProfile(false);
+                        setUserFormData(userProfile);
+                      }}
+                      className="flex-1 px-6 py-3 border-2 border-blue-500 text-blue-500 rounded-xl font-bold hover:bg-blue-50 transition-all"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      onClick={handleSaveUserProfile}
+                      disabled={saving}
+                      className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 disabled:opacity-60 transition-all flex items-center justify-center gap-2"
+                    >
+                      {saving ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          <span>Đang lưu...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined">save</span>
+                          <span>Lưu</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-3xl font-bold text-on-surface mb-1">{userProfile.fullName}</h2>
+                    <p className="text-on-surface-variant text-sm">Thông tin cá nhân</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-outline-variant/20 pt-6">
+                    <div>
+                      <p className="text-on-surface-variant text-sm font-medium mb-1">Chức vụ</p>
+                      <p className="text-on-surface font-semibold">{userProfile.position || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-on-surface-variant text-sm font-medium mb-1">Phòng ban</p>
+                      <p className="text-on-surface font-semibold">{userProfile.department || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-on-surface-variant text-sm font-medium mb-1">Mã nhân viên</p>
+                      <p className="text-on-surface font-semibold">{userProfile.staffCode || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-on-surface-variant text-sm font-medium mb-1">Trạng thái</p>
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                        {userProfile.status === "active" ? "Hoạt động" : "Không hoạt động"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-8 pt-6 border-t border-outline-variant/20">
+                {!isEditingProfile && (
+                  <button
+                    onClick={() => setIsEditingProfile(true)}
+                    className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined">edit</span>
+                    <span>Chỉnh sửa thông tin</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Logout Button */}
         <button

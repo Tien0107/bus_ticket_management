@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getDrivers } from "../../api/company";
+import { getDrivers, updateStaff } from "../../api/company";
 import { useToast } from "../../context/ToastContext";
 
 export default function Drivers() {
@@ -10,6 +10,11 @@ export default function Drivers() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [selectedDriver, setSelectedDriver] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
+  const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
     fetchDrivers();
@@ -52,6 +57,59 @@ export default function Drivers() {
       suspended: "bg-gray-100 text-gray-700",
     };
     return colorMap[status] || colorMap.inactive;
+  };
+
+  const getStatusLabel = (status) => {
+    const labelMap = {
+      active: "Hoạt động",
+      inactive: "Không hoạt động",
+      on_leave: "Nghỉ phép",
+      suspended: "Tạm ngừng",
+    };
+    return labelMap[status] || status;
+  };
+
+  const handleOpenEditModal = () => {
+    setEditFormData({
+      fullName: selectedDriver.fullName,
+      email: selectedDriver.email,
+      phone: selectedDriver.phone,
+      status: selectedDriver.status,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editFormData.fullName?.trim() || !editFormData.email?.trim() || !editFormData.phone?.trim()) {
+      addToast("Vui lòng điền đầy đủ thông tin", "error");
+      return;
+    }
+
+    try {
+      setEditLoading(true);
+      await updateStaff(selectedDriver.id, editFormData);
+      addToast("Cập nhật thông tin tài xế thành công", "success");
+      setShowEditModal(false);
+      // Update selected driver with new data
+      setSelectedDriver(prev => ({
+        ...prev,
+        ...editFormData
+      }));
+      // Refresh drivers list
+      fetchDrivers();
+    } catch (err) {
+      console.error("Lỗi cập nhật:", err);
+      addToast("Cập nhật thông tin thất bại", "error");
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   return (
@@ -145,7 +203,15 @@ export default function Drivers() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <button className="text-primary hover:text-primary/80 font-bold text-sm">Xem chi tiết</button>
+                        <button
+                          onClick={() => {
+                            setSelectedDriver(driver);
+                            setShowDetailModal(true);
+                          }}
+                          className="text-primary hover:text-primary/80 font-bold text-sm"
+                        >
+                          Xem chi tiết
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -170,6 +236,178 @@ export default function Drivers() {
             <p className="text-sm text-on-surface-variant">Không hoạt động</p>
           </div>
         </div>
+
+        {/* Driver Detail Modal */}
+        {showDetailModal && selectedDriver && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-2xl">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-primary to-primary-container text-white p-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Chi tiết tài xế</h2>
+                  <p className="text-white/80 mt-1">{selectedDriver.fullName}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    setSelectedDriver(null);
+                  }}
+                  className="text-white/80 hover:text-white text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-6">
+                {/* Basic Info */}
+                <div>
+                  <h3 className="text-lg font-bold text-on-surface mb-4">Thông tin cơ bản</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-on-surface-variant font-medium mb-1">Tên đầy đủ</p>
+                      <p className="text-on-surface font-semibold">{selectedDriver.fullName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-on-surface-variant font-medium mb-1">ID</p>
+                      <p className="text-on-surface font-semibold">{selectedDriver.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-on-surface-variant font-medium mb-1">Email</p>
+                      <p className="text-on-surface font-semibold">{selectedDriver.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-on-surface-variant font-medium mb-1">Số điện thoại</p>
+                      <p className="text-on-surface font-semibold">{selectedDriver.phone}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Info */}
+                <div className="border-t border-outline-variant/20 pt-6">
+                  <h3 className="text-lg font-bold text-on-surface mb-4">Trạng thái</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-on-surface-variant font-medium mb-2">Trạng thái hiện tại</p>
+                      <span className={`px-4 py-2 rounded-full text-sm font-bold inline-block ${getStatusColor(selectedDriver.status)}`}>
+                        {getStatusLabel(selectedDriver.status)}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-on-surface-variant font-medium mb-1">Chức vụ</p>
+                      <p className="text-on-surface font-semibold">{selectedDriver.role || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="border-t border-outline-variant/20 pt-6 flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowDetailModal(false);
+                      setSelectedDriver(null);
+                    }}
+                    className="flex-1 px-6 py-3 border-2 border-primary text-primary rounded-xl font-bold hover:bg-primary/10 transition-all"
+                  >
+                    Đóng
+                  </button>
+                  <button
+                    onClick={handleOpenEditModal}
+                    className="flex-1 px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/80 transition-all flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined">edit</span>
+                    <span>Sửa thông tin</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Driver Modal */}
+        {showEditModal && selectedDriver && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-2xl">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-primary to-primary-container text-white p-6 flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Sửa thông tin tài xế</h2>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="text-white/80 hover:text-white text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2">Tên đầy đủ <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={editFormData.fullName || ""}
+                    onChange={(e) => handleEditChange("fullName", e.target.value)}
+                    className="w-full px-4 py-2 border border-outline rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    placeholder="Nhập tên đầy đủ"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2">Email <span className="text-red-500">*</span></label>
+                  <input
+                    type="email"
+                    value={editFormData.email || ""}
+                    onChange={(e) => handleEditChange("email", e.target.value)}
+                    className="w-full px-4 py-2 border border-outline rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    placeholder="Nhập email"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2">Số điện thoại <span className="text-red-500">*</span></label>
+                  <input
+                    type="tel"
+                    value={editFormData.phone || ""}
+                    onChange={(e) => handleEditChange("phone", e.target.value)}
+                    className="w-full px-4 py-2 border border-outline rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    placeholder="Nhập số điện thoại"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2">Trạng thái</label>
+                  <select
+                    value={editFormData.status || "active"}
+                    onChange={(e) => handleEditChange("status", e.target.value)}
+                    className="w-full px-4 py-2 border border-outline rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="active">Hoạt động</option>
+                    <option value="inactive">Không hoạt động</option>
+                    <option value="suspended">Tạm ngừng</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="bg-surface p-6 flex gap-3 rounded-b-2xl">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  disabled={editLoading}
+                  className="flex-1 px-6 py-3 border-2 border-primary text-primary rounded-xl font-bold hover:bg-primary/10 transition-all disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={editLoading}
+                  className="flex-1 px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/80 transition-all disabled:opacity-50"
+                >
+                  {editLoading ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
