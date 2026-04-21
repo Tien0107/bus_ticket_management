@@ -1,0 +1,53 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./src/**/*.{js,jsx}"],
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#006e1c",
+        "primary-container": "#4caf50",
+        "on-primary": "#ffffff",
+        "on-primary-container": "#003c0b",
+        "secondary": "#9f4200",
+        "secondary-container": "#fd6c00",
+        "on-secondary": "#ffffff",
+        "on-secondary-container": "#562000",
+        "tertiary": "#106d20",
+        "tertiary-container": "#57ad57",
+        "surface": "#f9f9f9",
+        "surface-container": "#eeeeee",
+        "surface-container-low": "#f3f3f3",
+        "surface-container-lowest": "#ffffff",
+        "surface-container-high": "#e8e8e8",
+        "surface-container-highest": "#e2e2e2",
+        "on-surface": "#1a1c1c",
+        "on-surface-variant": "#3f4a3c",
+        "outline": "#6f7a6b",
+        "outline-variant": "#becab9",
+        "error": "#ba1a1a",
+        "error-container": "#ffdad6",
+        "on-error": "#ffffff",
+        "on-error-container": "#93000a",
+        "primary-fixed": "#94f990",
+        "primary-fixed-dim": "#78dc77",
+        "surface-dim": "#dadada",
+      },
+      fontFamily: {
+        "headline": ["Be Vietnam Pro", "sans-serif"],
+        "body": ["Be Vietnam Pro", "sans-serif"],
+        "label": ["Be Vietnam Pro", "sans-serif"],
+      },
+      borderRadius: {
+        "DEFAULT": "0.25rem",
+        "lg": "0.5rem",
+        "xl": "0.75rem",
+        "2xl": "1rem",
+        "3xl": "1.5rem",
+      },
+      boxShadow: {
+        "editorial": "0 12px 32px rgba(26, 28, 28, 0.06)",
+      },
+    },
+  },
+  plugins: [],
+};
