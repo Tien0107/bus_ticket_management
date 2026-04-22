@@ -40,10 +40,11 @@ function Login() {
   return (
     <div className="min-h-screen bg-surface text-on-surface font-body flex flex-col">
       {/* Header */}
-      <header className="w-full sticky top-0 z-50 bg-white/80 backdrop-blur-xl shadow-sm">
+      <header className="w-full sticky top-0 z-50 bg-white shadow-sm">
         <nav className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
-          <Link to="/" className="text-2xl font-bold tracking-tight text-primary">
-            BusGo
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" />
+            <span className="text-2xl font-bold tracking-tight text-primary">BusGo</span>
           </Link>
           <div className="hidden md:flex items-center gap-8">
             <Link to="/" className="text-gray-500 hover:text-primary transition-colors font-medium">
@@ -220,7 +221,10 @@ function Login() {
       {/* Footer */}
       <footer className="w-full py-8 bg-white flex justify-center items-center px-6 border-t border-gray-100">
         <div className="flex flex-col items-center gap-2">
-          <div className="text-lg font-bold text-primary">BusGo</div>
+          <div className="flex items-center gap-2">
+            <img src="/img/busgo.jpg" alt="BusGo" className="h-12 mix-blend-multiply" />
+            <span className="text-lg font-bold text-primary">BusGo</span>
+          </div>
           <p className="text-sm text-gray-500">© 2024 BusGo. All rights reserved.</p>
         </div>
       </footer>

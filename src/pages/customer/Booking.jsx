@@ -74,9 +74,9 @@ export default function Booking() {
   return (
     <div className="bg-surface min-h-screen text-on-surface">
       {/* Top Navigation Bar from Stitch Design */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm border-b border-surface-container">
+      <nav className="fixed top-0 w-full z-50 bg-white shadow-sm border-b border-surface-container">
         <div className="flex justify-between items-center max-w-7xl mx-auto px-6 h-16">
-          <div className="text-2xl font-bold tracking-tighter text-primary cursor-pointer hover:opacity-80" onClick={() => navigate("/")}>BusGo</div>
+          <div className="flex items-center gap-2 cursor-pointer hover:opacity-80" onClick={() => navigate("/")}><img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" /><span className="text-2xl font-bold tracking-tighter text-primary">BusGo</span></div>
           <div className="hidden md:flex space-x-8 items-center cursor-pointer">
               <span onClick={() => navigate("/")} className="text-on-surface-variant hover:text-primary transition-colors font-medium">Trang chủ</span>
               <span className="font-bold text-primary border-b-2 border-primary pb-1">Đặt vé</span>

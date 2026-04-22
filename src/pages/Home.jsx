@@ -129,10 +129,11 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-surface text-on-surface font-body">
       {/* ===== HEADER / NAVIGATION ===== */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-editorial">
+      <nav className="fixed top-0 w-full z-50 bg-white shadow-editorial">
         <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
-          <Link to="/" className="text-2xl font-black text-primary tracking-tighter">
-            BusGo
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" />
+            <span className="text-2xl font-black text-primary tracking-tighter">BusGo</span>
           </Link>
           <div className="hidden md:flex items-center space-x-8">
             <Link
@@ -585,7 +586,10 @@ const Home = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 px-8 py-16 max-w-7xl mx-auto text-sm leading-6">
           {/* Brand */}
           <div>
-            <div className="text-xl font-bold text-primary mb-6">BusGo</div>
+            <div className="flex items-center gap-2 mb-6">
+              <img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" />
+              <span className="text-xl font-bold text-primary">BusGo</span>
+            </div>
             <p className="text-gray-500 mb-6">
               Nền tảng đặt vé xe khách trực tuyến hàng đầu Việt Nam, giúp bạn
               kết nối với hàng nghìn hành trình mỗi ngày.

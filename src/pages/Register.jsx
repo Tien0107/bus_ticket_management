@@ -80,10 +80,11 @@ function Register() {
   return (
     <div className="min-h-screen bg-surface text-on-surface font-body flex flex-col">
       {/* Header */}
-      <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm">
+      <header className="fixed top-0 w-full z-50 bg-white shadow-sm">
         <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
-          <Link to="/" className="text-2xl font-bold tracking-tight text-primary">
-            BusGo
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" />
+            <span className="text-2xl font-bold tracking-tight text-primary">BusGo</span>
           </Link>
           <div className="flex items-center gap-4">
             <Link
