@@ -187,20 +187,34 @@ const Home = () => {
                   )}
 
                   <button
-                    onClick={() => { navigate("/my-tickets"); setShowUserMenu(false); }}
+                    onClick={() => { navigate("/profile"); setShowUserMenu(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-lg text-primary">account_circle</span>
+                    Hồ sơ cá nhân
+                  </button>
+                  <button
+                    onClick={() => { navigate("/profile/tickets"); setShowUserMenu(false); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
                   >
                     <span className="material-symbols-outlined text-lg text-primary">confirmation_number</span>
                     Vé của tôi
                   </button>
                   <button
-                    onClick={() => { navigate("/my-coupons"); setShowUserMenu(false); }}
+                    onClick={() => { navigate("/profile/coupons"); setShowUserMenu(false); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
                   >
                     <span className="material-symbols-outlined text-lg text-secondary">sell</span>
                     Khuyến mãi của tôi
                   </button>
                   <div className="border-t border-outline-variant/10"></div>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-lg">logout</span>
+                    Đăng xuất
+                  </button>
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"

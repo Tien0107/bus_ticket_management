@@ -131,9 +131,19 @@ export default function BookingCheckoutStep({ bookingData, setBookingData, onBac
                   </div>
                 </div>
               </label>
+
+              <label className="flex items-center p-4 rounded-xl border border-surface-container hover:border-primary cursor-pointer transition-all">
+                <input checked={bookingData.paymentMethod === 'stripe'} onChange={() => setBookingData(p => ({...p, paymentMethod: 'stripe'}))} className="w-5 h-5 text-primary focus:ring-primary mr-4" name="payment" type="radio" />
+                <div className="flex-1 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-primary">credit_card</span>
+                    <span className="font-semibold text-on-surface">Thanh toán bằng thẻ</span>
+                  </div>
+                </div>
+              </label>
               
               <label className="flex items-center p-4 rounded-xl border border-surface-container hover:border-primary cursor-pointer transition-all">
-                <input checked={bookingData.paymentMethod === 'offline'} onChange={() => setBookingData(p => ({...p, paymentMethod: 'offline'}))} className="w-5 h-5 text-primary focus:ring-primary mr-4" name="payment" type="radio" />
+                <input checked={bookingData.paymentMethod === 'cash'} onChange={() => setBookingData(p => ({...p, paymentMethod: 'cash'}))} className="w-5 h-5 text-primary focus:ring-primary mr-4" name="payment" type="radio" />
                 <div className="flex-1 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-zinc-600">payments</span>

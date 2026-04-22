@@ -29,7 +29,7 @@ export default function TicketDetail() {
     try {
       await cancelTicket(ticketId);
       alert("Hủy vé thành công!");
-      navigate("/my-tickets");
+      navigate("/profile/tickets");
     } catch (err) {
       alert("Hủy vé thất bại: " + (err.response?.data?.message || err.message));
     }

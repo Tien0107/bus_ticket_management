@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { getMyCoupons } from "../../api/customer";
 import { useNavigate } from "react-router-dom";
+import CustomerProfileNav from "../../components/profile/CustomerProfileNav";
+import CustomerProfileSectionHeader from "../../components/profile/CustomerProfileSectionHeader";
 
 export default function MyCoupons() {
   const [coupons, setCoupons] = useState([]);
@@ -37,15 +39,11 @@ export default function MyCoupons() {
   }, [navigate]);
 
   return (
-    <div className="bg-surface min-h-screen pt-24 pb-12 px-6">
+    <div className="bg-surface min-h-screen pt-10 pb-12 px-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-primary mb-8 border-b-2 border-primary inline-block pb-2">Hồ Sơ Của Tôi</h1>
+        <CustomerProfileSectionHeader title="Ví khuyến mãi" />
         
-        <div className="flex flex-wrap gap-4 mb-8">
-           <button onClick={() => navigate("/my-tickets")} className="bg-surface-container-low text-on-surface hover:bg-surface-container hover:text-primary transition-colors px-6 py-2 rounded-full font-bold shadow-sm">Vé đã đặt</button>
-           <button className="bg-primary text-white px-6 py-2 rounded-full font-bold shadow-md">Ví Khuyến Mãi</button>
-           <button onClick={() => navigate("/my-payment-methods")} className="bg-surface-container-low text-on-surface hover:bg-surface-container hover:text-primary transition-colors px-6 py-2 rounded-full font-bold shadow-sm">Thanh Toán</button>
-        </div>
+        <CustomerProfileNav />
 
         {loading ? (
           <p className="text-on-surface-variant animate-pulse">Đang tải danh sách ưu đãi...</p>

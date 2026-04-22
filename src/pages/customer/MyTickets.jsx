@@ -1,10 +1,29 @@
 import React, { useEffect, useState } from "react";
-import { getMyTickets, cancelTicket, createPaymentMethod } from "../../api/customer";
+import {
+  getMyTickets,
+  cancelTicket,
+  createPaymentMethod,
+  getPaymentMethods,
+  setDefaultPaymentMethod,
+} from "../../api/customer";
 import { useNavigate } from "react-router-dom";
+import { loadStripe } from "@stripe/stripe-js";
+import CustomerProfileNav from "../../components/profile/CustomerProfileNav";
+import CustomerProfileSectionHeader from "../../components/profile/CustomerProfileSectionHeader";
+import SelectPaymentCardModal from "../../components/payment/SelectPaymentCardModal";
+
+const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 export default function MyTickets() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [cards, setCards] = useState([]);
+  const [loadingCards, setLoadingCards] = useState(false);
+  const [pendingOrderId, setPendingOrderId] = useState(null);
+  const [selectedCardId, setSelectedCardId] = useState(null);
+  const [processingCardPayment, setProcessingCardPayment] = useState(false);
   const navigate = useNavigate();
 
   const fetchTickets = async () => {
@@ -37,7 +56,7 @@ export default function MyTickets() {
     }
   };
 
-  const handlePayment = async (id, method) => {
+  const handlePayment = async (id, method, selectedPaymentMethodId = null) => {
     try {
       const res = await createPaymentMethod(id, method);
       
@@ -48,6 +67,40 @@ export default function MyTickets() {
         } else {
            alert("Lỗi: Không nhận được URL thanh toán từ Backend. " + JSON.stringify(res.data));
         }
+      } else if (method === "stripe") {
+        const clientSecret = res.data?.clientSecret;
+        const paymentIntentId = res.data?.paymentIntentId;
+
+        if (!clientSecret) {
+          alert("Không nhận được clientSecret từ backend để thanh toán Stripe.");
+          return;
+        }
+        if (!stripePromise) {
+          alert("Thiếu cấu hình Stripe key (REACT_APP_STRIPE_PUBLISHABLE_KEY).");
+          return;
+        }
+
+        const stripe = await stripePromise;
+        if (!stripe) {
+          alert("Không thể khởi tạo Stripe.");
+          return;
+        }
+
+        const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: selectedPaymentMethodId || undefined,
+        });
+        if (error) {
+          alert("Thanh toán Stripe thất bại: " + (error.message || "Unknown error"));
+          return;
+        }
+
+        const paidIntentId = paymentIntent?.id || paymentIntentId;
+        if (paymentIntent?.status === "succeeded") {
+          alert(`Thanh toán thành công! ${paidIntentId ? `(PI: ${paidIntentId})` : ""}`);
+          fetchTickets();
+          return;
+        }
+        fetchTickets();
       } else if (method === "cash") {
         alert(res.data?.message || "Đã ghi nhận yêu cầu thanh toán Tiền mặt! Vui lòng thanh toán tại quầy trước giờ xuất bến.");
         fetchTickets();
@@ -58,16 +111,72 @@ export default function MyTickets() {
     }
   };
 
+  const openCardPaymentModal = async (orderId) => {
+    try {
+      setPendingOrderId(orderId);
+      setLoadingCards(true);
+      setShowCardModal(true);
+      const res = await getPaymentMethods();
+      const list = res.data?.paymentMethods || res.data?.data || res.data || [];
+      const normalizedCards = Array.isArray(list) ? list : [];
+      setCards(normalizedCards);
+      const defaultCard = normalizedCards.find((card) => card.isDefault);
+      setSelectedCardId(
+        defaultCard?.stripePaymentMethodId ||
+          defaultCard?.id ||
+          normalizedCards[0]?.stripePaymentMethodId ||
+          normalizedCards[0]?.id ||
+          null,
+      );
+    } catch (err) {
+      setShowCardModal(false);
+      alert("Không thể tải danh sách thẻ: " + (err.response?.data?.message || err.message));
+    } finally {
+      setLoadingCards(false);
+    }
+  };
+
+  const handleSelectCardAndPay = async (card) => {
+    try {
+      setProcessingCardPayment(true);
+      const paymentMethodId = card?.stripePaymentMethodId || card?.id;
+      if (!paymentMethodId || !pendingOrderId) {
+        alert("Thiếu thông tin thẻ hoặc đơn hàng.");
+        return;
+      }
+
+      await setDefaultPaymentMethod(paymentMethodId);
+      setShowCardModal(false);
+      await handlePayment(pendingOrderId, "stripe", paymentMethodId);
+    } catch (err) {
+      alert("Không thể đặt thẻ mặc định để thanh toán: " + (err.response?.data?.message || err.message));
+    } finally {
+      setProcessingCardPayment(false);
+    }
+  };
+
+  const handlePayWithNewCard = async (paymentMethodId) => {
+    try {
+      setProcessingCardPayment(true);
+      if (!paymentMethodId || !pendingOrderId) {
+        alert("Thiếu thông tin thẻ hoặc đơn hàng.");
+        return;
+      }
+      setShowCardModal(false);
+      await handlePayment(pendingOrderId, "stripe", paymentMethodId);
+    } catch (err) {
+      alert("Không thể thanh toán bằng thẻ mới: " + (err.response?.data?.message || err.message));
+    } finally {
+      setProcessingCardPayment(false);
+    }
+  };
+
   return (
-    <div className="bg-surface min-h-screen pt-24 pb-12 px-6">
+    <div className="bg-surface min-h-screen pt-10 pb-12 px-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-primary mb-8 border-b-2 border-primary inline-block pb-2">Hồ Sơ Của Tôi</h1>
+        <CustomerProfileSectionHeader title="Vé đã đặt" />
         
-        <div className="flex flex-wrap gap-4 mb-8">
-           <button className="bg-primary text-white hover:bg-primary/90 transition-colors px-6 py-2 rounded-full font-bold shadow-md">Vé đã đặt</button>
-           <button onClick={() => navigate("/my-coupons")} className="bg-surface-container-low text-on-surface hover:bg-surface-container hover:text-primary transition-colors px-6 py-2 rounded-full font-bold shadow-sm">Ví Khuyến Mãi</button>
-           <button onClick={() => navigate("/my-payment-methods")} className="bg-surface-container-low text-on-surface hover:bg-surface-container hover:text-primary transition-colors px-6 py-2 rounded-full font-bold shadow-sm">Thanh Toán</button>
-        </div>
+        <CustomerProfileNav />
 
         {loading ? (
           <p className="text-on-surface-variant animate-pulse">Đang tải danh sách vé...</p>
@@ -121,6 +230,10 @@ export default function MyTickets() {
                                <span className="material-symbols-outlined text-[16px]">qr_code_scanner</span>
                                VNPay
                              </button>
+                            <button onClick={() => openCardPaymentModal(t.bookingId || t.id)} className="w-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors px-4 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm text-sm">
+                               <span className="material-symbols-outlined text-[16px]">credit_card</span>
+                              Thanh toán bằng thẻ
+                             </button>
                              <button onClick={() => handlePayment(t.bookingId || t.id, "cash")} className="w-full border border-secondary text-secondary hover:bg-secondary hover:text-white transition-colors px-4 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm text-sm">
                                <span className="material-symbols-outlined text-[16px]">payments</span>
                                Tiền mặt
@@ -145,6 +258,22 @@ export default function MyTickets() {
           </div>
         )}
       </div>
+      <SelectPaymentCardModal
+        open={showCardModal}
+        onClose={() => {
+          if (processingCardPayment) return;
+          setShowCardModal(false);
+        }}
+        cards={cards}
+        loading={loadingCards}
+        selectedCardId={selectedCardId}
+        onChangeSelectedCard={(card) =>
+          setSelectedCardId(card?.stripePaymentMethodId || card?.id || null)
+        }
+        onContinueWithSelected={(card) => handleSelectCardAndPay(card)}
+        onContinueWithPaymentMethodId={handlePayWithNewCard}
+        continuing={processingCardPayment}
+      />
     </div>
   );
 }
