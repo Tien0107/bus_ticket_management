@@ -8,23 +8,68 @@ import CustomerProfileSectionHeader from "../../components/profile/CustomerProfi
 export default function MyPaymentMethods() {
   const [methods, setMethods] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [settingDefaultId, setSettingDefaultId] = useState(null);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const navigate = useNavigate();
 
-  const fetchMethods = async () => {
+  const getPaymentMethodIdentifier = (method) => {
+    return method?.stripePaymentMethodId || method?.id;
+  };
+
+  const normalizeDefaultMethods = (rawMethods = [], preferredId = null) => {
+    const safeMethods = Array.isArray(rawMethods) ? rawMethods : [];
+    if (!safeMethods.length) return [];
+
+    const preferredDefault = preferredId
+      ? safeMethods.find((method) => getPaymentMethodIdentifier(method) === preferredId)
+      : null;
+    const fallbackDefault = safeMethods.find((method) => method?.isDefault);
+    const defaultMethod = preferredDefault || fallbackDefault || safeMethods[0];
+    const defaultId = getPaymentMethodIdentifier(defaultMethod);
+
+    return safeMethods.map((method) => ({
+      ...method,
+      isDefault: getPaymentMethodIdentifier(method) === defaultId,
+    }));
+  };
+
+  const mergeMethodsKeepOrder = (previousMethods = [], incomingMethods = []) => {
+    const previousOrder = new Map(
+      previousMethods.map((method, index) => [getPaymentMethodIdentifier(method), index]),
+    );
+
+    return [...incomingMethods].sort((a, b) => {
+      const idA = getPaymentMethodIdentifier(a);
+      const idB = getPaymentMethodIdentifier(b);
+      const indexA = previousOrder.get(idA);
+      const indexB = previousOrder.get(idB);
+
+      if (indexA == null && indexB == null) return 0;
+      if (indexA == null) return 1;
+      if (indexB == null) return -1;
+      return indexA - indexB;
+    });
+  };
+
+  const fetchMethods = async ({ silent = false, preferredId = null } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await getPaymentMethods();
       const list = res.data?.paymentMethods || res.data?.data || res.data || [];
       const normalizedList = Array.isArray(list) ? list : [];
-      setMethods(normalizedList);
-      return normalizedList;
+      let stableMethods = [];
+      setMethods((prevMethods) => {
+        const mergedMethods = mergeMethodsKeepOrder(prevMethods, normalizedList);
+        stableMethods = normalizeDefaultMethods(mergedMethods, preferredId);
+        return stableMethods;
+      });
+      return stableMethods;
     } catch (err) {
       console.error(err);
       if (err.response?.status === 401) navigate("/login");
       return [];
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -45,10 +90,6 @@ export default function MyPaymentMethods() {
       setLoading(false);
     }
   };
-
-  const getPaymentMethodIdentifier = (method) => {
-    return method?.stripePaymentMethodId || method?.id;
-  };
   const normalizeBrand = (brand) => {
     const value = String(brand || "CARD").toLowerCase();
     if (value === "mastercard") return "Mastercard";
@@ -65,33 +106,24 @@ export default function MyPaymentMethods() {
   };
 
   const handleSetDefault = async (paymentMethodId) => {
+    if (!paymentMethodId || settingDefaultId) return;
     try {
-      setLoading(true);
+      setSettingDefaultId(paymentMethodId);
       await setDefaultPaymentMethod(paymentMethodId);
-      setMethods((prevMethods) =>
-        prevMethods.map((method) => ({
-          ...method,
-          isDefault: getPaymentMethodIdentifier(method) === paymentMethodId,
-        })),
-      );
-      await fetchMethods();
+      setMethods((prevMethods) => normalizeDefaultMethods(prevMethods, paymentMethodId));
+      await fetchMethods({ silent: true, preferredId: paymentMethodId });
     } catch (err) {
       alert("Lỗi khi đổi thẻ mặc định: " + (err.response?.data?.message || err.message));
     } finally {
-      setLoading(false);
+      setSettingDefaultId(null);
     }
   };
 
   const handleCardAdded = async (newPaymentMethodId) => {
-    const freshMethods = await fetchMethods();
+    const freshMethods = await fetchMethods({ silent: true, preferredId: newPaymentMethodId });
     if (!newPaymentMethodId) return;
 
-    setMethods(
-      freshMethods.map((method) => ({
-        ...method,
-        isDefault: getPaymentMethodIdentifier(method) === newPaymentMethodId,
-      })),
-    );
+    setMethods(normalizeDefaultMethods(freshMethods, newPaymentMethodId));
   };
 
   return (
@@ -128,13 +160,13 @@ export default function MyPaymentMethods() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {methods.map((m, idx) => (
+            {methods.map((m) => (
                <div
-                 key={idx}
-                 className={`rounded-2xl p-6 border shadow-sm flex flex-col justify-between min-h-[192px] ${
+                 key={getPaymentMethodIdentifier(m)}
+                 className={`rounded-3xl p-6 border shadow-sm flex flex-col justify-between min-h-[210px] transition-colors transition-shadow duration-200 ${
                    m.isDefault
-                     ? "bg-primary-container/30 border-primary/40"
-                     : "bg-surface-container-low border-outline-variant/30"
+                     ? "bg-gradient-to-br from-primary/15 via-primary-container/30 to-surface border-primary/40 shadow-primary/20 shadow-lg"
+                     : "bg-gradient-to-br from-surface-container-low to-surface border-outline-variant/30 hover:border-primary/25 hover:shadow-md"
                  }`}
                >
                  
@@ -147,25 +179,34 @@ export default function MyPaymentMethods() {
                      >
                        {normalizeBrand(m.brand)}
                      </span>
-                     {m.isDefault && (
-                      <span className="bg-primary text-on-primary inline-block px-3 py-1 rounded-md text-xs font-bold tracking-widest uppercase">
-                         Mặc định
-                       </span>
-                     )}
+                     <span
+                       className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase shadow-sm transition-opacity ${
+                         m.isDefault
+                           ? "bg-primary text-on-primary opacity-100"
+                           : "opacity-0 pointer-events-none"
+                       }`}
+                     >
+                       <span className="material-symbols-outlined text-[14px]">workspace_premium</span>
+                       Mặc định
+                     </span>
                    </div>
                    <div className="flex gap-2">
                      {!m.isDefault && (
                       <button
                         onClick={() => handleSetDefault(getPaymentMethodIdentifier(m))}
-                        className="bg-surface-container-low hover:bg-surface-container transition-colors p-2 rounded-full flex items-center justify-center text-primary"
+                        disabled={Boolean(settingDefaultId)}
+                        className="bg-surface-container-low hover:bg-surface-container transition-colors p-2 rounded-full flex items-center justify-center text-primary disabled:opacity-60 disabled:cursor-not-allowed"
                         title="Đặt làm mặc định"
                       >
-                         <span className="material-symbols-outlined text-sm">check_circle</span>
+                         <span className="material-symbols-outlined text-sm">
+                           {settingDefaultId === getPaymentMethodIdentifier(m) ? "progress_activity" : "check_circle"}
+                         </span>
                        </button>
                      )}
                     <button
                       onClick={() => handleDelete(getPaymentMethodIdentifier(m))}
-                      className="bg-surface-container hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center text-on-surface-variant"
+                      disabled={Boolean(settingDefaultId)}
+                      className="bg-surface-container hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center text-on-surface-variant disabled:opacity-60 disabled:cursor-not-allowed"
                       title="Xóa thẻ này"
                     >
                        <span className="material-symbols-outlined text-sm">delete</span>
@@ -174,11 +215,14 @@ export default function MyPaymentMethods() {
                  </div>
                  
                  <div className="z-10 mt-auto">
-                    <p className="font-mono text-xl tracking-widest mb-2 text-on-surface">
+                    <p className="font-mono text-[22px] tracking-[0.25em] mb-2 text-on-surface">
                       **** **** **** {m.last4 || "****"}
                     </p>
                     <div className="flex items-end justify-between text-sm text-on-surface-variant font-medium tracking-wide gap-3">
                       <span>HSD: {(m.expMonth || 0).toString().padStart(2, '0')}/{(m.expYear || 0).toString().slice(-2)}</span>
+                      <span className="text-xs uppercase tracking-[0.18em] text-on-surface-variant/80">
+                        Secure Payment
+                      </span>
                     </div>
                  </div>
                </div>
