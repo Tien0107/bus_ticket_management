@@ -4,6 +4,9 @@ import { ToastProvider } from "./context/ToastContext";
 import Toast from "./components/Toast";
 import Home from "./pages/Home";
 
+// vercel annalytics
+import { Analytics } from '@vercel/analytics/react';
+
 // Auth & Public
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -43,7 +46,7 @@ import SuperAdminDashboard from "./pages/super-admin/SuperAdminDashboard";
 import BusCompanies from "./pages/super-admin/BusCompanies";
 
 function App() {
-  return (
+  return (    
     <ToastProvider>
       <Toast />
 
@@ -119,6 +122,7 @@ function App() {
           />
         </Routes>
       </BrowserRouter>
+          <Analytics />
     </ToastProvider>
   );
 }
