@@ -1,15 +1,23 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
+import MainNavbar from "./MainNavbar";
+import MainFooter from "./MainFooter";
 
-// Placeholder cho Layout Công khai (Website Khách)
-export default function MainLayout() {
+const MainLayout = () => {
   return (
-    <div>
-      <header className="bg-primary text-white p-4 text-center font-bold">Main Navigation Placeholder</header>
-      <main>
+    <div className="min-h-screen bg-surface text-on-surface font-body flex flex-col">
+      <MainNavbar />
+      {/* 
+        flex-grow giúp đẩy Footer xuống cuối trang.
+        Các trang con tự quyết định việc padding-top (ví dụ pt-24) để không bị Navbar đè lên, 
+        hoặc không dùng pt nếu muốn banner nằm dưới Navbar (như trang Home).
+      */}
+      <main className="flex-grow flex flex-col">
         <Outlet />
       </main>
-      <footer className="bg-gray-100 p-4 text-center text-sm font-medium mt-10">Footer Placeholder</footer>
+      <MainFooter />
     </div>
   );
-}
+};
+
+export default MainLayout;
