@@ -36,12 +36,12 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-surface pt-10 pb-12 px-6">
       <div className="max-w-5xl mx-auto space-y-6">
+        <CustomerProfileNav />
+
         <ProfileHeader
           fullName={profile?.user?.fullName}
           email={profile?.user?.email}
         />
-
-        <CustomerProfileNav />
 
         {loading && (
           <div className="bg-white rounded-3xl border border-outline-variant/20 p-10 flex flex-col items-center gap-4">

@@ -133,7 +133,7 @@ const Home = () => {
         <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
           <Link to="/" className="flex items-center gap-2">
             <img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" />
-            <span className="text-2xl font-black text-primary tracking-tighter">BusGo</span>
+            <span className="text-2xl font-black text-primary tracking-tighter">Bus Go</span>
           </Link>
           <div className="hidden md:flex items-center space-x-8">
             <Link
@@ -208,13 +208,6 @@ const Home = () => {
                     Khuyến mãi của tôi
                   </button>
                   <div className="border-t border-outline-variant/10"></div>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-lg">logout</span>
-                    Đăng xuất
-                  </button>
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -313,7 +306,6 @@ const Home = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
                   {/* Ngày đi */}
                   <div>
                     <label className="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">
@@ -331,26 +323,6 @@ const Home = () => {
                         onChange={(e) => setDate(e.target.value)}
                       />
                     </div>
-                  </div>
-                  {/* Số lượng */}
-                  <div>
-                    <label className="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">
-                      Số lượng
-                    </label>
-                    <div className="flex items-center bg-surface-container-low px-4 py-3 rounded-xl">
-                      <span className="material-symbols-outlined text-primary mr-3">
-                        person
-                      </span>
-                      <input
-                        className="bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-on-surface w-full font-medium"
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={quantity}
-                        onChange={(e) => setQuantity(e.target.value)}
-                      />
-                    </div>
-                  </div>
                 </div>
 
                 <button 
@@ -500,7 +472,7 @@ const Home = () => {
               Nhà xe đối tác
             </h2>
             <p className="text-on-surface-variant">
-              Các nhà xe uy tín hợp tác với BusGo
+              Các nhà xe uy tín hợp tác với Bus Go
             </p>
             <div className="w-20 h-1.5 bg-primary-container rounded-full mt-2"></div>
           </div>
@@ -602,7 +574,7 @@ const Home = () => {
           <div>
             <div className="flex items-center gap-2 mb-6">
               <img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" />
-              <span className="text-xl font-bold text-primary">BusGo</span>
+              <span className="text-xl font-bold text-primary">Bus Go</span>
             </div>
             <p className="text-gray-500 mb-6">
               Nền tảng đặt vé xe khách trực tuyến hàng đầu Việt Nam, giúp bạn
