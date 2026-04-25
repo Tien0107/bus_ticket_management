@@ -1,24 +1,150 @@
-import React from "react";
-import { Outlet, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 
-// Placeholder cho Sidebar Dashboard (Quản trị, Tài xế)
 export default function DashboardLayout() {
+  const [user, setUser] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      setUser(JSON.parse(stored));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + "/");
+
+  const getLinkClass = (path) => {
+    const baseClass = "px-4 py-3 rounded-lg flex items-center gap-3 font-medium transition-all";
+    return isActive(path)
+      ? `${baseClass} bg-primary text-white`
+      : `${baseClass} text-on-surface-variant hover:bg-surface-container-high`;
+  };
+
   return (
     <div className="flex min-h-screen bg-surface">
-      <aside className="w-64 bg-surface-container shadow-md p-4">
-        <h2 className="text-xl font-bold text-primary mb-6">BusGo Dashboard</h2>
-        <nav className="flex flex-col gap-2">
-          <Link to="/" className="p-2 hover:bg-gray-200 rounded text-sm text-gray-700">← Về trang chủ</Link>
-          
-          <div className="text-xs font-bold uppercase text-primary mt-4 mb-2 border-b pb-1">Support Admin</div>
-          <Link to="/company-support/tickets" className="p-2 hover:bg-surface-container-high rounded-lg text-sm text-on-surface font-medium block">🎟️ Quản lý Vé</Link>
-          <Link to="/company-support/coupons" className="p-2 hover:bg-surface-container-high rounded-lg text-sm text-on-surface font-medium block">🏷️ Khuyến mãi</Link>
-          
-          <div className="text-xs font-bold uppercase text-gray-400 mt-4 mb-2">Các Role Khác</div>
-          <p className="p-2 bg-gray-100 text-gray-500 rounded text-sm">(Menu khác chưa hiện)</p>
+      {/* Sidebar */}
+      <aside
+        className={`${
+          sidebarOpen ? "w-64" : "w-20"
+        } bg-surface-container shadow-lg transition-all duration-300 flex flex-col`}
+      >
+        {/* Header */}
+        <div className="p-4 border-b border-outline-variant/20">
+          <div className="flex items-center justify-between">
+            {sidebarOpen && <h2 className="text-xl font-bold text-primary">BusGo</h2>}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 hover:bg-surface-container-high rounded-lg transition-all"
+            >
+              <span className="material-symbols-outlined">
+                {sidebarOpen ? "menu_open" : "menu"}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-2">
+          {/* Back to Home */}
+          <Link to="/" className={getLinkClass("/")}>
+            <span className="material-symbols-outlined">home</span>
+            {sidebarOpen && <span>Trang chủ</span>}
+          </Link>
+
+          <div className="my-4">
+            <div className={`text-xs font-bold uppercase transition-all ${sidebarOpen ? "px-4 py-2" : "px-2"}`}>
+              {sidebarOpen ? user?.role === "driver" ? "Tài xế" : user?.role === "admin" ? "Công ty" : "Quản trị" : ""}
+            </div>
+          </div>
+
+          {/* Driver Menu */}
+          {user?.role === "driver" && (
+            <>
+              <Link to="/driver/dashboard" className={getLinkClass("/driver/dashboard")}>
+                <span className="material-symbols-outlined">dashboard</span>
+                {sidebarOpen && <span>Bảng điều khiển</span>}
+              </Link>
+              <Link to="/driver/profile" className={getLinkClass("/driver/profile")}>
+                <span className="material-symbols-outlined">person</span>
+                {sidebarOpen && <span>Hồ sơ</span>}
+              </Link>
+            </>
+          )}
+
+          {/* Company Menu */}
+          {user?.role === "admin" && (
+            <>
+              <Link to="/company/dashboard" className={getLinkClass("/company/dashboard")}>
+                <span className="material-symbols-outlined">dashboard</span>
+                {sidebarOpen && <span>Bảng điều khiển</span>}
+              </Link>
+              <Link to="/company/vehicles" className={getLinkClass("/company/vehicles")}>
+                <span className="material-symbols-outlined">directions_bus</span>
+                {sidebarOpen && <span>Phương tiện</span>}
+              </Link>
+              <Link to="/company/drivers" className={getLinkClass("/company/drivers")}>
+                <span className="material-symbols-outlined">people</span>
+                {sidebarOpen && <span>Tài xế</span>}
+              </Link>
+              <Link to="/company/staff" className={getLinkClass("/company/staff")}>
+                <span className="material-symbols-outlined">group</span>
+                {sidebarOpen && <span>Nhân viên</span>}
+              </Link>
+              <Link to="/company/schedules" className={getLinkClass("/company/schedules")}>
+                <span className="material-symbols-outlined">schedule</span>
+                {sidebarOpen && <span>Lịch biểu</span>}
+              </Link>
+              <Link to="/company/profile" className={getLinkClass("/company/profile")}>
+                <span className="material-symbols-outlined">person</span>
+                {sidebarOpen && <span>Hồ sơ</span>}
+              </Link>
+            </>
+          )}
+
+          {/* Super Admin Menu */}
+          {(user?.role === "super_admin" || user?.role === "superadmin") && (
+            <>
+              <Link to="/super-admin/dashboard" className={getLinkClass("/super-admin/dashboard")}>
+                <span className="material-symbols-outlined">dashboard</span>
+                {sidebarOpen && <span>Bảng điều khiển</span>}
+              </Link>
+              <Link to="/super-admin/companies" className={getLinkClass("/super-admin/companies")}>
+                <span className="material-symbols-outlined">business</span>
+                {sidebarOpen && <span>Công ty</span>}
+              </Link>
+            </>
+          )}
         </nav>
+
+        {/* User Info & Logout */}
+        <div className="p-4 border-t border-outline-variant/20 space-y-2">
+          {sidebarOpen && user && (
+            <div className="mb-3 pb-3 border-b border-outline-variant/20">
+              <p className="text-sm font-semibold text-on-surface truncate">{user.fullName}</p>
+              <p className="text-xs text-on-surface-variant truncate">{user.email}</p>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="w-full px-4 py-3 bg-error/10 text-error rounded-lg flex items-center justify-center gap-2 font-medium hover:bg-error/20 transition-all"
+          >
+            <span className="material-symbols-outlined">logout</span>
+            {sidebarOpen && <span>Đăng xuất</span>}
+          </button>
+        </div>
       </aside>
-      <main className="flex-1 p-8">
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto">
         <Outlet />
       </main>
     </div>

@@ -10,7 +10,15 @@ export default function SupportCoupons() {
   const itemsPerPage = 4;
   const navigate = useNavigate();
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  let userStr = localStorage.getItem("user");
+  let user = {};
+  try {
+    if (userStr && userStr !== "undefined") {
+      user = JSON.parse(userStr);
+    }
+  } catch (e) {
+    user = {};
+  }
 
   // Create coupon form
   const [form, setForm] = useState({

@@ -18,7 +18,15 @@ export default function SupportTickets() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  let userStr = localStorage.getItem("user");
+  let user = {};
+  try {
+    if (userStr && userStr !== "undefined") {
+      user = JSON.parse(userStr);
+    }
+  } catch (e) {
+    user = {};
+  }
 
   const fetchTickets = async (append = false, overrides = null) => {
     try {

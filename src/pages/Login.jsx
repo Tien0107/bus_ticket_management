@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { signIn } from "../api/auth";
 import { useNavigate, Link } from "react-router-dom";
+import { useToast } from "../context/ToastContext";
+import { jwtDecode } from "jwt-decode";
 
 function Login() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -17,21 +20,53 @@ function Login() {
 
     try {
       const res = await signIn({ email, password });
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+      console.log("Login response:", res.data); // Debug
+      console.log("User object:", res.data?.user); // Debug user
       
-      const roleStr = String((res.data.user?.role?.name || res.data.user?.role || "CUSTOMER")).toUpperCase();
+      // Handle response - support different backend formats
+      const token = res.data?.token || res.data?.accessToken;
+      let user = res.data?.user || res.data?.data || { role: "customer" };
       
-      // Nếu role chứa chữ SUPPORT hoặc là ADMIN, đưa vào trang Admin Support
-      if (roleStr.includes('SUPPORT') || roleStr === 'ADMIN' || roleStr === 'COMPANY_ADMIN') {
-         navigate("/company-support/tickets");
-      } else if (roleStr.includes('DRIVER')) {
-         navigate("/driver/dashboard");
-      } else {
-         navigate("/");
+      if (!token) {
+        setError("Lỗi: Backend không trả về token. Kiểm tra API.");
+        return;
       }
+      
+      // Decode token để lấy companyId
+      const decoded = jwtDecode(token);
+      user.companyId = decoded.companyId;
+      console.log("After decode - companyId:", user.companyId); // Debug
+      
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      
+      addToast("Đăng nhập thành công", "success");
+      
+      // Redirect dựa vào role
+      let redirectUrl = "/";
+      if (user.role === "driver") {
+        redirectUrl = "/driver/dashboard";
+      } else if (user.role === "admin") {
+        // Ưu tiên kiểm tra staffProfileRole nếu có
+        if (user.staffProfileRole === "support") {
+          redirectUrl = "/company-support/tickets";
+        } else if (user.staffProfileRole === "company_admin") {
+          redirectUrl = "/company/dashboard";
+        } else {
+          redirectUrl = "/company/dashboard";
+        }
+      } else if (user.role === "super_admin" || user.role === "superadmin") {
+        redirectUrl = "/super-admin/dashboard";
+      }
+      
+      setTimeout(() => {
+        navigate(redirectUrl);
+      }, 500);
     } catch (err) {
-      setError(err.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại.");
+      console.error("Login error:", err); // Debug
+      const errorMsg = err.response?.data?.message || "Đăng nhập thất bại";
+      setError(errorMsg);
+      addToast("Đăng nhập thất bại", "error");
     } finally {
       setLoading(false);
     }
@@ -40,11 +75,10 @@ function Login() {
   return (
     <div className="min-h-screen bg-surface text-on-surface font-body flex flex-col">
       {/* Header */}
-      <header className="w-full sticky top-0 z-50 bg-white shadow-sm">
+      <header className="w-full sticky top-0 z-50 bg-white/80 backdrop-blur-xl shadow-sm">
         <nav className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" />
-            <span className="text-2xl font-bold tracking-tight text-primary">BusGo</span>
+          <Link to="/" className="text-2xl font-bold tracking-tight text-primary">
+            BusGo
           </Link>
           <div className="hidden md:flex items-center gap-8">
             <Link to="/" className="text-gray-500 hover:text-primary transition-colors font-medium">
@@ -221,10 +255,7 @@ function Login() {
       {/* Footer */}
       <footer className="w-full py-8 bg-white flex justify-center items-center px-6 border-t border-gray-100">
         <div className="flex flex-col items-center gap-2">
-          <div className="flex items-center gap-2">
-            <img src="/img/busgo.jpg" alt="BusGo" className="h-12 mix-blend-multiply" />
-            <span className="text-lg font-bold text-primary">BusGo</span>
-          </div>
+          <div className="text-lg font-bold text-primary">BusGo</div>
           <p className="text-sm text-gray-500">© 2024 BusGo. All rights reserved.</p>
         </div>
       </footer>

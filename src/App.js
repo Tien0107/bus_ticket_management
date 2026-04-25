@@ -1,9 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+import { ToastProvider } from "./context/ToastContext";
+import Toast from "./components/Toast";
+import Home from "./pages/Home";
+
 // Auth & Public
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Home from "./pages/Home";
+import CompanySignup from "./pages/CompanySignup";
 
 // Layouts
 import DashboardLayout from "./components/layouts/DashboardLayout";
@@ -18,11 +22,15 @@ import Profile from "./pages/customer/Profile";
 
 // Driver Pages
 import DriverDashboard from "./pages/driver/DriverDashboard";
+import DriverProfile from "./pages/driver/DriverProfile";
 import TripDetail from "./pages/driver/TripDetail";
 
 // Company Pages
 import CompanyDashboard from "./pages/company/CompanyDashboard";
 import Vehicles from "./pages/company/Vehicles";
+import Drivers from "./pages/company/Drivers";
+import Staff from "./pages/company/Staff";
+import CompanyProfile from "./pages/company/CompanyProfile";
 import Schedules from "./pages/company/Schedules";
 
 // Company Support Pages
@@ -34,66 +42,84 @@ import SupportCoupons from "./pages/company-support/SupportCoupons";
 import SuperAdminDashboard from "./pages/super-admin/SuperAdminDashboard";
 import BusCompanies from "./pages/super-admin/BusCompanies";
 
-// import PrivateRoute from "./components/PrivateRoute"; // Sẽ dùng sau
-
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* 1. Public & Customer Routes (Dùng MainLayout hoặc độc lập) */}
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/company-support/register" element={<SupportRegister />} />
+    <ToastProvider>
+      <Toast />
 
-        {/* Customer Routing */}
-        <Route path="/booking/:tripId" element={<Booking />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/profile/tickets" element={<CustomerMyTickets />} />
-        <Route path="/profile/coupons" element={<CustomerMyCoupons />} />
-        <Route path="/profile/payment-methods" element={<CustomerMyPaymentMethods />} />
-        <Route path="/profile/tickets/:ticketId" element={<TicketDetail />} />
-        <Route path="/my-tickets" element={<Navigate to="/profile/tickets" replace />} />
-        <Route path="/my-coupons" element={<Navigate to="/profile/coupons" replace />} />
-        <Route path="/my-payment-methods" element={<Navigate to="/profile/payment-methods" replace />} />
-        <Route path="/my-tickets/:ticketId" element={<TicketDetail />} />
+      <BrowserRouter>
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/company-signup" element={<CompanySignup />} />
+          <Route path="/company-support/register" element={<SupportRegister />} />
 
-        {/* Company Support (Standalone - có sidebar riêng theo Stitch design) */}
-        <Route path="/company-support" element={<Navigate to="/company-support/tickets" replace />} />
-        <Route path="/company-support/tickets" element={<SupportTickets />} />
-        <Route path="/company-support/coupons" element={<SupportCoupons />} />
+          {/* Customer */}
+          <Route path="/booking/:tripId" element={<Booking />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/tickets" element={<CustomerMyTickets />} />
+          <Route path="/profile/coupons" element={<CustomerMyCoupons />} />
+          <Route path="/profile/payment-methods" element={<CustomerMyPaymentMethods />} />
+          <Route path="/profile/tickets/:ticketId" element={<TicketDetail />} />
 
-        {/* 2. Admin & Driver Dashboard Routes (Dùng chung DashboardLayout) */}
-        <Route element={<DashboardLayout />}>
-          
-          {/* Dashboard Tài xế */}
-          <Route path="/driver" element={<Navigate to="/driver/dashboard" replace />} />
-          <Route path="/driver/dashboard" element={<DriverDashboard />} />
-          <Route path="/driver/trip/:tripId" element={<TripDetail />} />
+          <Route path="/my-tickets" element={<Navigate to="/profile/tickets" replace />} />
+          <Route path="/my-coupons" element={<Navigate to="/profile/coupons" replace />} />
+          <Route path="/my-payment-methods" element={<Navigate to="/profile/payment-methods" replace />} />
+          <Route path="/my-tickets/:ticketId" element={<TicketDetail />} />
 
-          {/* Dashboard Nhà xe */}
-          <Route path="/company" element={<Navigate to="/company/dashboard" replace />} />
-          <Route path="/company/dashboard" element={<CompanyDashboard />} />
-          <Route path="/company/vehicles" element={<Vehicles />} />
-          <Route path="/company/schedules" element={<Schedules />} />
+          {/* Company Support */}
+          <Route path="/company-support" element={<Navigate to="/company-support/tickets" replace />} />
+          <Route path="/company-support/tickets" element={<SupportTickets />} />
+          <Route path="/company-support/coupons" element={<SupportCoupons />} />
 
-          {/* Dashboard Super Admin */}
-          <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
-          <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
-          <Route path="/super-admin/companies" element={<BusCompanies />} />
-          
-        </Route>
+          {/* Dashboard Layout */}
+          <Route element={<DashboardLayout />}>
 
-        {/* Fallback 404 */}
-        <Route path="*" element={
-          <div className="flex h-screen flex-col items-center justify-center">
-            <h1 className="text-red-500 font-bold text-6xl mb-4">404</h1>
-            <p className="text-gray-600 text-xl font-medium mb-6">Không tìm thấy trang</p>
-            <a href="/" className="px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary/90">Về trang chủ</a>
-          </div>
-        } />
-      </Routes>
-    </BrowserRouter>
+            {/* Driver */}
+            <Route path="/driver" element={<Navigate to="/driver/dashboard" replace />} />
+            <Route path="/driver/dashboard" element={<DriverDashboard />} />
+            <Route path="/driver/trip/:tripId" element={<TripDetail />} />
+            <Route path="/driver/profile" element={<DriverProfile />} />
+
+            {/* Company */}
+            <Route path="/company" element={<Navigate to="/company/dashboard" replace />} />
+            <Route path="/company/dashboard" element={<CompanyDashboard />} />
+            <Route path="/company/vehicles" element={<Vehicles />} />
+            <Route path="/company/drivers" element={<Drivers />} />
+            <Route path="/company/staff" element={<Staff />} />
+            <Route path="/company/profile" element={<CompanyProfile />} />
+            <Route path="/company/schedules" element={<Schedules />} />
+
+            {/* Super Admin */}
+            <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
+            <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+            <Route path="/super-admin/companies" element={<BusCompanies />} />
+
+          </Route>
+
+          {/* 404 */}
+          <Route
+            path="*"
+            element={
+              <div className="flex h-screen flex-col items-center justify-center">
+                <h1 className="mb-4 text-6xl font-bold text-red-500">404</h1>
+                <p className="mb-6 text-xl font-medium text-gray-600">
+                  Không tìm thấy trang
+                </p>
+                <a
+                  href="/"
+                  className="rounded-lg bg-primary px-6 py-2 font-bold text-white hover:bg-primary/90"
+                >
+                  Về trang chủ
+                </a>
+              </div>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }
 

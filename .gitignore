@@ -21,6 +21,9 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+<<<<<<< HEAD
 
 # test files
 test_*.js
+=======
+>>>>>>> feature/company-admin
