@@ -31,10 +31,10 @@ const MainNavbar = () => {
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-white shadow-editorial">
-      <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center w-full px-6 py-3 max-w-7xl mx-auto">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" />
-          <span className="text-2xl font-black text-primary tracking-tighter">Bus Go</span>
+          <img src="/img/busgo.jpg" alt="BusGo" className="h-10 mix-blend-multiply" />
+          <span className="text-xl font-black text-primary tracking-tighter">Bus Go</span>
         </Link>
         <div className="hidden md:flex items-center space-x-8">
           <Link
@@ -58,7 +58,7 @@ const MainNavbar = () => {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 bg-primary/10 px-4 py-2.5 rounded-xl hover:bg-primary/20 transition-colors"
+              className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-xl hover:bg-primary/20 transition-colors"
             >
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                 <span className="material-symbols-outlined text-white text-lg">person</span>
@@ -124,13 +124,13 @@ const MainNavbar = () => {
           <div className="flex items-center gap-3">
             <Link
               to="/login"
-              className="text-primary font-semibold px-5 py-2.5 rounded-xl border-2 border-primary hover:bg-primary/5 active:scale-95 transition-all duration-150"
+              className="text-primary font-semibold px-4 py-2 rounded-xl border-2 border-primary hover:bg-primary/5 active:scale-95 transition-all duration-150"
             >
               Đăng nhập
             </Link>
             <Link
               to="/register"
-              className="bg-primary text-on-primary px-5 py-2.5 rounded-xl font-bold hover:bg-primary/90 active:scale-95 transition-all duration-150"
+              className="bg-primary text-on-primary px-4 py-2 rounded-xl font-bold hover:bg-primary/90 active:scale-95 transition-all duration-150"
             >
               Đăng ký
             </Link>
