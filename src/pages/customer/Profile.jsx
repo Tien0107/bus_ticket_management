@@ -34,7 +34,7 @@ export default function Profile() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-surface pt-10 pb-12 px-6">
+    <div className="min-h-screen bg-surface pt-24 pb-12 px-6">
       <div className="max-w-5xl mx-auto space-y-6">
         <CustomerProfileNav />
 

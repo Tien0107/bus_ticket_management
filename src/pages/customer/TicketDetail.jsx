@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getTicketDetail, cancelTicket } from "../../api/customer";
+import ConfirmModal from "../../components/common/ConfirmModal";
+import { useToast } from "../../context/ToastContext";
 
 export default function TicketDetail() {
   const { ticketId } = useParams();
   const navigate = useNavigate();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const { addToast } = useToast();
 
   useEffect(() => {
     fetchDetail();
@@ -18,21 +22,26 @@ export default function TicketDetail() {
       const res = await getTicketDetail(ticketId);
       setTicket(res.data?.ticket || res.data || null);
     } catch (err) {
-      alert("Lỗi tải thông tin vé: " + (err.response?.data?.message || err.message));
+      addToast("Lỗi tải thông tin vé: " + (err.response?.data?.message || err.message), "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancel = async () => {
-    if (!window.confirm("Bạn có chắc chắn muốn hủy vé số #" + ticketId + " không?")) return;
+  const executeCancel = async () => {
     try {
       await cancelTicket(ticketId);
-      alert("Hủy vé thành công!");
+      addToast("Hủy vé thành công!", "success");
       navigate("/profile/tickets");
     } catch (err) {
-      alert("Hủy vé thất bại: " + (err.response?.data?.message || err.message));
+      addToast("Hủy vé thất bại: " + (err.response?.data?.message || err.message), "error");
+    } finally {
+      setShowConfirm(false);
     }
+  };
+
+  const handleCancel = () => {
+    setShowConfirm(true);
   };
 
   if (loading) {
@@ -77,6 +86,15 @@ export default function TicketDetail() {
 
   return (
     <div className="bg-surface text-on-surface min-h-[max(884px,100dvh)] font-body">
+      <ConfirmModal 
+        isOpen={showConfirm} 
+        title="Xác nhận hủy vé" 
+        message={`Bạn có chắc chắn muốn hủy vé số #${ticketId} không?`} 
+        confirmText="Có, hủy vé"
+        cancelText="Đóng"
+        onConfirm={executeCancel} 
+        onCancel={() => setShowConfirm(false)} 
+      />
       <style>{`
         .pass-cutout-l, .pass-cutout-r {
           position: absolute;

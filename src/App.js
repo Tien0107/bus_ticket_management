@@ -20,6 +20,7 @@ import CustomerMyCoupons from "./pages/customer/MyCoupons";
 import CustomerMyPaymentMethods from "./pages/customer/MyPaymentMethods";
 import TicketDetail from "./pages/customer/TicketDetail";
 import Profile from "./pages/customer/Profile";
+import RoutesPage from "./pages/customer/Routes";
 
 // Driver Pages
 import DriverDashboard from "./pages/driver/DriverDashboard";
@@ -63,6 +64,7 @@ function App() {
           {/* Main Layout (Home & Customer Pages) */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />
+            <Route path="/routes" element={<RoutesPage />} />
             
             {/* Customer */}
             <Route path="/booking/:tripId" element={<Booking />} />

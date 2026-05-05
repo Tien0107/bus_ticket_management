@@ -4,13 +4,17 @@ import { useNavigate } from "react-router-dom";
 import AddCardModal from "../../components/payment/AddCardModal";
 import CustomerProfileNav from "../../components/profile/CustomerProfileNav";
 import CustomerProfileSectionHeader from "../../components/profile/CustomerProfileSectionHeader";
+import ConfirmModal from "../../components/common/ConfirmModal";
+import { useToast } from "../../context/ToastContext";
 
 export default function MyPaymentMethods() {
   const [methods, setMethods] = useState([]);
   const [loading, setLoading] = useState(false);
   const [settingDefaultId, setSettingDefaultId] = useState(null);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
+  const [methodToCancel, setMethodToCancel] = useState(null);
   const navigate = useNavigate();
+  const { addToast } = useToast();
 
   const getPaymentMethodIdentifier = (method) => {
     return method?.stripePaymentMethodId || method?.id;
@@ -77,18 +81,22 @@ export default function MyPaymentMethods() {
     fetchMethods();
   }, [navigate]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn gỡ thẻ này?")) return;
+  const executeDelete = async (id) => {
     try {
       setLoading(true);
       await deletePaymentMethod(id);
-      alert("Xóa thành công!");
+      addToast("Xóa thành công!", "success");
       fetchMethods();
     } catch (err) {
-      alert("Lỗi khi xóa: " + (err.response?.data?.message || err.message));
+      addToast("Lỗi khi xóa: " + (err.response?.data?.message || err.message), "error");
     } finally {
       setLoading(false);
+      setMethodToCancel(null);
     }
+  };
+
+  const handleDelete = (id) => {
+    setMethodToCancel(id);
   };
   const normalizeBrand = (brand) => {
     const value = String(brand || "CARD").toLowerCase();
@@ -113,7 +121,7 @@ export default function MyPaymentMethods() {
       setMethods((prevMethods) => normalizeDefaultMethods(prevMethods, paymentMethodId));
       await fetchMethods({ silent: true, preferredId: paymentMethodId });
     } catch (err) {
-      alert("Lỗi khi đổi thẻ mặc định: " + (err.response?.data?.message || err.message));
+      addToast("Lỗi khi đổi thẻ mặc định: " + (err.response?.data?.message || err.message), "error");
     } finally {
       setSettingDefaultId(null);
     }
@@ -127,7 +135,7 @@ export default function MyPaymentMethods() {
   };
 
   return (
-    <div className="bg-surface min-h-screen pt-10 pb-12 px-6">
+    <div className="bg-surface min-h-screen pt-24 pb-12 px-6">
       <div className="max-w-4xl mx-auto">
         <CustomerProfileSectionHeader
           title="Phương thức thanh toán"
@@ -143,6 +151,16 @@ export default function MyPaymentMethods() {
         />
         
         <CustomerProfileNav />
+
+        <ConfirmModal 
+          isOpen={!!methodToCancel} 
+          title="Xác nhận gỡ thẻ" 
+          message="Bạn có chắc chắn muốn gỡ thẻ thanh toán này không?" 
+          confirmText="Có, gỡ thẻ"
+          cancelText="Đóng"
+          onConfirm={() => executeDelete(methodToCancel)} 
+          onCancel={() => setMethodToCancel(null)} 
+        />
 
         {loading && methods.length === 0 ? (
           <p className="text-on-surface-variant animate-pulse">Đang tải danh sách thẻ...</p>

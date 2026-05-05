@@ -11,9 +11,46 @@ import { loadStripe } from "@stripe/stripe-js";
 import CustomerProfileNav from "../../components/profile/CustomerProfileNav";
 import CustomerProfileSectionHeader from "../../components/profile/CustomerProfileSectionHeader";
 import SelectPaymentCardModal from "../../components/payment/SelectPaymentCardModal";
+import ConfirmModal from "../../components/common/ConfirmModal";
+import { useToast } from "../../context/ToastContext";
 
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+
+const CountdownTimer = ({ expiredAt, onExpire }) => {
+  const [timeLeft, setTimeLeft] = useState(new Date(expiredAt).getTime() - Date.now());
+  const hasExpiredRef = React.useRef(false);
+
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      if (!hasExpiredRef.current) {
+        hasExpiredRef.current = true;
+        onExpire();
+      }
+      return;
+    }
+    const intervalId = setInterval(() => {
+      const remaining = new Date(expiredAt).getTime() - Date.now();
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+         clearInterval(intervalId);
+         if (!hasExpiredRef.current) {
+           hasExpiredRef.current = true;
+           onExpire();
+         }
+      }
+    }, 1000);
+    return () => clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expiredAt]);
+
+  if (timeLeft <= 0) return <span className="font-bold">Đã hết hạn</span>;
+
+  const m = Math.floor((timeLeft / 1000 / 60) % 60);
+  const s = Math.floor((timeLeft / 1000) % 60);
+
+  return <span className="font-bold">{m}:{s < 10 ? '0' : ''}{s}</span>;
+};
 
 export default function MyTickets() {
   const [tickets, setTickets] = useState([]);
@@ -24,12 +61,14 @@ export default function MyTickets() {
   const [pendingOrderId, setPendingOrderId] = useState(null);
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [processingCardPayment, setProcessingCardPayment] = useState(false);
+  const [ticketToCancel, setTicketToCancel] = useState(null);
   const navigate = useNavigate();
+  const { addToast } = useToast();
 
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const res = await getMyTickets();
+      const res = await getMyTickets({ limit: 10 });
       setTickets(res.data?.tickets || res.data || []);
     } catch (err) {
       console.error(err);
@@ -43,16 +82,28 @@ export default function MyTickets() {
 
   useEffect(() => {
     fetchTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleCancel = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn hủy vé này?")) return;
+  const executeCancel = async (id, isAuto = false) => {
     try {
       await cancelTicket(id);
-      alert("Hủy vé thành công!");
+      if (!isAuto) addToast("Hủy vé thành công!", "success");
       fetchTickets();
     } catch (err) {
-      alert("Hủy vé thất bại: " + (err.response?.data?.message || err.message));
+      if (!isAuto) addToast("Hủy vé thất bại: " + (err.response?.data?.message || err.message), "error");
+    } finally {
+      if (!isAuto) {
+        setTicketToCancel(null);
+      }
+    }
+  };
+
+  const handleCancel = (id, isAuto = false) => {
+    if (isAuto) {
+      executeCancel(id, true);
+    } else {
+      setTicketToCancel(id);
     }
   };
 
@@ -65,24 +116,24 @@ export default function MyTickets() {
         if (url) {
            window.location.href = url;
         } else {
-           alert("Lỗi: Không nhận được URL thanh toán từ Backend. " + JSON.stringify(res.data));
+           addToast("Lỗi: Không nhận được URL thanh toán từ Backend. " + JSON.stringify(res.data), "error");
         }
       } else if (method === "stripe") {
         const clientSecret = res.data?.clientSecret;
         const paymentIntentId = res.data?.paymentIntentId;
 
         if (!clientSecret) {
-          alert("Không nhận được clientSecret từ backend để thanh toán Stripe.");
+          addToast("Không nhận được clientSecret từ backend để thanh toán Stripe.", "error");
           return;
         }
         if (!stripePromise) {
-          alert("Thiếu cấu hình Stripe key (REACT_APP_STRIPE_PUBLISHABLE_KEY).");
+          addToast("Thiếu cấu hình Stripe key (REACT_APP_STRIPE_PUBLISHABLE_KEY).", "error");
           return;
         }
 
         const stripe = await stripePromise;
         if (!stripe) {
-          alert("Không thể khởi tạo Stripe.");
+          addToast("Không thể khởi tạo Stripe.", "error");
           return;
         }
 
@@ -90,24 +141,24 @@ export default function MyTickets() {
           payment_method: selectedPaymentMethodId || undefined,
         });
         if (error) {
-          alert("Thanh toán Stripe thất bại: " + (error.message || "Unknown error"));
+          addToast("Thanh toán Stripe thất bại: " + (error.message || "Unknown error"), "error");
           return;
         }
 
         const paidIntentId = paymentIntent?.id || paymentIntentId;
         if (paymentIntent?.status === "succeeded") {
-          alert(`Thanh toán thành công! ${paidIntentId ? `(PI: ${paidIntentId})` : ""}`);
+          addToast(`Thanh toán thành công! ${paidIntentId ? `(PI: ${paidIntentId})` : ""}`, "success");
           fetchTickets();
           return;
         }
         fetchTickets();
       } else if (method === "cash") {
-        alert(res.data?.message || "Đã ghi nhận yêu cầu thanh toán Tiền mặt! Vui lòng thanh toán tại quầy trước giờ xuất bến.");
+        addToast(res.data?.message || "Đã ghi nhận yêu cầu thanh toán Tiền mặt! Vui lòng thanh toán tại quầy trước giờ xuất bến.", "success");
         fetchTickets();
       }
       
     } catch (err) {
-      alert("Lỗi gọi thanh toán: " + (err.response?.data?.message || err.message));
+      addToast("Lỗi gọi thanh toán: " + (err.response?.data?.message || err.message), "error");
     }
   };
 
@@ -130,7 +181,7 @@ export default function MyTickets() {
       );
     } catch (err) {
       setShowCardModal(false);
-      alert("Không thể tải danh sách thẻ: " + (err.response?.data?.message || err.message));
+      addToast("Không thể tải danh sách thẻ: " + (err.response?.data?.message || err.message), "error");
     } finally {
       setLoadingCards(false);
     }
@@ -141,7 +192,7 @@ export default function MyTickets() {
       setProcessingCardPayment(true);
       const paymentMethodId = card?.stripePaymentMethodId || card?.id;
       if (!paymentMethodId || !pendingOrderId) {
-        alert("Thiếu thông tin thẻ hoặc đơn hàng.");
+        addToast("Thiếu thông tin thẻ hoặc đơn hàng.", "error");
         return;
       }
 
@@ -149,7 +200,7 @@ export default function MyTickets() {
       setShowCardModal(false);
       await handlePayment(pendingOrderId, "stripe", paymentMethodId);
     } catch (err) {
-      alert("Không thể đặt thẻ mặc định để thanh toán: " + (err.response?.data?.message || err.message));
+      addToast("Không thể đặt thẻ mặc định để thanh toán: " + (err.response?.data?.message || err.message), "error");
     } finally {
       setProcessingCardPayment(false);
     }
@@ -159,24 +210,34 @@ export default function MyTickets() {
     try {
       setProcessingCardPayment(true);
       if (!paymentMethodId || !pendingOrderId) {
-        alert("Thiếu thông tin thẻ hoặc đơn hàng.");
+        addToast("Thiếu thông tin thẻ hoặc đơn hàng.", "error");
         return;
       }
       setShowCardModal(false);
       await handlePayment(pendingOrderId, "stripe", paymentMethodId);
     } catch (err) {
-      alert("Không thể thanh toán bằng thẻ mới: " + (err.response?.data?.message || err.message));
+      addToast("Không thể thanh toán bằng thẻ mới: " + (err.response?.data?.message || err.message), "error");
     } finally {
       setProcessingCardPayment(false);
     }
   };
 
   return (
-    <div className="bg-surface min-h-screen pt-10 pb-12 px-6">
+    <div className="bg-surface min-h-screen pt-24 pb-12 px-6">
       <div className="max-w-4xl mx-auto">
         <CustomerProfileSectionHeader title="Vé đã đặt" />
         
         <CustomerProfileNav />
+
+        <ConfirmModal 
+          isOpen={!!ticketToCancel} 
+          title="Xác nhận hủy vé" 
+          message="Bạn có chắc chắn muốn hủy chuyến đi này không? Thao tác này không thể hoàn tác." 
+          confirmText="Có, hủy vé"
+          cancelText="Đóng"
+          onConfirm={() => executeCancel(ticketToCancel)} 
+          onCancel={() => setTicketToCancel(null)} 
+        />
 
         {loading ? (
           <p className="text-on-surface-variant animate-pulse">Đang tải danh sách vé...</p>
@@ -213,14 +274,36 @@ export default function MyTickets() {
                       <h3 className="font-bold text-lg">Loại hành trình: {t.bookingType === 'round_trip' ? 'Khứ hồi' : 'Một chiều'}</h3>
                       <p className="text-sm text-on-surface-variant"><span className="material-symbols-outlined text-[16px] align-text-bottom mr-1">calendar_month</span>Khởi hành: {t.departureDate ? new Date(t.departureDate).toLocaleString('vi-VN') : 'N/A'}</p>
                       
-                      <p className="text-sm font-bold text-secondary">
-                        Tổng tiền: {(t.totalAmount || 0).toLocaleString()}đ
-                      </p>
-                      
-                      {t.expiredAt && isPending && (
-                         <p className="text-xs text-red-500 font-medium">Hết hạn thanh toán: {new Date(t.expiredAt).toLocaleString('vi-VN')}</p>
-                      )}
-                   </div>
+                       <p className="text-sm font-bold text-secondary">
+                         Tổng tiền: {(t.totalAmount || 0).toLocaleString()}đ
+                       </p>
+                       
+                       {(() => {
+                         const rawTime = t.expiredAt || t.createdAt || t.created_at || t.createdDate || t.createAt || t.bookingDate || t.bookingTime || t.orderDate;
+                         let baseTime = t.expiredAt ? t.expiredAt : (rawTime ? new Date(new Date(rawTime).getTime() + 10 * 60000).toISOString() : null);
+                         const isCash = String(t.paymentMethod || t.paymentType || '').toUpperCase() === 'CASH';
+                         
+                         if (isPending && !isCash) {
+                           // Fallback to localStorage if API doesn't provide any time
+                           if (!baseTime) {
+                             const localKey = `busgo_ticket_expire_${t.id}`;
+                             baseTime = localStorage.getItem(localKey);
+                             if (!baseTime) {
+                               baseTime = new Date(Date.now() + 10 * 60000).toISOString();
+                               localStorage.setItem(localKey, baseTime);
+                             }
+                           }
+
+                           return (
+                             <p className="text-xs text-red-500 font-medium flex items-center gap-1 mt-2">
+                                <span className="material-symbols-outlined text-[14px]">timer</span>
+                                Hết hạn trong: <CountdownTimer expiredAt={baseTime} onExpire={() => handleCancel(t.id, true)} />
+                             </p>
+                           );
+                         }
+                         return null;
+                       })()}
+                    </div>
                    
                    <div className="flex gap-3 w-full md:w-auto">
                       {isPending ? (

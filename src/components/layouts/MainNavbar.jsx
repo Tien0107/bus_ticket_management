@@ -1,19 +1,43 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { logout } from "../../api/auth";
+
+import { getCustomerProfile } from "../../api/customer";
 
 const MainNavbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("user");
-      if (stored) setUser(JSON.parse(stored));
-    } catch (e) {
-      console.error("Lỗi parse user:", e);
-    }
+    const initUser = async () => {
+      try {
+        const stored = localStorage.getItem("user");
+        if (stored) {
+          let parsedUser = JSON.parse(stored);
+          
+          // Fetch profile if fullName is missing and it's a customer
+          if (!parsedUser.fullName && (!parsedUser.role || parsedUser.role === 'customer')) {
+            try {
+              const res = await getCustomerProfile();
+              const profileUser = res.data?.user || res.data;
+              if (profileUser && profileUser.fullName) {
+                parsedUser = { ...parsedUser, ...profileUser };
+                localStorage.setItem("user", JSON.stringify(parsedUser));
+              }
+            } catch (err) {
+              console.error("Lỗi lấy profile cho navbar:", err);
+            }
+          }
+          
+          setUser(parsedUser);
+        }
+      } catch (e) {
+        console.error("Lỗi parse user:", e);
+      }
+    };
+    initUser();
   }, []);
 
   const handleLogout = async () => {
@@ -39,13 +63,16 @@ const MainNavbar = () => {
         <div className="hidden md:flex items-center space-x-8">
           <Link
             to="/"
-            className="text-primary font-bold border-b-2 border-primary pb-1"
+            className={`${location.pathname === '/' ? 'text-primary font-bold border-b-2 border-primary pb-1' : 'text-gray-600 hover:text-primary transition-colors'}`}
           >
             Trang chủ
           </Link>
-          <a href="/#routes" className="text-gray-600 hover:text-primary transition-colors">
+          <Link 
+            to="/routes" 
+            className={`${location.pathname === '/routes' ? 'text-primary font-bold border-b-2 border-primary pb-1' : 'text-gray-600 hover:text-primary transition-colors'}`}
+          >
             Lịch trình
-          </a>
+          </Link>
           <a href="/#partners" className="text-gray-600 hover:text-primary transition-colors">
             Khuyến mãi
           </a>
@@ -64,7 +91,7 @@ const MainNavbar = () => {
                 <span className="material-symbols-outlined text-white text-lg">person</span>
               </div>
               <span className="text-on-surface font-semibold text-sm max-w-[120px] truncate">
-                {user.fullName || user.username || "User"}
+                {user.fullName || user.username || user.name || (user.email ? user.email.split('@')[0] : "User")}
               </span>
               <span className="material-symbols-outlined text-on-surface-variant text-lg">
                 {showUserMenu ? "expand_less" : "expand_more"}
@@ -73,8 +100,10 @@ const MainNavbar = () => {
             {showUserMenu && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-lg border border-outline-variant/20 py-2 z-50">
                 <div className="px-4 py-3 border-b border-outline-variant/10">
-                  <p className="text-sm font-bold text-on-surface truncate">{user.fullName || user.username}</p>
-                  <p className="text-xs text-on-surface-variant truncate">{user.email}</p>
+                  <p className="text-sm font-bold text-on-surface truncate">
+                    {user.fullName || user.username || user.name || (user.email ? user.email.split('@')[0] : "Người dùng")}
+                  </p>
+                  <p className="text-xs text-on-surface-variant truncate">{user.email || "Chưa có email"}</p>
                 </div>
                 {/* Link Admin cho Company Support */}
                 {(String(user.role?.name || user.role).toUpperCase().includes('SUPPORT') || String(user.role?.name || user.role).toUpperCase() === 'ADMIN' || String(user.role?.name || user.role).toUpperCase() === 'COMPANY_ADMIN') && (

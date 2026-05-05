@@ -39,7 +39,7 @@ export default function MyCoupons() {
   }, [navigate]);
 
   return (
-    <div className="bg-surface min-h-screen pt-10 pb-12 px-6">
+    <div className="bg-surface min-h-screen pt-24 pb-12 px-6">
       <div className="max-w-4xl mx-auto">
         <CustomerProfileSectionHeader title="Ví khuyến mãi" />
         
