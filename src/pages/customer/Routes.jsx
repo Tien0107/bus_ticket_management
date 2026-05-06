@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { getTripSchedules } from "../../api/customer";
 
 export default function RoutesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const filterState = location.state || {};
+  
   const [schedules, setSchedules] = useState([]);
   const [popularRoutes, setPopularRoutes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -14,9 +17,19 @@ export default function RoutesPage() {
       try {
         setLoading(true);
         setError(null);
+        
+        const params = { limit: 50, orderBy: "asc" };
+        if (filterState.companyId) params.companyId = filterState.companyId;
+        if (filterState.date) params.date = filterState.date;
+
         // Call API without from/to to get all upcoming or default limit
-        const response = await getTripSchedules({ limit: 50, orderBy: "asc" });
-        const data = response.data?.trip || [];
+        const response = await getTripSchedules(params);
+        let data = response.data?.trip || [];
+        
+        if (Array.isArray(data) && filterState.companyId) {
+          data = data.filter(t => String(t.company?.id || t.companyId) === String(filterState.companyId));
+        }
+
         setSchedules(Array.isArray(data) ? data : []);
 
         // Compute dynamic popular routes from the fetched trips
@@ -130,7 +143,9 @@ export default function RoutesPage() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-8">
             <span className="material-symbols-outlined text-3xl text-primary">calendar_month</span>
-            <h2 className="text-2xl font-black text-on-surface">Các chuyến xe sắp tới</h2>
+            <h2 className="text-2xl font-black text-on-surface">
+              {filterState.companyName ? `Các chuyến xe của ${filterState.companyName}` : "Các chuyến xe sắp tới"}
+            </h2>
           </div>
 
           {loading ? (

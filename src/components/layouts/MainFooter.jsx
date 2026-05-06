@@ -5,13 +5,21 @@ const MainFooter = () => {
     <footer id="footer" className="w-full rounded-t-3xl mt-auto bg-gray-50">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-12 px-8 py-16 max-w-7xl mx-auto text-sm leading-6">
         {/* Brand */}
-        <div>
-          <div className="flex items-center gap-2 mb-6">
-            <img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" />
-            <span className="text-xl font-bold text-primary">Bus Go</span>
+        <div className="md:col-span-1 pr-4">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <img src="/img/busgo.jpg" alt="BusGo" className="h-14 mix-blend-multiply" />
+            </div>
+            <div className="w-px h-10 bg-outline-variant/30"></div>
+            <img 
+              src="/img/donga-logo.png" 
+              alt="Đại học Đông Á" 
+              className="h-12 object-contain"
+            />
           </div>
-          <p className="text-gray-500 mb-6">
-            Nền tảng đặt vé xe khách trực tuyến hàng đầu Việt Nam, giúp bạn kết nối với hàng nghìn hành trình mỗi ngày.
+          <p className="text-gray-500 mb-6 text-sm">
+            <span className="font-bold text-primary">Đối tác chiến lược: Đại học Đông Á.</span><br/>
+            Nền tảng đặt vé xe khách trực tuyến, giúp bạn kết nối với hàng nghìn hành trình mỗi ngày.
           </p>
           <div className="flex space-x-4">
             <a href="#" className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all">
@@ -69,7 +77,7 @@ const MainFooter = () => {
             </li>
             <li className="flex items-start gap-3">
               <span className="material-symbols-outlined text-primary">location_on</span>
-              <span>Số 123, Đường Lê Lợi, Quận 1, TP. HCM</span>
+              <span>33 Xô Viết Nghệ Tĩnh, Hòa Cường, Đà Nẵng 550000, Việt Nam</span>
             </li>
           </ul>
         </div>

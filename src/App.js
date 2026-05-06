@@ -21,6 +21,7 @@ import CustomerMyPaymentMethods from "./pages/customer/MyPaymentMethods";
 import TicketDetail from "./pages/customer/TicketDetail";
 import Profile from "./pages/customer/Profile";
 import RoutesPage from "./pages/customer/Routes";
+import Contact from "./pages/Contact";
 
 // Driver Pages
 import DriverDashboard from "./pages/driver/DriverDashboard";
@@ -65,6 +66,7 @@ function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/routes" element={<RoutesPage />} />
+            <Route path="/contact" element={<Contact />} />
             
             {/* Customer */}
             <Route path="/booking/:tripId" element={<Booking />} />

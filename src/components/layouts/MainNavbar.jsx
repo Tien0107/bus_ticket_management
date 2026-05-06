@@ -73,12 +73,12 @@ const MainNavbar = () => {
           >
             Lịch trình
           </Link>
-          <a href="/#partners" className="text-gray-600 hover:text-primary transition-colors">
-            Khuyến mãi
-          </a>
-          <a href="/#footer" className="text-gray-600 hover:text-primary transition-colors">
+          <Link 
+            to="/contact" 
+            className={`${location.pathname === '/contact' ? 'text-primary font-bold border-b-2 border-primary pb-1' : 'text-gray-600 hover:text-primary transition-colors'}`}
+          >
             Liên hệ
-          </a>
+          </Link>
         </div>
         {user ? (
           /* === Đã đăng nhập === */

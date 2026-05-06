@@ -28,6 +28,27 @@ const features = [
   },
 ];
 
+// Dummy Promo Data
+const promoHolidays = [
+  { id: 1, title: "Danh sách các nhà xe đã mở bán vé Lễ Giỗ Tổ & 30/4 - 1/5", image: "https://picsum.photos/seed/bus1/600/400" },
+  { id: 2, title: "Cách đặt vé xe Lễ nhanh chóng, tiện lợi tại BusGo", image: "https://picsum.photos/seed/bus2/600/400" },
+  { id: 3, title: "Lưu ý khi đặt vé Lễ", image: "https://picsum.photos/seed/bus3/600/400" },
+  { id: 4, title: "Top 5 địa điểm du lịch Lễ hot nhất", image: "https://picsum.photos/seed/bus4/600/400" }
+];
+
+const promoHighlights = [
+  { id: 1, title: "12h - 14h Thứ 3 - Flash Sale đến 50%", image: "https://picsum.photos/seed/sale1/600/400" },
+  { id: 2, title: "Giảm 15% khi đặt vé các nhà xe mới mở bán tại BusGo", image: "https://picsum.photos/seed/sale2/600/400" },
+  { id: 3, title: "Giới thiệu bạn mới - Nhận quà khủng từ BusGo", image: "https://picsum.photos/seed/sale3/600/400" },
+  { id: 4, title: "Đón hè sang - Săn sale rộn ràng", image: "https://picsum.photos/seed/sale4/600/400" }
+];
+
+const promoPayments = [
+  { id: 1, title: "Giảm đến 100K khi thanh toán bằng Thẻ Tín dụng HD SAISON", image: "https://picsum.photos/seed/pay1/600/400" },
+  { id: 2, title: "Nhận ưu đãi đến 50K và giảm 25% khi đặt vé cho khách hàng UOB", image: "https://picsum.photos/seed/pay2/600/400" },
+  { id: 3, title: "Giảm đến 50K khi thanh toán đơn hàng bằng ví ShopeePay", image: "https://picsum.photos/seed/pay3/600/400" },
+  { id: 4, title: "Thanh toán bằng VNPay nhận ngay hoàn tiền 10%", image: "https://picsum.photos/seed/pay4/600/400" }
+];
 
 
 const Home = () => {
@@ -82,13 +103,16 @@ const Home = () => {
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [companiesError, setCompaniesError] = useState(null);
 
-  // Fetch danh sách nhà xe khi component mount
+  const [popularRoutes, setPopularRoutes] = useState([]);
+  const [loadingPopular, setLoadingPopular] = useState(false);
+
+  // Fetch danh sách nhà xe và tuyến đường phổ biến
   useEffect(() => {
-    const fetchCompanies = async () => {
+    const fetchHomeData = async () => {
+      // 1. Fetch Companies
       try {
         setCompaniesLoading(true);
         const response = await getCompanies({ limit: 10 });
-        // API trả về object có chứa mảng companies
         const data = response.data?.companies || response.data?.data || [];
         setCompanies(Array.isArray(data) ? data : []);
         setCompaniesError(null);
@@ -98,9 +122,82 @@ const Home = () => {
       } finally {
         setCompaniesLoading(false);
       }
+
+      // 2. Fetch Popular Routes
+      try {
+        setLoadingPopular(true);
+        const tripRes = await getTripSchedules({ limit: 50, orderBy: "asc" });
+        const trips = tripRes.data?.trip || [];
+        if (Array.isArray(trips)) {
+          const routesMap = new Map();
+          trips.forEach((trip) => {
+            if (!trip.fromLocation || !trip.toLocation) return;
+            const key = `${trip.fromLocation}-${trip.toLocation}`;
+            if (!routesMap.has(key)) {
+              routesMap.set(key, {
+                id: trip.id,
+                from: trip.fromLocation,
+                to: trip.toLocation,
+                title: `${trip.fromLocation} ➔ ${trip.toLocation}`,
+                image: `https://picsum.photos/seed/${encodeURIComponent(key)}/800/1000`,
+                price: trip.price ? `Từ ${trip.price.toLocaleString('vi-VN')}đ` : "Từ 150.000đ",
+                duration: trip.durationMinutes ? `Khoảng ${Math.floor(trip.durationMinutes/60)}h ${trip.durationMinutes%60}m` : "Khoảng 2-3 giờ"
+              });
+            }
+          });
+          setPopularRoutes(Array.from(routesMap.values()).slice(0, 4));
+        }
+      } catch (err) {
+        console.error("Lỗi tải tuyến đường phổ biến:", err);
+      } finally {
+        setLoadingPopular(false);
+      }
     };
-    fetchCompanies();
+    fetchHomeData();
   }, []);
+
+  const handleSelectPopularRoute = async (from, to) => {
+    setDeparture(from);
+    setDestination(to);
+    
+    // Auto trigger search with today's date if date is empty
+    const searchDate = date || new Date().toISOString().split('T')[0];
+    setDate(searchDate);
+
+    setSearchInitiated(true);
+    setLoadingSearch(true);
+    setSearchError(null);
+
+    // Scroll up slightly to prepare for search results
+    window.scrollTo({ top: 300, behavior: 'smooth' });
+
+    try {
+      const response = await getTripSchedules({
+        from: from,
+        to: to,
+        date: searchDate,
+        limit: 10,
+        orderBy: "asc"
+      });
+      const data = response.data?.trip || [];
+      setSchedules(Array.isArray(data) ? data : []);
+      
+      // Scroll to search results
+      setTimeout(() => {
+        const el = document.getElementById("search-results");
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (err) {
+      console.error("Lỗi tìm chuyến:", err);
+      if (err.response?.status === 401) {
+         setSearchError("Vui lòng Đăng nhập ở góc trên bên phải để tìm và đặt vé.");
+      } else {
+         setSearchError("Không thể tìm chuyến. Vui lòng thử lại sau.");
+      }
+    } finally {
+      setLoadingSearch(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-body">
@@ -289,6 +386,54 @@ const Home = () => {
         </section>
       )}
 
+      {/* ===== POPULAR ROUTES ===== */}
+      <section className="bg-surface py-20 border-t border-surface-container">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center gap-3 mb-10">
+            <span className="material-symbols-outlined text-4xl text-secondary">local_fire_department</span>
+            <h2 className="text-3xl font-black text-on-surface">Tuyến đường phổ biến</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {loadingPopular ? (
+               <div className="col-span-full flex justify-center items-center py-10">
+                 <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+               </div>
+            ) : popularRoutes.length > 0 ? popularRoutes.map((route) => (
+              <div 
+                key={route.id}
+                className="group relative rounded-3xl overflow-hidden cursor-pointer shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+                onClick={() => handleSelectPopularRoute(route.from, route.to)}
+              >
+                <div className="aspect-[4/5] w-full">
+                  <img 
+                    src={route.image} 
+                    alt={route.title} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <h3 className="text-xl font-bold mb-3 leading-tight">{route.title}</h3>
+                  <div className="flex items-center gap-2 text-sm text-white/90 mb-1.5">
+                    <span className="material-symbols-outlined text-[18px]">schedule</span>
+                    {route.duration}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-secondary-fixed">
+                    <span className="material-symbols-outlined text-[18px]">payments</span>
+                    {route.price}
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="col-span-full text-center py-10 text-on-surface-variant font-medium">
+                Chưa có dữ liệu tuyến đường phổ biến.
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* ===== WHY CHOOSE US ===== */}
       <section className="bg-surface-container-low py-24">
         <div className="max-w-7xl mx-auto px-6">
@@ -374,7 +519,11 @@ const Home = () => {
               {companies.map((company) => (
                 <div
                   key={company.id || company._id}
-                  className="bg-white p-6 rounded-3xl shadow-editorial hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex items-center gap-4"
+                  onClick={() => {
+                     const today = new Date().toISOString().split('T')[0];
+                     navigate("/routes", { state: { companyId: company.id || company._id, companyName: company.name || company.company_name, date: today } });
+                  }}
+                  className="bg-white p-6 rounded-3xl shadow-editorial hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex items-center gap-4 cursor-pointer"
                 >
                   {/* Company Avatar */}
                   <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -419,6 +568,64 @@ const Home = () => {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* ===== PROMOTIONS SECTION ===== */}
+      <section className="bg-surface py-16">
+        <div className="max-w-7xl mx-auto px-6">
+          
+          {/* Lễ Giỗ Tổ */}
+          <div className="mb-12">
+            <h3 className="text-xl font-bold text-on-surface mb-6">Lễ Giỗ Tổ Hùng Vương và 30/4 - 1/5/2026</h3>
+            <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {promoHolidays.map((item) => (
+                <div key={item.id} className="min-w-[280px] md:min-w-[320px] bg-white rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden snap-start cursor-pointer hover:shadow-md transition-all">
+                  <div className="h-40 w-full overflow-hidden">
+                    <img src={item.image} alt={item.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-4">
+                    <h4 className="font-bold text-sm text-on-surface line-clamp-2 leading-relaxed">{item.title}</h4>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Ưu đãi nổi bật */}
+          <div className="mb-12">
+            <h3 className="text-xl font-bold text-on-surface mb-6">Ưu đãi nổi bật</h3>
+            <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {promoHighlights.map((item) => (
+                <div key={item.id} className="min-w-[280px] md:min-w-[320px] bg-white rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden snap-start cursor-pointer hover:shadow-md transition-all">
+                  <div className="h-40 w-full overflow-hidden">
+                    <img src={item.image} alt={item.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-4">
+                    <h4 className="font-bold text-sm text-on-surface line-clamp-2 leading-relaxed">{item.title}</h4>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Ưu đãi thanh toán online */}
+          <div className="mb-8">
+            <h3 className="text-xl font-bold text-on-surface mb-6">Ưu đãi thanh toán online</h3>
+            <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {promoPayments.map((item) => (
+                <div key={item.id} className="min-w-[280px] md:min-w-[320px] bg-white rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden snap-start cursor-pointer hover:shadow-md transition-all">
+                  <div className="h-40 w-full overflow-hidden">
+                    <img src={item.image} alt={item.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-4">
+                    <h4 className="font-bold text-sm text-on-surface line-clamp-2 leading-relaxed">{item.title}</h4>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       </section>
 
