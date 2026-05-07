@@ -62,7 +62,7 @@ export default function DashboardLayout() {
 
           <div className="my-4">
             <div className={`text-xs font-bold uppercase transition-all ${sidebarOpen ? "px-4 py-2" : "px-2"}`}>
-              {sidebarOpen ? user?.role === "driver" ? "Tài xế" : (user?.role === "admin" || (user?.role === "operator" && user?.staffProfileRole === "company_admin")) ? "Công ty" : "Quản trị" : ""}
+              {sidebarOpen ? user?.role === "driver" ? "Tài xế" : (user?.role === "admin" || (user?.role === "operator" && user?.staffProfileRole === "company_admin")) ? "Công ty" : user?.role === "operator" && user?.staffProfileRole === "operator" ? "Điều hành" : "Quản trị" : ""}
             </div>
           </div>
 
@@ -106,6 +106,32 @@ export default function DashboardLayout() {
               <Link to="/company/profile" className={getLinkClass("/company/profile")}>
                 <span className="material-symbols-outlined">person</span>
                 {sidebarOpen && <span>Hồ sơ</span>}
+              </Link>
+            </>
+          )}
+
+          {/* Operator Menu */}
+          {user?.role === "operator" && user?.staffProfileRole === "operator" && (
+            <>
+              <Link to="/operator/dashboard" className={getLinkClass("/operator/dashboard")}>
+                <span className="material-symbols-outlined">dashboard</span>
+                {sidebarOpen && <span>Bảng điều khiển</span>}
+              </Link>
+              <Link to="/operator/routes" className={getLinkClass("/operator/routes")}>
+                <span className="material-symbols-outlined">route</span>
+                {sidebarOpen && <span>Tuyến đường</span>}
+              </Link>
+              <Link to="/operator/stations" className={getLinkClass("/operator/stations")}>
+                <span className="material-symbols-outlined">location_on</span>
+                {sidebarOpen && <span>Trạm</span>}
+              </Link>
+              <Link to="/operator/prices" className={getLinkClass("/operator/prices")}>
+                <span className="material-symbols-outlined">local_offer</span>
+                {sidebarOpen && <span>Bảng giá</span>}
+              </Link>
+              <Link to="/operator/schedules" className={getLinkClass("/operator/schedules")}>
+                <span className="material-symbols-outlined">schedule</span>
+                {sidebarOpen && <span>Lịch biểu</span>}
               </Link>
             </>
           )}

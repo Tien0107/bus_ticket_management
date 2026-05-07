@@ -2,13 +2,14 @@ import { useState } from "react";
 import { customerSignUp } from "../api/auth";
 import { driverSignUp } from "../api/driver";
 import { companySignUp } from "../api/company";
+import { operatorSignUp } from "../api/operator";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 
 function Register() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const [registerType, setRegisterType] = useState("customer"); // customer, driver, company
+  const [registerType, setRegisterType] = useState("customer"); // customer, driver, company, operator
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -49,6 +50,15 @@ function Register() {
     taxCode: "",
   });
 
+  const [operatorForm, setOperatorForm] = useState({
+    fullName: "",
+    username: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+  });
+
   const handleCustomerChange = (e) => {
     setCustomerForm({ ...customerForm, [e.target.name]: e.target.value });
   };
@@ -59,6 +69,10 @@ function Register() {
 
   const handleCompanyChange = (e) => {
     setCompanyForm({ ...companyForm, [e.target.name]: e.target.value });
+  };
+
+  const handleOperatorChange = (e) => {
+    setOperatorForm({ ...operatorForm, [e.target.name]: e.target.value });
   };
 
   // CUSTOMER SUBMIT
@@ -251,6 +265,73 @@ function Register() {
     }
   };
 
+  // OPERATOR SUBMIT
+  const handleOperatorSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!agreeTerms) {
+      setError("Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật.");
+      return;
+    }
+    if (operatorForm.password !== operatorForm.confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#@$%&!*?^_])[^\s]+$/;
+    if (!passwordRegex.test(operatorForm.password)) {
+      setError("Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt (#@$%&!*?^_), không có dấu cách.");
+      return;
+    }
+    if (operatorForm.password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự.");
+      return;
+    }
+    if (operatorForm.phone.length < 10) {
+      setError("Số điện thoại phải có ít nhất 10 ký tự.");
+      return;
+    }
+
+    setLoading(true);
+
+    const payload = {
+      username: operatorForm.username,
+      fullName: operatorForm.fullName,
+      password: operatorForm.password,
+      contactInfo: {
+        email: operatorForm.email,
+        phone: operatorForm.phone,
+      },
+      companyId: 1,
+      role: "operator",
+      staffProfileRole: "operator",
+    };
+
+    try {
+      await operatorSignUp(payload);
+      addToast("Đăng ký nhân viên điều hành thành công", "success");
+      
+      setTimeout(() => {
+        navigate("/login");
+      }, 500);
+    } catch (err) {
+      const data = err.response?.data;
+      let errorMsg = "Đăng ký thất bại";
+      
+      if (data?.issues && Array.isArray(data.issues)) {
+        errorMsg = data.issues.map((i) => i.reason || i.field).join(". ");
+        setError(errorMsg);
+      } else {
+        errorMsg = data?.message || "Đăng ký thất bại";
+        setError(errorMsg);
+      }
+      
+      addToast("Đăng ký thất bại", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-surface text-on-surface font-body flex flex-col">
       {/* Header */}
@@ -328,6 +409,22 @@ function Register() {
                 >
                   <span className="material-symbols-outlined">business</span>
                   Công ty
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setRegisterType("operator");
+                    setError("");
+                    setAgreeTerms(false);
+                  }}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                    registerType === "operator"
+                      ? "bg-primary text-white shadow-lg shadow-primary/30"
+                      : "bg-surface-container-high text-on-surface hover:bg-surface-container-highest"
+                  }`}
+                >
+                  <span className="material-symbols-outlined">person_check</span>
+                  Điều hành viên
                 </button>
               </div>
             </div>
@@ -962,6 +1059,172 @@ function Register() {
                     <>
                       <span className="material-symbols-outlined">business</span>
                       <span>Đăng ký công ty</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* OPERATOR FORM */}
+            {registerType === "operator" && (
+              <form onSubmit={handleOperatorSubmit} className="space-y-5">
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-on-surface mb-2">Đăng ký Nhân viên Điều hành</h3>
+                  <p className="text-on-surface-variant">Tham gia BusGo để quản lý tuyến đường, trạm, và lịch biểu</p>
+                </div>
+
+                {/* Full Name */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                    Họ và tên
+                  </label>
+                  <input
+                    name="fullName"
+                    className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                    placeholder="Nguyễn Văn A"
+                    type="text"
+                    value={operatorForm.fullName}
+                    onChange={handleOperatorChange}
+                    required
+                  />
+                </div>
+
+                {/* Username */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                    Tên đăng nhập
+                  </label>
+                  <input
+                    name="username"
+                    className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                    placeholder="nhanvien_dieuhanhh"
+                    type="text"
+                    value={operatorForm.username}
+                    onChange={handleOperatorChange}
+                    required
+                  />
+                </div>
+
+                {/* Email & Phone */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                      Email
+                    </label>
+                    <input
+                      name="email"
+                      className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                      placeholder="example@email.com"
+                      type="email"
+                      value={operatorForm.email}
+                      onChange={handleOperatorChange}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                      Số điện thoại
+                    </label>
+                    <input
+                      name="phone"
+                      className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                      placeholder="09xx xxx xxx"
+                      type="tel"
+                      value={operatorForm.phone}
+                      onChange={handleOperatorChange}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Password Info */}
+                <p className="text-xs text-on-surface-variant bg-surface-container-low rounded-lg px-3 py-2 flex items-start gap-2">
+                  <span className="material-symbols-outlined text-sm text-primary mt-0.5">info</span>
+                  Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt (#@$%&!*?^_)
+                </p>
+
+                {/* Password & Confirm */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                      Mật khẩu
+                    </label>
+                    <div className="relative">
+                      <input
+                        name="password"
+                        className="w-full bg-white border-0 rounded-xl p-4 pr-12 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                        placeholder="••••••••"
+                        type={showPassword ? "text" : "password"}
+                        value={operatorForm.password}
+                        onChange={handleOperatorChange}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          {showPassword ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-on-surface-variant ml-1">
+                      Xác nhận mật khẩu
+                    </label>
+                    <input
+                      name="confirmPassword"
+                      className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+                      placeholder="••••••••"
+                      type={showPassword ? "text" : "password"}
+                      value={operatorForm.confirmPassword}
+                      onChange={handleOperatorChange}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Terms & Conditions */}
+                <div className="flex items-start gap-4 py-2 px-1 relative">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary-container rounded-full"></div>
+                  <div className="pl-4 flex items-center">
+                    <input
+                      type="checkbox"
+                      id="terms-operator"
+                      checked={agreeTerms}
+                      onChange={(e) => setAgreeTerms(e.target.checked)}
+                      className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
+                    />
+                    <label className="ml-3 text-sm text-on-surface-variant leading-tight" htmlFor="terms-operator">
+                      Tôi đồng ý với{" "}
+                      <span className="text-primary font-semibold cursor-pointer hover:underline">
+                        Điều khoản sử dụng
+                      </span>{" "}
+                      và{" "}
+                      <span className="text-primary font-semibold cursor-pointer hover:underline">
+                        Chính sách bảo mật
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-primary to-primary-container text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Đang đăng ký...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined">person_check</span>
+                      <span>Đăng ký điều hành viên</span>
                     </>
                   )}
                 </button>

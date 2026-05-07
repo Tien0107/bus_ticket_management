@@ -61,7 +61,7 @@ export default function CompanySignup() {
         password: formData.password,
         companyId: 1, // Default company ID
         role: "operator",
-        staffProfileRole: "operator",
+        staffProfileRole: "company_admin",
       };
 
       console.log("Signup payload:", payload);

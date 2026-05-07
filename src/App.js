@@ -33,6 +33,15 @@ import Staff from "./pages/company/Staff";
 import CompanyProfile from "./pages/company/CompanyProfile";
 import Schedules from "./pages/company/Schedules";
 
+// Operator Pages
+import OperatorDashboard from "./pages/operator/OperatorDashboard";
+import OperatorRoutes from "./pages/operator/Routes";
+import Stations from "./pages/operator/Stations";
+import Prices from "./pages/operator/Prices";
+import OperatorSchedules from "./pages/operator/Schedules";
+import StoppingPoints from "./pages/operator/StoppingPoints";
+import Trips from "./pages/operator/Trips";
+
 // Company Support Pages
 import SupportRegister from "./pages/company-support/SupportRegister";
 import SupportTickets from "./pages/company-support/SupportTickets";
@@ -91,6 +100,16 @@ function App() {
             <Route path="/company/staff" element={<Staff />} />
             <Route path="/company/profile" element={<CompanyProfile />} />
             <Route path="/company/schedules" element={<Schedules />} />
+
+            {/* Operator */}
+            <Route path="/operator" element={<Navigate to="/operator/dashboard" replace />} />
+            <Route path="/operator/dashboard" element={<OperatorDashboard />} />
+            <Route path="/operator/routes" element={<OperatorRoutes />} />
+            <Route path="/operator/stations" element={<Stations />} />
+            <Route path="/operator/prices" element={<Prices />} />
+            <Route path="/operator/schedules" element={<OperatorSchedules />} />
+            <Route path="/operator/schedules/:scheduleId/stopping-points" element={<StoppingPoints />} />
+            <Route path="/operator/schedules/:scheduleId/trips" element={<Trips />} />
 
             {/* Super Admin */}
             <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
