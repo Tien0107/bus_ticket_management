@@ -46,12 +46,12 @@ function Login() {
       let redirectUrl = "/";
       if (user.role === "driver") {
         redirectUrl = "/driver/dashboard";
+      } else if (user.role === "operator" && user.staffProfileRole === "company_admin") {
+        redirectUrl = "/company/dashboard";
       } else if (user.role === "admin") {
         // Ưu tiên kiểm tra staffProfileRole nếu có
         if (user.staffProfileRole === "support") {
           redirectUrl = "/company-support/tickets";
-        } else if (user.staffProfileRole === "company_admin") {
-          redirectUrl = "/company/dashboard";
         } else {
           redirectUrl = "/company/dashboard";
         }
