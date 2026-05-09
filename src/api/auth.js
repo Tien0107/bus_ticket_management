@@ -14,3 +14,13 @@ export const signIn = (data) => {
 export const logout = () => {
   return axiosClient.post("/auth/logout");
 };
+
+// gửi OTP cho quên mật khẩu
+export const sendOtp = (data) => {
+  return axiosClient.post("/auth/send-otp", data);
+};
+
+// reset mật khẩu bằng OTP
+export const resetPassword = (data) => {
+  return axiosClient.put("/auth/reset-password", data);
+};
