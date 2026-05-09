@@ -139,13 +139,13 @@ export default function Vehicles() {
   };
 
   return (
-    <div className="min-h-screen bg-surface p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-surface p-3 sm:p-6 lg:p-8">
+      <div className="max-w-4xl sm:max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-extrabold text-on-surface">Quản lý phương tiện</h1>
-            <p className="text-on-surface-variant mt-2">Thêm, sửa, hoặc xóa xe của công ty</p>
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-on-surface">Quản lý phương tiện</h1>
+            <p className="text-sm sm:text-base text-on-surface-variant mt-1 sm:mt-2">Thêm, sửa, hoặc xóa xe của công ty</p>
           </div>
           <button
             onClick={() => {
@@ -177,22 +177,22 @@ export default function Vehicles() {
         ) : error ? (
           <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-2xl">{error}</div>
         ) : vehicles.length === 0 ? (
-          <div className="text-center py-12">
-            <span className="material-symbols-outlined text-6xl text-on-surface-variant opacity-50">
+          <div className="text-center py-8 sm:py-12">
+            <span className="material-symbols-outlined text-5xl sm:text-6xl text-on-surface-variant opacity-50">
               directions_bus
             </span>
-            <p className="text-on-surface-variant mt-4">Chưa có xe nào</p>
+            <p className="text-sm sm:text-base text-on-surface-variant mt-2 sm:mt-4">Chưa có xe nào</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {vehicles.map((vehicle) => (
-              <div key={vehicle.id} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-on-surface">{vehicle.plateNumber || vehicle.vehicleNumber}</h3>
-                    <p className="text-on-surface-variant text-sm">{vehicle.model}</p>
+              <div key={vehicle.id} className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-editorial transition-shadow">
+                <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between mb-3 sm:mb-4 gap-2">
+                  <div className="flex-1">
+                    <h3 className="text-lg sm:text-xl font-bold text-on-surface">{vehicle.plateNumber || vehicle.vehicleNumber}</h3>
+                    <p className="text-xs sm:text-sm text-on-surface-variant">{vehicle.model}</p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
                     vehicle.status === "active"
                       ? "bg-green-100 text-green-700"
                       : "bg-red-100 text-red-700"
@@ -201,7 +201,7 @@ export default function Vehicles() {
                   </span>
                 </div>
 
-                <div className="space-y-2 mb-4 text-sm">
+                <div className="space-y-2 mb-3 sm:mb-4 text-xs sm:text-sm">
                   <div className="flex justify-between">
                     <span className="text-on-surface-variant">Loại xe:</span>
                     <span className="font-semibold">{vehicle.type}</span>

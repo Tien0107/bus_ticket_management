@@ -62,10 +62,13 @@ axiosClient.interceptors.response.use(
 
     // Unauthorized
     if (status === 401) {
+      // Chỉ show alert nếu user đã từng đăng nhập (tức là có token/user trước đó)
+      const wasLoggedIn = !!localStorage.getItem("user");
+      
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      if (window.location.pathname !== "/login") {
+      if (wasLoggedIn && window.location.pathname !== "/login") {
         alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         window.location.href = "/login";
       }

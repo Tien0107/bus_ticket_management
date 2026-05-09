@@ -113,19 +113,19 @@ export default function Drivers() {
   };
 
   return (
-    <div className="min-h-screen bg-surface p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-surface p-3 sm:p-6 lg:p-8">
+      <div className="max-w-4xl sm:max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div>
-            <h1 className="text-4xl font-extrabold text-on-surface">Quản lý tài xế</h1>
-            <p className="text-on-surface-variant mt-2">Danh sách tất cả tài xế của công ty</p>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-on-surface">Quản lý tài xế</h1>
+            <p className="text-sm sm:text-base text-on-surface-variant mt-1 sm:mt-2">Danh sách tất cả tài xế của công ty</p>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
                 search
@@ -222,17 +222,17 @@ export default function Drivers() {
         )}
 
         {/* Stats */}
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-primary">{drivers.length}</p>
-            <p className="text-sm text-on-surface-variant">Tổng tài xế</p>
+        <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+          <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
+            <p className="text-xl sm:text-2xl font-bold text-primary">{drivers.length}</p>
+            <p className="text-xs sm:text-sm text-on-surface-variant mt-1\">Tổng tài xế</p>
           </div>
-          <div className="bg-white rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-green-600">{drivers.filter((d) => d.status === "active").length}</p>
-            <p className="text-sm text-on-surface-variant">Hoạt động</p>
+          <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
+            <p className="text-xl sm:text-2xl font-bold text-green-600">{drivers.filter((d) => d.status === "active").length}</p>
+            <p className="text-xs sm:text-sm text-on-surface-variant mt-1\">Hoạt động</p>
           </div>
-          <div className="bg-white rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-red-600">{drivers.filter((d) => d.status === "inactive").length}</p>
+          <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
+            <p className="text-xl sm:text-2xl font-bold text-red-600\">{drivers.filter((d) => d.status === "inactive").length}</p>
             <p className="text-sm text-on-surface-variant">Không hoạt động</p>
           </div>
         </div>

@@ -104,135 +104,139 @@ export default function CompanyDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-surface p-6 lg:p-8">
+    <div className="min-h-screen bg-surface p-3 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-on-surface tracking-tight mb-2">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-on-surface tracking-tight mb-1 sm:mb-2">
             Xin chào, {data.userProfile?.fullName || user?.fullName || "Nhà xe"}! 👋
           </h1>
-          <p className="text-on-surface-variant text-lg">
+          <p className="text-sm sm:text-base lg:text-lg text-on-surface-variant">
             {data.company?.name || data.userProfile?.position || "Tổng quan kinh doanh"}
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
+        {/* Stats Grid - Responsive */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
               <div>
-                <p className="text-on-surface-variant text-sm font-medium mb-1">Phương tiện</p>
-                <p className="text-4xl font-bold text-primary">{data.vehicles}</p>
+                <p className="text-xs sm:text-sm text-on-surface-variant font-medium mb-1">Phương tiện</p>
+                <p className="text-2xl sm:text-4xl font-bold text-primary">{data.vehicles}</p>
               </div>
-              <span className="material-symbols-outlined text-5xl text-primary-container">
+              <span className="material-symbols-outlined text-3xl sm:text-5xl text-primary-container self-start sm:self-auto">
                 directions_bus
               </span>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
+          <div className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
               <div>
-                <p className="text-on-surface-variant text-sm font-medium mb-1">Tài xế</p>
-                <p className="text-4xl font-bold text-primary">{data.drivers}</p>
+                <p className="text-xs sm:text-sm text-on-surface-variant font-medium mb-1">Tài xế</p>
+                <p className="text-2xl sm:text-4xl font-bold text-primary">{data.drivers}</p>
               </div>
-              <span className="material-symbols-outlined text-5xl text-primary-container">
+              <span className="material-symbols-outlined text-3xl sm:text-5xl text-primary-container self-start sm:self-auto">
                 person
               </span>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
+          <div className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
               <div>
-                <p className="text-on-surface-variant text-sm font-medium mb-1">Nhân viên</p>
-                <p className="text-4xl font-bold text-primary">{data.staff}</p>
+                <p className="text-xs sm:text-sm text-on-surface-variant font-medium mb-1">Nhân viên</p>
+                <p className="text-2xl sm:text-4xl font-bold text-primary">{data.staff}</p>
               </div>
-              <span className="material-symbols-outlined text-5xl text-primary-container">
+              <span className="material-symbols-outlined text-3xl sm:text-5xl text-primary-container self-start sm:self-auto">
                 group
               </span>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
+          <div className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
               <div>
-                <p className="text-on-surface-variant text-sm font-medium mb-1">Chuyến đi</p>
-                <p className="text-4xl font-bold text-primary">—</p>
+                <p className="text-xs sm:text-sm text-on-surface-variant font-medium mb-1">Chuyến đi</p>
+                <p className="text-2xl sm:text-4xl font-bold text-primary">—</p>
               </div>
-              <span className="material-symbols-outlined text-5xl text-primary-container">
+              <span className="material-symbols-outlined text-3xl sm:text-5xl text-primary-container self-start sm:self-auto">
                 calendar_month
               </span>
             </div>
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        {/* Quick Actions - Responsive */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-6 sm:mb-8">
           <Link
             to="/company/vehicles"
-            className="bg-gradient-to-br from-primary to-primary-container text-white rounded-2xl p-6 hover:shadow-editorial transition-shadow cursor-pointer"
+            className="bg-gradient-to-br from-primary to-primary-container text-white rounded-lg sm:rounded-2xl p-4 sm:p-6 hover:shadow-editorial transition-shadow cursor-pointer"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold mb-1">Quản lý phương tiện</h3>
-                <p className="opacity-90 text-sm">{data.vehicles} xe</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1">
+                <h3 className="text-base sm:text-xl font-bold mb-1">Quản lý phương tiện</h3>
+                <p className="opacity-90 text-xs sm:text-sm">{data.vehicles} xe</p>
               </div>
-              <span className="material-symbols-outlined text-4xl opacity-50">directions_bus</span>
+              <span className="material-symbols-outlined text-3xl sm:text-4xl opacity-50 flex-shrink-0">
+                directions_bus
+              </span>
             </div>
           </Link>
 
           <Link
             to="/company/drivers"
-            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-shadow"
+            className="bg-white rounded-lg sm:rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-editorial transition-shadow"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-on-surface mb-1">Nhân viên tài xế</h3>
-                <p className="text-on-surface-variant text-sm">{data.drivers} tài xế</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1">
+                <h3 className="text-base sm:text-xl font-bold text-on-surface mb-1">Nhân viên tài xế</h3>
+                <p className="text-on-surface-variant text-xs sm:text-sm">{data.drivers} tài xế</p>
               </div>
-              <span className="material-symbols-outlined text-3xl text-primary">person</span>
+              <span className="material-symbols-outlined text-2xl sm:text-3xl text-primary flex-shrink-0">
+                person
+              </span>
             </div>
           </Link>
         </div>
 
-        {/* Navigation Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Navigation Cards - Responsive */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Link
             to="/company/profile"
-            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-all text-center"
+            className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-editorial transition-all text-center"
           >
-            <span className="material-symbols-outlined text-4xl text-primary block mb-3">
+            <span className="material-symbols-outlined text-3xl sm:text-4xl text-primary block mb-2 sm:mb-3">
               business
             </span>
-            <p className="font-bold text-on-surface text-sm">Hồ sơ công ty</p>
+            <p className="font-bold text-on-surface text-xs sm:text-sm">Hồ sơ công ty</p>
           </Link>
 
           <Link
             to="/company/staff"
-            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-all text-center"
+            className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-editorial transition-all text-center"
           >
-            <span className="material-symbols-outlined text-4xl text-primary block mb-3">
+            <span className="material-symbols-outlined text-3xl sm:text-4xl text-primary block mb-2 sm:mb-3">
               group
             </span>
-            <p className="font-bold text-on-surface text-sm">Quản lý nhân viên</p>
+            <p className="font-bold text-on-surface text-xs sm:text-sm">Quản lý nhân viên</p>
           </Link>
 
           <Link
             to="/company/schedules"
-            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-all text-center"
+            className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-editorial transition-all text-center"
           >
-            <span className="material-symbols-outlined text-4xl text-primary block mb-3">
+            <span className="material-symbols-outlined text-3xl sm:text-4xl text-primary block mb-2 sm:mb-3">
               schedule
             </span>
-            <p className="font-bold text-on-surface text-sm">Lịch biểu</p>
+            <p className="font-bold text-on-surface text-xs sm:text-sm">Lịch biểu</p>
           </Link>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
-            <span className="material-symbols-outlined text-4xl text-on-surface-variant block mb-3">
+          <div className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm text-center">
+            <span className="material-symbols-outlined text-3xl sm:text-4xl text-on-surface-variant block mb-2 sm:mb-3">
               analytics
             </span>
-            <p className="font-bold text-on-surface-variant text-sm">Báo cáo (sắp)</p>
+            <p className="font-bold text-on-surface-variant text-xs sm:text-sm">Báo cáo (sắp)</p>
           </div>
         </div>
       </div>

@@ -126,16 +126,16 @@ export default function Staff() {
   };
 
   return (
-    <div className="min-h-screen bg-surface p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-surface p-3 sm:p-6 lg:p-8">
+      <div className="max-w-4xl sm:max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-on-surface">Quản lý nhân viên</h1>
-          <p className="text-on-surface-variant mt-2">Quản lý nhân viên công ty và chức vụ của họ</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-on-surface">Quản lý nhân viên</h1>
+          <p className="text-sm sm:text-base text-on-surface-variant mt-1 sm:mt-2">Quản lý nhân viên công ty và chức vụ của họ</p>
         </div>
 
         {/* Search */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
+        <div className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm mb-6">
           <div className="relative">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
               search
@@ -359,20 +359,20 @@ export default function Staff() {
         )}
 
         {/* Stats */}
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-white rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-primary">{staff.length}</p>
-            <p className="text-xs text-on-surface-variant">Tổng nhân viên</p>
+        <div className="mt-4 sm:mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4">
+          <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-primary">{staff.length}</p>
+            <p className="text-xs text-on-surface-variant mt-0.5 sm:mt-1">Tổng nhân viên</p>
           </div>
-          <div className="bg-white rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-red-600">{staff.filter((s) => s.role === "admin").length}</p>
-            <p className="text-xs text-on-surface-variant">Quản trị</p>
+          <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-red-600">{staff.filter((s) => s.role === "admin").length}</p>
+            <p className="text-xs text-on-surface-variant mt-0.5 sm:mt-1">Quản trị</p>
           </div>
-          <div className="bg-white rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-blue-600">{staff.filter((s) => s.role === "operator").length}</p>
-            <p className="text-xs text-on-surface-variant">Điều hành</p>
+          <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-blue-600">{staff.filter((s) => s.role === "operator").length}</p>
+            <p className="text-xs text-on-surface-variant mt-0.5 sm:mt-1">Điều hành</p>
           </div>
-          <div className="bg-white rounded-xl p-4 text-center">
+          <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-4 text-center hidden sm:block">
             <p className="text-2xl font-bold text-green-600">{staff.filter((s) => s.role === "accountant").length}</p>
             <p className="text-xs text-on-surface-variant">Kế toán</p>
           </div>

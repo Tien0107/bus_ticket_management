@@ -113,25 +113,25 @@ export default function CompanyProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-surface p-6 lg:p-8">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-surface p-3 sm:p-6 lg:p-8">
+      <div className="max-w-2xl sm:max-w-3xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-on-surface mb-2">Hồ sơ công ty</h1>
-          <p className="text-on-surface-variant">Quản lý thông tin công ty</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-on-surface mb-1 sm:mb-2">Hồ sơ công ty</h1>
+          <p className="text-sm sm:text-base text-on-surface-variant">Quản lý thông tin công ty</p>
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
+        <div className="bg-white rounded-lg sm:rounded-2xl shadow-sm overflow-hidden mb-6">
           {/* Avatar Banner */}
-          <div className="h-32 bg-gradient-to-r from-primary to-primary-container flex items-end justify-start p-6">
-            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center border-4 border-primary shadow-lg">
-              <span className="material-symbols-outlined text-5xl text-primary">business</span>
+          <div className="h-24 sm:h-32 bg-gradient-to-r from-primary to-primary-container flex items-end justify-start p-3 sm:p-6">
+            <div className="w-20 sm:w-24 h-20 sm:h-24 bg-white rounded-full flex items-center justify-center border-4 border-primary shadow-lg">
+              <span className="material-symbols-outlined text-4xl sm:text-5xl text-primary">business</span>
             </div>
           </div>
 
           {/* Content */}
-          <div className="p-6 pt-0">
+          <div className="p-3 sm:p-6 pt-0">
             {isEditing ? (
               <div className="space-y-5">
                 {/* Company Info */}
@@ -149,9 +149,9 @@ export default function CompanyProfile() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <label className="block text-sm font-bold text-on-surface mb-2">Số ĐKKD</label>
+                        <label className="block text-xs sm:text-sm font-bold text-on-surface mb-1 sm:mb-2">Số ĐKKD</label>
                         <input
                           type="text"
                           name="businessRegistration"
