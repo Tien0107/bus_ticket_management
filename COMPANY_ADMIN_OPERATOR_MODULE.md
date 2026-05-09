@@ -51,9 +51,9 @@ Hoàn thành mô-đun Company Operator (Điều hành viên) với đầy đủ 
 - durationMinutes (Thời gian - phút) *
 
 **API Calls**:
-- `getRoutes(params)` - GET /company-admin-operator/route
-- `createRoute(data)` - POST /company-admin-operator/route
-- `updateRoute(routeId, data)` - PUT /company-admin-operator/route/{id}
+- `getRoutes(params)` - GET /operator-dispatcher/route
+- `createRoute(data)` - POST /operator-dispatcher/route
+- `updateRoute(routeId, data)` - PUT /operator-dispatcher/route/{id}
 
 ### 3. Stations Management
 **URL**: `/operator/stations` (To be implemented)
@@ -69,8 +69,8 @@ Hoàn thành mô-đun Company Operator (Điều hành viên) với đầy đủ 
 - city (Thành phố) *
 
 **API Calls**:
-- `getStations(params)` - GET /company-admin-operator/station?city=&limit=10
-- `createStation(data)` - POST /company-admin-operator/station
+- `getStations(params)` - GET /operator-dispatcher/station?city=&limit=10
+- `createStation(data)` - POST /operator-dispatcher/station
 
 ### 4. Trip Prices Management
 **URL**: `/operator/prices` (To be implemented)
@@ -90,10 +90,10 @@ Hoàn thành mô-đun Company Operator (Điều hành viên) với đầy đủ 
 - status (Hoạt động/Tạm dừng)
 
 **API Calls**:
-- `getTripPrices(params)` - GET /company-admin-operator/trip-price-template
-- `createTripPrice(data)` - POST /company-admin-operator/trip-price-template
-- `updateTripPrice(priceId, data)` - PUT /company-admin-operator/trip-price-template/{id}
-- `deleteTripPrice(priceId)` - DELETE /company-admin-operator/trip-price-template/{id}
+- `getTripPrices(params)` - GET /operator-dispatcher/trip-price-template
+- `createTripPrice(data)` - POST /operator-dispatcher/trip-price-template
+- `updateTripPrice(priceId, data)` - PUT /operator-dispatcher/trip-price-template/{id}
+- `deleteTripPrice(priceId)` - DELETE /operator-dispatcher/trip-price-template/{id}
 
 ### 5. Trip Schedules Management
 **URL**: `/operator/schedules` (To be implemented)
@@ -114,10 +114,10 @@ Hoàn thành mô-đun Company Operator (Điều hành viên) với đầy đủ 
 - status (Trạng thái: active/inactive)
 
 **API Calls**:
-- `getTripSchedules(params)` - GET /company-admin-operator/trip-schedule
-- `createTripSchedule(data)` - POST /company-admin-operator/trip-schedule
-- `updateTripSchedule(scheduleId, data)` - PUT /company-admin-operator/trip-schedule/{id}
-- `deleteTripSchedule(scheduleId)` - DELETE /company-admin-operator/trip-schedule/{id}
+- `getTripSchedules(params)` - GET /operator-dispatcher/trip-schedule
+- `createTripSchedule(data)` - POST /operator-dispatcher/trip-schedule
+- `updateTripSchedule(scheduleId, data)` - PUT /operator-dispatcher/trip-schedule/{id}
+- `deleteTripSchedule(scheduleId)` - DELETE /operator-dispatcher/trip-schedule/{id}
 
 ### 6. Stopping Points Management
 **URL**: `/operator/schedules/{scheduleId}` (Within Schedules)
@@ -135,9 +135,9 @@ Hoàn thành mô-đun Company Operator (Điều hành viên) với đầy đủ 
 - allowDropoff (Cho phép hạ khách)
 
 **API Calls**:
-- `getStoppingPoints(scheduleId)` - GET /company-admin-operator/trip-schedule/{id}/stopping-point
-- `createStoppingPoint(scheduleId, data)` - POST /company-admin-operator/trip-schedule/{id}/stopping-point
-- `updateStoppingPoint(scheduleId, stoppingPointId, data)` - PUT /company-admin-operator/trip-schedule/{id}/stopping-point/{tripStopTemplateId}
+- `getStoppingPoints(scheduleId)` - GET /operator-dispatcher/trip-schedule/{id}/stopping-point
+- `createStoppingPoint(scheduleId, data)` - POST /operator-dispatcher/trip-schedule/{id}/stopping-point
+- `updateStoppingPoint(scheduleId, stoppingPointId, data)` - PUT /operator-dispatcher/trip-schedule/{id}/stopping-point/{tripStopTemplateId}
 
 ### 7. Trips Management
 **URL**: `/operator/schedules/{scheduleId}/trips` (Within Schedules)
@@ -157,8 +157,8 @@ Hoàn thành mô-đun Company Operator (Điều hành viên) với đầy đủ 
 - Status (scheduled, running, completed, cancelled)
 
 **API Calls**:
-- `getTrips(scheduleId, params)` - GET /company-admin-operator/trip-schedule/{id}/trip?status=&date=&orderBy=asc
-- `updateTrip(scheduleId, tripId, data)` - PUT /company-admin-operator/trip-schedule/{id}/trip/{tripId}
+- `getTrips(scheduleId, params)` - GET /operator-dispatcher/trip-schedule/{id}/trip?status=&date=&orderBy=asc
+- `updateTrip(scheduleId, tripId, data)` - PUT /operator-dispatcher/trip-schedule/{id}/trip/{tripId}
 
 ## 📁 File Structure
 
@@ -201,19 +201,19 @@ updateTripPrice(priceId, data)           // PUT /company-admin-operator/trip-pri
 deleteTripPrice(priceId)                 // DELETE /company-admin-operator/trip-price-template/{id}
 
 // Trip Schedules (4)
-getTripSchedules(params)                 // GET /company-admin-operator/trip-schedule
-createTripSchedule(data)                 // POST /company-admin-operator/trip-schedule
-updateTripSchedule(scheduleId, data)     // PUT /company-admin-operator/trip-schedule/{id}
-deleteTripSchedule(scheduleId)           // DELETE /company-admin-operator/trip-schedule/{id}
+getTripSchedules(params)                 // GET /operator-dispatcher/trip-schedule
+createTripSchedule(data)                 // POST /operator-dispatcher/trip-schedule
+updateTripSchedule(scheduleId, data)     // PUT /operator-dispatcher/trip-schedule/{id}
+deleteTripSchedule(scheduleId)           // DELETE /operator-dispatcher/trip-schedule/{id}
 
 // Stopping Points (3)
-getStoppingPoints(scheduleId)                                      // GET /company-admin-operator/trip-schedule/{id}/stopping-point
-createStoppingPoint(scheduleId, data)                              // POST /company-admin-operator/trip-schedule/{id}/stopping-point
-updateStoppingPoint(scheduleId, stoppingPointId, data)             // PUT /company-admin-operator/trip-schedule/{id}/stopping-point/{tripStopTemplateId}
+getStoppingPoints(scheduleId)                                      // GET /operator-dispatcher/trip-schedule/{id}/stopping-point
+createStopp(scheduleId, data)                              // POST /operator-dispatcher/trip-schedule/{id}/stopping-point
+updateStoppingPoint(scheduleId, stoppingPointId, data)             // PUT /operator-dispatcher/trip-schedule/{id}/stopping-point/{tripStopTemplateId}
 
 // Trips (2)
-getTrips(scheduleId, params)                         // GET /company-admin-operator/trip-schedule/{id}/trip
-updateTrip(scheduleId, tripId, data)                 // PUT /company-admin-operator/trip-schedule/{id}/trip/{tripId}
+getTrips(scheduleId, params)                         // GET /operator-dispatcher/trip-schedule/{id}/trip
+updateTrip(scheduleId, tripId, data)                 // PUT /operator-dispatcher/trip-schedule/{id}/trip/{tripId}
 
 // Auth (1)
 operatorSignUp(data)        // POST /company-admin-operator/sign-up
@@ -222,7 +222,7 @@ operatorSignUp(data)        // POST /company-admin-operator/sign-up
 ## 🔒 Authorization
 
 - Role: `operator`
-- StaffProfileRole: `operator`
+- StaffProfileRole: `dispatcher`
 - Redirect after login: `/operator/dashboard`
 
 ## ✅ Completion Status

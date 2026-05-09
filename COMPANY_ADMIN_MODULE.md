@@ -19,7 +19,7 @@ Hoàn thành mô-đun Company Admin (Nhà xe) với đầy đủ tính năng qu�
   ├─ Company Info (Tên, ĐKKD, Mã số thuế, Địa chỉ)
   ├─ Contact Info (Email, SĐT)
   ├─ Account (Username, Mật khẩu)
-  └─ POST → /company-admin/sign-up → Redirect /login
+  └─ POST → /operator-admin/sign-up → Redirect /login
 ```
 
 **URL**: `http://localhost:3000/company-signup`
@@ -67,10 +67,10 @@ Changed in Login.jsx: Role-based routing with support for company role
 - description (Ghi chú)
 
 **API Calls**:
-- `getVehicles()` - GET /company-admin/vehicle
-- `createVehicle(data)` - POST /company-admin/vehicle
-- `updateVehicle(id, data)` - PUT /company-admin/vehicle/{id}
-- `deleteVehicleSeat()` - DELETE /company-admin/vehicle/{id}/seat
+- `getVehicles()` - GET /operator-admin/vehicle
+- `createVehicle(data)` - POST /operator-admin/vehicle
+- `updateVehicle(id, data)` - PUT /operator-admin/vehicle/{id}
+- `deleteVehicleSeat()` - DELETE /operator-admin/vehicle/{id}/seat
 
 ### 5. Drivers Management
 **URL**: `/company/drivers`
@@ -91,7 +91,7 @@ Changed in Login.jsx: Role-based routing with support for company role
 - View Details (action)
 
 **API Call**:
-- `getDrivers(params)` - GET /company-admin/driver
+- `getDrivers(params)` - GET /operator-admin/driver
 
 **Driver Status Colors**:
 - ✅ active → Green (Hoạt động)
@@ -124,8 +124,8 @@ Changed in Login.jsx: Role-based routing with support for company role
 - ⚫ staff → Staff (Gray) - Nhân viên
 
 **API Calls**:
-- `getStaff(params)` - GET /company-admin/staff
-- `updateStaffRole(userId, roleData)` - PUT /company-admin/staff/{userId}/role
+- `getStaff(params)` - GET /operator-admin/staff
+- `updateStaffRole(userId, roleData)` - PUT /operator-admin/staff/{userId}/role
 
 ### 7. Company Profile
 **URL**: `/company/profile`
@@ -149,8 +149,8 @@ Changed in Login.jsx: Role-based routing with support for company role
 - 🏢 Company avatar section
 
 **API Calls**:
-- `getCompanyProfile()` - GET /company-admin/profile
-- `updateCompanyProfile(data)` - PUT /company-admin/profile
+- `getCompanyProfile()` - GET /operator-admin/profile
+- `updateCompanyProfile(data)` - PUT /operator-admin/profile
 
 ## 📁 File Structure
 
@@ -180,45 +180,45 @@ src/
 
 ```javascript
 // 1. Company Sign-up
-POST /company-admin/sign-up
+POST /operator-admin/sign-up
 Payload: {
   companyName, email, phone, username, password,
   businessRegistration, address, city, taxCode
 }
 
 // 2. Get Company Profile
-GET /company-admin/profile
+GET /operator-admin/profile
 
 // 3. Update Company Profile
-PUT /company-admin/profile
+PUT /operator-admin/profile
 Payload: { companyName, email, phone, address, ... }
 
 // 4. Get All Vehicles
-GET /company-admin/vehicle?limit=20&offset=0
+GET /operator-admin/vehicle?limit=20&offset=0
 
 // 5. Create Vehicle
-POST /company-admin/vehicle
+POST /operator-admin/vehicle
 Payload: { vehicleNumber, model, type, capacity, year, status }
 
 // 6. Update Vehicle
-PUT /company-admin/vehicle/{id}
+PUT /operator-admin/vehicle/{id}
 Payload: { model, type, capacity, status, ... }
 
 // 7. Delete Vehicle Seat
-DELETE /company-admin/vehicle/{id}/seat/{seatId}
+DELETE /operator-admin/vehicle/{id}/seat/{seatId}
 
 // 8. Add/Configure Seat
-POST /company-admin/seat
+POST /operator-admin/seat
 Payload: { vehicleId, seats: [] }
 
 // 9. Get All Drivers
-GET /company-admin/driver?limit=50&offset=0
+GET /operator-admin/driver?limit=50&offset=0
 
 // 10. Get All Staff
-GET /company-admin/staff?limit=50&offset=0
+GET /operator-admin/staff?limit=50&offset=0
 
 // 11. Update Staff Role
-PUT /company-admin/staff/{userId}/role
+PUT /operator-admin/staff/{userId}/role
 Payload: { role: "operator" | "accountant" | ... }
 ```
 

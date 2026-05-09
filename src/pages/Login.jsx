@@ -50,7 +50,7 @@ function Login() {
         // Check staffProfileRole để phân loại operator
         if (user.staffProfileRole === "company_admin") {
           redirectUrl = "/company/dashboard";
-        } else if (user.staffProfileRole === "operator") {
+        } else if (user.staffProfileRole === "dispatcher") {
           redirectUrl = "/operator/dashboard";
         } else {
           redirectUrl = "/operator/dashboard";
@@ -194,12 +194,12 @@ function Login() {
                     Ghi nhớ đăng nhập
                   </span>
                 </label>
-                <button
-                  type="button"
+                <Link
+                  to="/forgot-password"
                   className="text-sm font-semibold text-primary hover:underline"
                 >
                   Quên mật khẩu?
-                </button>
+                </Link>
               </div>
 
               {/* Submit Button */}

@@ -304,7 +304,7 @@ function Register() {
       },
       companyId: 1,
       role: "operator",
-      staffProfileRole: "operator",
+      staffProfileRole: "dispatcher",
     };
 
     try {

@@ -7,6 +7,7 @@ import Home from "./pages/Home";
 // Auth & Public
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
 import CompanySignup from "./pages/CompanySignup";
 
 // Layouts
@@ -61,6 +62,7 @@ function App() {
           {/* Public */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/register" element={<Register />} />
           <Route path="/company-signup" element={<CompanySignup />} />
           <Route path="/company-support/register" element={<SupportRegister />} />

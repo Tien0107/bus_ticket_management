@@ -62,7 +62,7 @@ export default function DashboardLayout() {
 
           <div className="my-4">
             <div className={`text-xs font-bold uppercase transition-all ${sidebarOpen ? "px-4 py-2" : "px-2"}`}>
-              {sidebarOpen ? user?.role === "driver" ? "Tài xế" : (user?.role === "admin" || (user?.role === "operator" && user?.staffProfileRole === "company_admin")) ? "Công ty" : user?.role === "operator" && user?.staffProfileRole === "operator" ? "Điều hành" : "Quản trị" : ""}
+              {sidebarOpen ? user?.role === "driver" ? "Tài xế" : (user?.role === "admin" || (user?.role === "operator" && user?.staffProfileRole === "company_admin")) ? "Công ty" : user?.role === "operator" && user?.staffProfileRole === "dispatcher" ? "Điều hành" : "Quản trị" : ""}
             </div>
           </div>
 
@@ -111,7 +111,7 @@ export default function DashboardLayout() {
           )}
 
           {/* Operator Menu */}
-          {user?.role === "operator" && user?.staffProfileRole === "operator" && (
+          {user?.role === "operator" && user?.staffProfileRole === "dispatcher" && (
             <>
               <Link to="/operator/dashboard" className={getLinkClass("/operator/dashboard")}>
                 <span className="material-symbols-outlined">dashboard</span>

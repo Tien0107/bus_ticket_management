@@ -1,89 +1,89 @@
 import axiosClient from "./axiosClient";
 
-/* ========== Company Admin Operator Endpoints ========== */
+/* ========== Operator Dispatcher Endpoints ========== */
 
 // ===== Routes =====
 export const getRoutes = (params = {}) => {
-  return axiosClient.get("/company-admin-operator/route", { params });
+  return axiosClient.get("/operator-dispatcher/route", { params });
 };
 
 export const createRoute = (data) => {
-  return axiosClient.post("/company-admin-operator/route", data);
+  return axiosClient.post("/operator-dispatcher/route", data);
 };
 
 export const updateRoute = (routeId, data) => {
-  return axiosClient.put(`/company-admin-operator/route/${routeId}`, data);
+  return axiosClient.put(`/operator-dispatcher/route/${routeId}`, data);
 };
 
 // ===== Stations =====
 export const getStations = (params = {}) => {
-  return axiosClient.get("/company-admin-operator/station", { params });
+  return axiosClient.get("/operator-dispatcher/station", { params });
 };
 
 export const createStation = (data) => {
-  return axiosClient.post("/company-admin-operator/station", data);
+  return axiosClient.post("/operator-dispatcher/station", data);
 };
 
 // ===== Trip Price Templates =====
 export const getTripPrices = (params = {}) => {
-  return axiosClient.get("/company-admin-operator/trip-price-template", { params });
+  return axiosClient.get("/operator-dispatcher/trip-price-template", { params });
 };
 
 export const createTripPrice = (data) => {
-  return axiosClient.post("/company-admin-operator/trip-price-template", data);
+  return axiosClient.post("/operator-dispatcher/trip-price-template", data);
 };
 
 export const updateTripPrice = (priceId, data) => {
-  return axiosClient.put(`/company-admin-operator/trip-price-template/${priceId}`, data);
+  return axiosClient.put(`/operator-dispatcher/trip-price-template/${priceId}`, data);
 };
 
 export const deleteTripPrice = (priceId) => {
-  return axiosClient.delete(`/company-admin-operator/trip-price-template/${priceId}`);
+  return axiosClient.delete(`/operator-dispatcher/trip-price-template/${priceId}`);
 };
 
 // ===== Trip Schedules =====
 export const getTripSchedules = (params = {}) => {
-  return axiosClient.get("/company-admin-operator/trip-schedule", { params });
+  return axiosClient.get("/operator-dispatcher/trip-schedule", { params });
 };
 
 export const createTripSchedule = (data) => {
-  return axiosClient.post("/company-admin-operator/trip-schedule", data);
+  return axiosClient.post("/operator-dispatcher/trip-schedule", data);
 };
 
 export const updateTripSchedule = (scheduleId, data) => {
-  return axiosClient.put(`/company-admin-operator/trip-schedule/${scheduleId}`, data);
+  return axiosClient.put(`/operator-dispatcher/trip-schedule/${scheduleId}`, data);
 };
 
 export const deleteTripSchedule = (scheduleId) => {
-  return axiosClient.delete(`/company-admin-operator/trip-schedule/${scheduleId}`);
+  return axiosClient.delete(`/operator-dispatcher/trip-schedule/${scheduleId}`);
 };
 
 // ===== Stopping Points =====
 export const getStoppingPoints = (scheduleId) => {
-  return axiosClient.get(`/company-admin-operator/trip-schedule/${scheduleId}/stopping-point`);
+  return axiosClient.get(`/operator-dispatcher/trip-schedule/${scheduleId}/stopping-point`);
 };
 
 export const createStoppingPoint = (scheduleId, data) => {
-  return axiosClient.post(`/company-admin-operator/trip-schedule/${scheduleId}/stopping-point`, data);
+  return axiosClient.post(`/operator-dispatcher/trip-schedule/${scheduleId}/stopping-point`, data);
 };
 
 export const updateStoppingPoint = (scheduleId, stoppingPointId, data) => {
   return axiosClient.put(
-    `/company-admin-operator/trip-schedule/${scheduleId}/stopping-point/${stoppingPointId}`,
+    `/operator-dispatcher/trip-schedule/${scheduleId}/stopping-point/${stoppingPointId}`,
     data
   );
 };
 
 // ===== Trips (Individual trips under a schedule) =====
 export const getTrips = (scheduleId, params = {}) => {
-  return axiosClient.get(`/company-admin-operator/trip-schedule/${scheduleId}/trip`, { params });
+  return axiosClient.get(`/operator-dispatcher/trip-schedule/${scheduleId}/trip`, { params });
 };
 
 export const updateTrip = (scheduleId, tripId, data) => {
-  return axiosClient.put(`/company-admin-operator/trip-schedule/${scheduleId}/trip/${tripId}`, data);
+  return axiosClient.put(`/operator-dispatcher/trip-schedule/${scheduleId}/trip/${tripId}`, data);
 };
 
-// ===== Operator Sign-up =====
+// ===== Dispatcher Sign-up =====
 export const operatorSignUp = (data) => {
-  return axiosClient.post("/company-admin/sign-up", data);
+  return axiosClient.post("/operator-dispatcher/sign-up", data);
 };
