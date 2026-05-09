@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BusGo - Đặt vé xe khách trực tuyến</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary": "#ffffff",
+              "on-secondary-container": "#562000",
+              "primary": "#006e1c",
+              "surface-container-highest": "#e2e2e2",
+              "on-secondary-fixed-variant": "#7a3000",
+              "on-tertiary-fixed-variant": "#005312",
+              "surface-bright": "#f9f9f9",
+              "on-background": "#1a1c1c",
+              "on-surface-variant": "#3f4a3c",
+              "on-surface": "#1a1c1c",
+              "tertiary-container": "#57ad57",
+              "surface-variant": "#e2e2e2",
+              "on-primary-fixed": "#002204",
+              "primary-fixed": "#94f990",
+              "surface-container": "#eeeeee",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary-fixed": "#002204",
+              "tertiary-fixed": "#9df898",
+              "surface-dim": "#dadada",
+              "surface-container-low": "#f3f3f3",
+              "outline-variant": "#becab9",
+              "surface-tint": "#006e1c",
+              "on-secondary-fixed": "#341100",
+              "inverse-surface": "#2f3131",
+              "on-primary-container": "#003c0b",
+              "primary-container": "#4caf50",
+              "error": "#ba1a1a",
+              "primary-fixed-dim": "#78dc77",
+              "inverse-primary": "#78dc77",
+              "surface": "#f9f9f9",
+              "inverse-on-surface": "#f1f1f1",
+              "on-error-container": "#93000a",
+              "background": "#f9f9f9",
+              "outline": "#6f7a6b",
+              "surface-container-high": "#e8e8e8",
+              "secondary-fixed-dim": "#ffb692",
+              "secondary-fixed": "#ffdbcb",
+              "tertiary-fixed-dim": "#82db7e",
+              "secondary": "#9f4200",
+              "on-error": "#ffffff",
+              "on-tertiary-container": "#003c0b",
+              "on-secondary": "#ffffff",
+              "on-primary-fixed-variant": "#005313",
+              "on-primary": "#ffffff",
+              "error-container": "#ffdad6",
+              "secondary-container": "#fd6c00",
+              "tertiary": "#106d20"
+            },
+            fontFamily: {
+              "headline": ["Be Vietnam Pro"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Be Vietnam Pro"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body { font-family: 'Be Vietnam Pro', sans-serif; }
+      .editorial-shadow { box-shadow: 0 12px 32px rgba(26, 28, 28, 0.06); }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopNavBar (JSON Managed) -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl shadow-sm dark:shadow-none">
+<div class="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
+<div class="text-2xl font-black text-green-700 dark:text-green-400 tracking-tighter">BusGo</div>
+<div class="hidden md:flex items-center space-x-8">
+<a class="text-green-700 dark:text-green-400 font-bold border-b-2 border-green-700 dark:border-green-400 pb-1" href="#">Trang chủ</a>
+<a class="text-zinc-600 dark:text-zinc-400 hover:text-green-600 dark:hover:text-green-300 transition-colors" href="#">Lịch trình</a>
+<a class="text-zinc-600 dark:text-zinc-400 hover:text-green-600 dark:hover:text-green-300 transition-colors" href="#">Khuyến mãi</a>
+<a class="text-zinc-600 dark:text-zinc-400 hover:text-green-600 dark:hover:text-green-300 transition-colors" href="#">Liên hệ</a>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold active:scale-95 duration-150 ease-in-out">
+                Đặt vé ngay
+            </button>
+</div>
+</nav>
+<!-- Hero Section -->
+<section class="relative pt-24 pb-20 md:pt-40 md:pb-32 overflow-hidden">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover brightness-[0.85] contrast-110" data-alt="Scenic modern bus traveling through Vietnamese mountains" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUW9fcNHX9pJbSgTmqbunSj6ZQqKjEwUpfI8Wri_yw5tVnFkItbM99NAD0OkfkttqjglTOioq63afj0esnJvPsa8uU_lTSgzF4YI5TOIpLdaGcMRv-5EL3NWLhyopk08be1Bf7s9VgST1xIh_OUqOUXyzZvVyMDmROOWlzlkr5KiZdc4JA5Rvkdc8aVohFAA_dr1NCElixZrLP9B1aV5G1eWu--jIQyjTEayCN4ADLucbSseXHFcqnwwfZRWvOh3Gz89DK9eKpt8A"/>
+<div class="absolute inset-0 bg-gradient-to-r from-on-background/60 to-transparent"></div>
+</div>
+<div class="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+<div class="lg:col-span-7">
+<h1 class="text-white text-5xl md:text-7xl font-black tracking-tight leading-[1.1] mb-6">
+                    Đặt vé xe khách <br/><span class="text-primary-fixed">trực tuyến</span>
+</h1>
+<p class="text-white/90 text-lg md:text-xl font-medium leading-relaxed max-w-xl">
+                    Tìm và đặt vé xe nhanh chóng, tiện lợi, giá tốt nhất cho hành trình khám phá Việt Nam của bạn.
+                </p>
+</div>
+<!-- Search Form -->
+<div class="lg:col-span-5">
+<div class="bg-surface-container-lowest p-8 rounded-[1.5rem] editorial-shadow">
+<div class="space-y-6">
+<div class="grid grid-cols-1 gap-4">
+<div class="relative">
+<label class="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">Điểm đi</label>
+<div class="flex items-center bg-surface-container-low px-4 py-3 rounded-xl focus-within:ring-2 ring-primary/20 transition-all">
+<span class="material-symbols-outlined text-primary mr-3" data-icon="location_on">location_on</span>
+<input class="bg-transparent border-none p-0 focus:ring-0 text-on-surface w-full placeholder:text-outline-variant font-medium" placeholder="Thành phố xuất phát" type="text"/>
+</div>
+</div>
+<div class="relative">
+<label class="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">Điểm đến</label>
+<div class="flex items-center bg-surface-container-low px-4 py-3 rounded-xl focus-within:ring-2 ring-primary/20 transition-all">
+<span class="material-symbols-outlined text-primary mr-3" data-icon="flag">flag</span>
+<input class="bg-transparent border-none p-0 focus:ring-0 text-on-surface w-full placeholder:text-outline-variant font-medium" placeholder="Thành phố đến" type="text"/>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">Ngày đi</label>
+<div class="flex items-center bg-surface-container-low px-4 py-3 rounded-xl">
+<span class="material-symbols-outlined text-primary mr-3" data-icon="calendar_today">calendar_today</span>
+<input class="bg-transparent border-none p-0 focus:ring-0 text-on-surface w-full placeholder:text-outline-variant font-medium" placeholder="Chọn ngày" type="text"/>
+</div>
+</div>
+<div>
+<label class="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">Số lượng</label>
+<div class="flex items-center bg-surface-container-low px-4 py-3 rounded-xl">
+<span class="material-symbols-outlined text-primary mr-3" data-icon="person">person</span>
+<input class="bg-transparent border-none p-0 focus:ring-0 text-on-surface w-full font-medium" type="number" value="1"/>
+</div>
+</div>
+</div>
+<button class="w-full bg-primary-container text-on-primary-container py-4 rounded-xl font-extrabold text-lg flex justify-center items-center gap-2 hover:bg-primary transition-colors">
+<span>Tìm chuyến</span>
+<span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Why Choose Us -->
+<section class="bg-surface-container-low py-24">
+<div class="max-w-7xl mx-auto px-6">
+<div class="mb-16">
+<h2 class="text-3xl font-black text-on-surface mb-2">Tại sao chọn BusGo?</h2>
+<div class="w-20 h-1.5 bg-primary-container rounded-full"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+<!-- Feature 1 -->
+<div class="bg-surface-container-lowest p-8 rounded-[1.5rem] editorial-shadow hover:-translate-y-2 transition-transform duration-300">
+<div class="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="confirmation_number">confirmation_number</span>
+</div>
+<h3 class="text-xl font-bold mb-3">Đặt vé dễ dàng</h3>
+<p class="text-on-surface-variant leading-relaxed">Chỉ với 3 bước đơn giản, bạn đã sở hữu ngay tấm vé cho hành trình của mình.</p>
+</div>
+<!-- Feature 2 -->
+<div class="bg-surface-container-lowest p-8 rounded-[1.5rem] editorial-shadow hover:-translate-y-2 transition-transform duration-300">
+<div class="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="sell">sell</span>
+</div>
+<h3 class="text-xl font-bold mb-3">Giá tốt nhất</h3>
+<p class="text-on-surface-variant leading-relaxed">Cam kết giá vé minh bạch, không phụ phí ẩn, luôn cập nhật ưu đãi hấp dẫn nhất.</p>
+</div>
+<!-- Feature 3 -->
+<div class="bg-surface-container-lowest p-8 rounded-[1.5rem] editorial-shadow hover:-translate-y-2 transition-transform duration-300">
+<div class="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="directions_bus">directions_bus</span>
+</div>
+<h3 class="text-xl font-bold mb-3">Nhiều nhà xe</h3>
+<p class="text-on-surface-variant leading-relaxed">Hợp tác với hơn 500 nhà xe uy tín trên toàn quốc, đảm bảo chất lượng dịch vụ.</p>
+</div>
+<!-- Feature 4 -->
+<div class="bg-surface-container-lowest p-8 rounded-[1.5rem] editorial-shadow hover:-translate-y-2 transition-transform duration-300">
+<div class="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="support_agent">support_agent</span>
+</div>
+<h3 class="text-xl font-bold mb-3">Hỗ trợ 24/7</h3>
+<p class="text-on-surface-variant leading-relaxed">Đội ngũ chăm sóc khách hàng luôn sẵn sàng giải đáp mọi thắc mắc của bạn.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Popular Routes -->
+<section class="bg-white py-24">
+<div class="max-w-7xl mx-auto px-6">
+<div class="flex justify-between items-end mb-12">
+<div>
+<h2 class="text-3xl font-black text-on-surface mb-2">Tuyến đường phổ biến</h2>
+<p class="text-on-surface-variant">Gợi ý những hành trình tuyệt vời cho chuyến đi sắp tới</p>
+</div>
+<button class="hidden md:flex items-center text-primary font-bold gap-2">
+                    Xem tất cả <span class="material-symbols-outlined">trending_flat</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<!-- Route Card 1 -->
+<div class="group overflow-hidden rounded-[1.5rem] editorial-shadow bg-surface-container-lowest">
+<div class="h-48 overflow-hidden relative">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Dalat city landscape with pine trees" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUWNWKWg7fswIFh29vNfsesxJK9Q7aCY2k1nQGqfudDqhTZXQqw_T7qs_vNqMYbkgOmCWkjzQ5S_YA3u-5tl2nFnBfymqCdH0iN5HpYhIqww7oS_R1vZqnbff0wpkOP1WbzLvB6rXhB92CgMowyaDGXb5rcRs--slrMwvu_NlVIXlhDJk7PRkIVccV18jdb2mVim-_oBYwjuQU_cIBqQvMAno9eErTpLe1pk2HCCYRXmGhtCMGQbw9J4MnANZ802QCWYG7LDUPMIE"/>
+<div class="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[0.7rem] font-black uppercase tracking-widest text-primary">Phổ biến</div>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-xl font-bold">Sài Gòn → Đà Lạt</h3>
+<span class="bg-secondary-container/10 text-secondary px-3 py-1 rounded-lg text-sm font-bold">Từ 250k</span>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant text-sm mb-6">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span> 6 giờ
+                            </div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="route">route</span> 310 km
+                            </div>
+</div>
+<button class="w-full py-3 bg-surface-container text-on-surface font-bold rounded-xl group-hover:bg-primary group-hover:text-on-primary transition-colors">Chọn chuyến</button>
+</div>
+</div>
+<!-- Route Card 2 -->
+<div class="group overflow-hidden rounded-[1.5rem] editorial-shadow bg-surface-container-lowest">
+<div class="h-48 overflow-hidden relative">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Hanoi traditional old quarter architecture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWlCm_qauMLJ50210A0DWYso7q5Nv11zaSe1gPi1-iXzTbNJFIaHX-PYz9GU3woxNQU0W_emUF-Xuu6BtjF41CSJnLTiU329AiJ6yR2-ZkAb-k40t_BR-7nzAyGM-YQv8q2twOZyGhoqQ6c3Up1NNDuAdXiD6VzE7s2YukXT-3yW1Ls2SfWDyCzfpmR5k3L1XXsgGALBat1AEJMQiydBcMzj1WWCwWO4Fuoyua4v_kG0JbBBA199lv47HFVNCxb-nJuk4y33c0R-s"/>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-xl font-bold">Hà Nội → Sapa</h3>
+<span class="bg-secondary-container/10 text-secondary px-3 py-1 rounded-lg text-sm font-bold">Từ 320k</span>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant text-sm mb-6">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span> 5.5 giờ
+                            </div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="route">route</span> 320 km
+                            </div>
+</div>
+<button class="w-full py-3 bg-surface-container text-on-surface font-bold rounded-xl group-hover:bg-primary group-hover:text-on-primary transition-colors">Chọn chuyến</button>
+</div>
+</div>
+<!-- Route Card 3 -->
+<div class="group overflow-hidden rounded-[1.5rem] editorial-shadow bg-surface-container-lowest">
+<div class="h-48 overflow-hidden relative">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Da Nang Dragon Bridge at night" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBArCv9B2PMzO-oZsqF15M0WlRG8IpxlOaf8rGYe2dTw1L99Mm0q6v_U6UyfUBsQMj5E8yLmWxl98B0a61NIk7RypbUF3ZvfVYzduae2t_uxFMlaTaf2HzKXGaTUW6xXld_xjB0mSVmPw14O8VY-wAWsvq4qPWWeS0MJkPUUGh_grSr8eN7UdkIV6yb0I3dW2s4J6GZNfM2GqQBDRgdyUR4MRZnTk4UFXUrS74CAsLaePe9MEKaNiGRozbIsKmIn9bE5DtVca-SvWU"/>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-xl font-bold">Đà Nẵng → Hội An</h3>
+<span class="bg-secondary-container/10 text-secondary px-3 py-1 rounded-lg text-sm font-bold">Từ 100k</span>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant text-sm mb-6">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span> 1 giờ
+                            </div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="route">route</span> 30 km
+                            </div>
+</div>
+<button class="w-full py-3 bg-surface-container text-on-surface font-bold rounded-xl group-hover:bg-primary group-hover:text-on-primary transition-colors">Chọn chuyến</button>
+</div>
+</div>
+<!-- Card 4-6 generated for grid completeness -->
+<div class="group overflow-hidden rounded-[1.5rem] editorial-shadow bg-surface-container-lowest">
+<div class="h-48 overflow-hidden relative">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Vung Tau coastal road with sea view" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjWRxez_ExD6KclrKU4cRf1lz22slPVy6pkno4j1V4amt1YkyfsDgMzc-Xgve3vbkvjQylHwMNIFq3KpSqCjs5vTz47uq3qPRHytwGGxkejIJIbQ81P5akoLWaqiSnw5wt8Q8G_xIAKJLkWtFy6OLlaLiaGuqwlvO9zc2Y-jItki0fDmaofLlqjFYTqv9HsvGBnwugy_BGDkbztbNKo2hKnUwY8Q7Xoy8S2vy1LsOTYcn96o5qczBBdnAOGKATCMn7scxonk-kF5c"/>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-xl font-bold">Sài Gòn → Vũng Tàu</h3>
+<span class="bg-secondary-container/10 text-secondary px-3 py-1 rounded-lg text-sm font-bold">Từ 180k</span>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant text-sm mb-6">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span> 2 giờ
+                            </div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="route">route</span> 95 km
+                            </div>
+</div>
+<button class="w-full py-3 bg-surface-container text-on-surface font-bold rounded-xl group-hover:bg-primary group-hover:text-on-primary transition-colors">Chọn chuyến</button>
+</div>
+</div>
+<div class="group overflow-hidden rounded-[1.5rem] editorial-shadow bg-surface-container-lowest">
+<div class="h-48 overflow-hidden relative">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Nha Trang beach with turquoise water" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlFfeuVnaBJtDYu4sSswlIe18wINb7F5fhi8z8oqeaJcZIS_IdlU1LGZqmIeCDrHjkVCO9zCX_30c_OKSHT0hgkeEuOA7jHJmsFOXgB5OLmOy8TffOEKtOa6AU9DTUCoYD_NmNPrLlpBUIMFHqn9S0YLoyqFgSltiDYk8_xnk4oS08I0cdgzGI3PupoT_VGpFfxSIPAXL0zd_Gjev8hakE-dNr37DbKwtlilg-rqWjFZmk3JSZe4AAfCL2kX7JPQdRP6NbCqNT7fY"/>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-xl font-bold">Sài Gòn → Nha Trang</h3>
+<span class="bg-secondary-container/10 text-secondary px-3 py-1 rounded-lg text-sm font-bold">Từ 280k</span>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant text-sm mb-6">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span> 8 giờ
+                            </div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="route">route</span> 430 km
+                            </div>
+</div>
+<button class="w-full py-3 bg-surface-container text-on-surface font-bold rounded-xl group-hover:bg-primary group-hover:text-on-primary transition-colors">Chọn chuyến</button>
+</div>
+</div>
+<div class="group overflow-hidden rounded-[1.5rem] editorial-shadow bg-surface-container-lowest">
+<div class="h-48 overflow-hidden relative">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Hue Imperial City ancient architecture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBssW_PGPt3OmpbHdJVrnKnxFpz3fhJn3kQoW1XU9gkNlDp57DW_WOl8sorZyZcPwg2tTE2hIJKyjZf-hoTfnBZ-n-ZBAyylg9jOkRUL5owJ4u48Tz-jdg4l_lfaFoursz4VdIMUHv_KqyVG9ZgMB38M9LCdHLsTVqFCNJp1r1tnJxf1UtOsAdJulPa77EulOVYwG5xbxHRSnDS43FCI8Uk6Q38_S9LbAb9Lg9jrbUFM6lEl3TX6ro8wCMx0gBR5ZXX8obC6XHKExU"/>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-xl font-bold">Đà Nẵng → Huế</h3>
+<span class="bg-secondary-container/10 text-secondary px-3 py-1 rounded-lg text-sm font-bold">Từ 120k</span>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant text-sm mb-6">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span> 2 giờ
+                            </div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="route">route</span> 100 km
+                            </div>
+</div>
+<button class="w-full py-3 bg-surface-container text-on-surface font-bold rounded-xl group-hover:bg-primary group-hover:text-on-primary transition-colors">Chọn chuyến</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Featured Bus Companies -->
+<section class="py-24 bg-surface-container-low">
+<div class="max-w-7xl mx-auto px-6">
+<h2 class="text-center text-2xl font-black mb-12 uppercase tracking-widest text-on-surface-variant">Đối tác nhà xe uy tín</h2>
+<div class="flex flex-wrap justify-center items-center gap-12 opacity-60">
+<img class="h-12 grayscale hover:grayscale-0 transition-all cursor-pointer" data-alt="Futa Bus Lines Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCApNBV468RdZSkWtpVo3QFoeCXqyF06k_JT1l9Z1c4XbT3zilCx7TPz-h_RpftGmiIkEGTKXIj8o8hRUmbEZ8ZFVPZcth49U-bSi1SszSiO6rtmGJLfJJKqjqfi3Y7m7yeLaEmVXwjzp2yqJ85UVe8BNNrYrRL5aK8AoOFA82u7GHZoiw4pwrjpL5SXSMnfpEMb30cswRgzvH7dB2I34BzZKwXlsBL4N0In-nAqIKSPhy7aX8tdafxkZ65uTSbR2gISlXIt_G5t_I"/>
+<img class="h-12 grayscale hover:grayscale-0 transition-all cursor-pointer" data-alt="Thanh Buoi Bus Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSzPNZPrpblrzD1CTgo80f_SUyc2zk-XJcwHszoz0wqVnMKrGnC4fHBIPZlJEBCGjVEpjJQ4hpz0RlwkMrJ2pT2qHxtwnWodnzsiQG6I0QoDR_MRlYGvQUaist8-uvYlysDGBBdQR6dk_pJ7_cUsnR180neP3sI74b-QRqS8cHqhn42ha-6zD4F35J8mhxvTxvSz-lZUeqszywuboVL_ijA__ttMHvSTe8thkWEkJZ55cDOfDONNmj21P-D1TnG1RvGs-NoGezG8U"/>
+<img class="h-12 grayscale hover:grayscale-0 transition-all cursor-pointer" data-alt="Mai Linh Express Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaCcE--xwKb1xkzrV5_hKDe8ooQSCcUNtPOtBDCS4LU7SeMgoaksXoruL296n8TNwGRW_q75qZeL0k3y52FiR1U8cq71Lmh5YqkMe-6pkkkYRcnFOXAe25RdniIudVe3KJsn3MdHnsvwA8eccABgyF8CoZ5B77YXITyTmYqB7_H7T6QJIE6rc04gt6-SZuUs5e20nbEdxKTt3Cn8j2OvVcFGp5ucnfXaMOw49zqbqJlZZs8Ra2O3m6R51s2bpYjYTrjRzmMXr8Uwg"/>
+<img class="h-12 grayscale hover:grayscale-0 transition-all cursor-pointer" data-alt="Minh Dung Bus Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBU8SnIqGpHNN6VSdFg5so5gVsBOAKXwh9SVovN3N6yi9lFYfpw9eSL6ZMJWdI8QQ16O_o3Nc6yXPwGy8RfzTL7AD4D_XnwBq4uXdt6IhPLdjl505sWYUcpFBpYNHMuTIA6idgJnHJzUJfe8zUi3sdo03jUKW5AQ8ZavIbYsm5Uy1IvZRJGYri7bPt0-OAB4AGJlks9VHGLOUtLW_uUu2z24WoFUgUjc8fsSM7_hBf-DWq5Ij5ZpLNdvo6bzFhHbWQtnBhsYXh63ek"/>
+<img class="h-12 grayscale hover:grayscale-0 transition-all cursor-pointer" data-alt="Vato Bus Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdaSQc0tFhDLpQhdV4GfZNiGee6PtPr1M3PxUVu0rv5F_FCNIjTIn4oGcj_XTYHZtRproz_r76z5zSlKNaGrig9P9opJtC0y9bgUUK2S-0YJqORRhG-rpMa9bQPWqW4OiFv-I7mDEa-U2nT212h_eAPol-NwI_gXaQJtvrc--ySh8DcEojNin-SwxOvDDO7aubMSoPjDq4FKq6sWLTy6ojC4vUGTSzotHoyKUJItJm3CYbsI88GokAz2xL1CJ1XioTREPohKArCls"/>
+</div>
+</div>
+</section>
+<!-- Footer (JSON Managed) -->
+<footer class="w-full rounded-t-3xl mt-20 bg-zinc-50 dark:bg-zinc-900">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 px-8 py-16 max-w-7xl mx-auto font-be-vietnam-pro text-sm leading-6">
+<div class="col-span-1 md:col-span-1">
+<div class="text-xl font-bold text-green-700 dark:text-green-400 mb-6">BusGo</div>
+<p class="text-zinc-500 dark:text-zinc-400 mb-6">Nền tảng đặt vé xe khách trực tuyến hàng đầu Việt Nam, giúp bạn kết nối với hàng nghìn hành trình mỗi ngày.</p>
+<div class="flex space-x-4">
+<a class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="facebook">social_leaderboard</span>
+</a>
+<a class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="phone">phone</span>
+</a>
+</div>
+</div>
+<div>
+<h4 class="font-bold text-on-surface mb-6">Dịch vụ</h4>
+<ul class="space-y-4">
+<li><a class="text-zinc-500 dark:text-zinc-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" href="#">Về chúng tôi</a></li>
+<li><a class="text-zinc-500 dark:text-zinc-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" href="#">Đăng ký nhà xe</a></li>
+<li><a class="text-zinc-500 dark:text-zinc-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" href="#">Hướng dẫn đặt vé</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold text-on-surface mb-6">Pháp lý</h4>
+<ul class="space-y-4">
+<li><a class="text-zinc-500 dark:text-zinc-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" href="#">Điều khoản</a></li>
+<li><a class="text-zinc-500 dark:text-zinc-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" href="#">Chính sách</a></li>
+<li><a class="text-zinc-500 dark:text-zinc-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" href="#">Hỗ trợ</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold text-on-surface mb-6">Liên hệ</h4>
+<ul class="space-y-4 text-zinc-500 dark:text-zinc-400">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="mail">mail</span>
+<span>hotro@busgo.vn</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="call">call</span>
+<span>1900 6789</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="location_on">location_on</span>
+<span>Số 123, Đường Lê Lợi, Quận 1, TP. HCM</span>
+</li>
+</ul>
+</div>
+</div>
+<div class="max-w-7xl mx-auto px-8 pb-12 border-t border-outline-variant/20 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-zinc-500 dark:text-zinc-400 text-sm">© 2024 BusGo. Tất cả quyền được bảo lưu.</p>
+<div class="flex gap-6">
+<img class="h-8 grayscale" data-alt="Registered with Ministry of Industry and Trade logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfZDuWRthZ6DpdbzJoZYmdYmV5PxmhtKyr19m811GW2wEq9UIyEGV8XMkupEuvOgP3F0eu_3ygD-J5tPQrlst8oSHVqgguocBSTm2Yx2s1LYKbiCa4L9PytfGNDk64Ru_CmoAaICk-a5eMsV0W6M3Aq_ZHq7wVOgBzuWXBdSGu8ccf_q8-iact8e2TgZRrA0NaiOQpYkJ-Ks7QLVOGlmgFkTyJK3mClew-bgr-xmqRpDC8l3foHXNYIl_3vkWW_ySVoQWSFkhHX30"/>
+</div>
+</div>
+</footer>
+</body></html>

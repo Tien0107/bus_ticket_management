@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Be+Vietnam+Pro', sans-serif;
+            background-color: #f9f9f9;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-fixed": "#ffdbcb",
+              "error": "#ba1a1a",
+              "surface-tint": "#006e1c",
+              "on-tertiary-fixed": "#002204",
+              "tertiary-container": "#57ad57",
+              "on-surface-variant": "#3f4a3c",
+              "on-primary-container": "#003c0b",
+              "surface-dim": "#dadada",
+              "surface-container-low": "#f3f3f3",
+              "on-error": "#ffffff",
+              "secondary": "#9f4200",
+              "outline-variant": "#becab9",
+              "primary-fixed-dim": "#78dc77",
+              "on-tertiary": "#ffffff",
+              "inverse-surface": "#2f3131",
+              "primary-container": "#4caf50",
+              "on-secondary-container": "#562000",
+              "on-tertiary-fixed-variant": "#005312",
+              "secondary-container": "#fd6c00",
+              "inverse-on-surface": "#f1f1f1",
+              "primary-fixed": "#94f990",
+              "on-secondary-fixed": "#341100",
+              "on-primary": "#ffffff",
+              "on-background": "#1a1c1c",
+              "surface-bright": "#f9f9f9",
+              "tertiary": "#106d20",
+              "on-secondary-fixed-variant": "#7a3000",
+              "on-secondary": "#ffffff",
+              "tertiary-fixed-dim": "#82db7e",
+              "error-container": "#ffdad6",
+              "on-primary-fixed-variant": "#005313",
+              "background": "#f9f9f9",
+              "surface-container-lowest": "#ffffff",
+              "surface-container-high": "#e8e8e8",
+              "outline": "#6f7a6b",
+              "on-error-container": "#93000a",
+              "secondary-fixed-dim": "#ffb692",
+              "surface-container": "#eeeeee",
+              "inverse-primary": "#78dc77",
+              "primary": "#006e1c",
+              "tertiary-fixed": "#9df898",
+              "surface-variant": "#e2e2e2",
+              "on-surface": "#1a1c1c",
+              "on-tertiary-container": "#003c0b",
+              "surface-container-highest": "#e2e2e2",
+              "on-primary-fixed": "#002204",
+              "surface": "#f9f9f9"
+            },
+            fontFamily: {
+              "headline": ["Be Vietnam Pro"],
+              "body": ["Be Vietnam Pro"],
+              "label": ["Be Vietnam Pro"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl shadow-[0_12px_32px_rgba(26,28,28,0.06)]">
+<div class="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
+<div class="text-2xl font-black text-green-700 dark:text-green-500 tracking-tighter">BusGo</div>
+<nav class="hidden md:flex items-center gap-8 font-['Be_Vietnam_Pro'] text-sm tracking-tight">
+<a class="text-green-700 dark:text-green-400 font-bold border-b-2 border-green-700" href="#">Trips</a>
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-green-600 transition-colors" href="#">Hotels</a>
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-green-600 transition-colors" href="#">Deals</a>
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-green-600 transition-colors" href="#">Support</a>
+</nav>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-neutral-600 cursor-pointer hover:bg-neutral-100 p-2 rounded-full transition-colors">account_circle</span>
+</div>
+</div>
+</header>
+<main class="pt-20 pb-12">
+<!-- Search Summary Bar -->
+<section class="bg-[#F5F5F5] py-4 mt-2">
+<div class="max-w-7xl mx-auto px-6 flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">location_on</span>
+<span class="font-medium">Sài Gòn</span>
+</div>
+<span class="material-symbols-outlined text-outline">trending_flat</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">location_on</span>
+<span class="font-medium">Đà Lạt</span>
+</div>
+<div class="h-6 w-[1px] bg-outline-variant mx-2"></div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline">calendar_today</span>
+<span class="font-medium">25/12/2024</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline">person</span>
+<span class="font-medium">1 người</span>
+</div>
+</div>
+<button class="bg-primary text-white px-6 py-2 rounded-xl font-bold hover:opacity-90 transition-all scale-95 active:scale-90">
+                    Tìm lại
+                </button>
+</div>
+</section>
+<!-- Main Content Grid -->
+<div class="max-w-7xl mx-auto px-6 mt-8 flex flex-col md:flex-row gap-8">
+<!-- Sidebar (Left) -->
+<aside class="w-full md:w-64 flex flex-col gap-6">
+<div class="bg-surface-container-low rounded-xl p-6">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-['Be_Vietnam_Pro'] font-bold text-lg">Bộ lọc</h2>
+<span class="text-xs text-primary font-bold cursor-pointer">Xóa lọc</span>
+</div>
+<!-- Vehicle Type -->
+<div class="mb-8">
+<h3 class="font-bold text-sm mb-4 uppercase tracking-widest text-neutral-500">Loại xe</h3>
+<div class="flex flex-col gap-3">
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="rounded text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm font-medium group-hover:text-primary transition-colors">Giường nằm</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="rounded text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm font-medium group-hover:text-primary transition-colors">Ghế ngồi</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input checked="" class="rounded text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm font-medium text-primary">VIP Sleeper</span>
+</label>
+</div>
+</div>
+<!-- Departure Time -->
+<div class="mb-8">
+<h3 class="font-bold text-sm mb-4 uppercase tracking-widest text-neutral-500">Giờ đi</h3>
+<div class="grid grid-cols-2 gap-2">
+<button class="px-2 py-3 rounded-lg border border-outline-variant text-xs font-medium hover:border-primary hover:text-primary transition-all">
+                                00:00 - 06:00
+                                <span class="block text-[10px] text-neutral-400">Sáng sớm</span>
+</button>
+<button class="px-2 py-3 rounded-lg border border-outline-variant text-xs font-medium hover:border-primary hover:text-primary transition-all">
+                                06:00 - 12:00
+                                <span class="block text-[10px] text-neutral-400">Buổi sáng</span>
+</button>
+<button class="px-2 py-3 rounded-lg border border-outline-variant text-xs font-medium hover:border-primary hover:text-primary transition-all">
+                                12:00 - 18:00
+                                <span class="block text-[10px] text-neutral-400">Buổi chiều</span>
+</button>
+<button class="px-2 py-3 rounded-lg border border-outline-variant text-xs font-medium hover:border-primary hover:text-primary transition-all">
+                                18:00 - 24:00
+                                <span class="block text-[10px] text-neutral-400">Buổi tối</span>
+</button>
+</div>
+</div>
+<!-- Price Range -->
+<div>
+<h3 class="font-bold text-sm mb-4 uppercase tracking-widest text-neutral-500">Khoảng giá</h3>
+<input class="w-full accent-primary h-1 bg-neutral-300 rounded-lg appearance-none cursor-pointer" type="range"/>
+<div class="flex justify-between mt-2 text-xs font-bold text-neutral-600">
+<span>100k</span>
+<span>2.000k</span>
+</div>
+</div>
+</div>
+<div class="bg-primary-container/10 p-6 rounded-xl">
+<h4 class="font-bold text-primary text-sm mb-2">Ưu đãi độc quyền</h4>
+<p class="text-xs text-on-surface-variant leading-relaxed">Giảm ngay 50k cho lần đầu đặt vé qua ứng dụng BusGo.</p>
+</div>
+</aside>
+<!-- Results List (Right) -->
+<div class="flex-1">
+<!-- Sort Bar -->
+<div class="flex items-center justify-between mb-6 bg-surface-container-lowest p-2 rounded-xl shadow-sm">
+<div class="flex items-center gap-4">
+<span class="text-sm font-bold ml-4 text-neutral-500">Sắp xếp theo:</span>
+<button class="px-4 py-2 rounded-lg text-sm font-bold bg-primary/10 text-primary">Giờ khởi hành</button>
+<button class="px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 transition-colors">Giá thấp nhất</button>
+<button class="px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 transition-colors">Đánh giá</button>
+</div>
+<div class="mr-4 text-sm text-neutral-400">
+                        Tìm thấy <span class="font-bold text-on-surface">24</span> chuyến xe
+                    </div>
+</div>
+<!-- Results -->
+<div class="flex flex-col gap-6">
+<!-- Card 1 -->
+<div class="group bg-surface-container-lowest rounded-xl p-6 shadow-[0_12px_32px_rgba(26,28,28,0.06)] hover:-translate-y-1 transition-all duration-300 border-l-4 border-transparent hover:border-primary">
+<div class="flex flex-col md:flex-row justify-between gap-6">
+<div class="flex gap-6">
+<div class="w-20 h-20 bg-neutral-100 rounded-xl flex items-center justify-center overflow-hidden">
+<img alt="Logo Phương Trang" class="object-contain" data-alt="Logo of Phuong Trang transport company" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEieVzPoIsChrp8cz44U3wbhQOpWSzs9AWmoJAa6rfzEo0pvAN_JSMAVinMZ-UzKZVCsGm3-CIjRgPKJxjgabaqb-SDVGJ_lIhUt7WWBBGs1GwT_pVYPSIahKWY7HFnwCXNnFE57U2RVI1Z8nT2r5gG-AyLNEG4A3J9HOfRIbMjfnaAR2b3Jk-X-CoX5QYXfiynEy3oJHpM1mzddTfWjWCSTEKQrsqcT0tiyr7JMeAbO583JmJK8Rs_Xtk-rVeAq08mydjUPiAF7M"/>
+</div>
+<div>
+<h3 class="text-xl font-extrabold tracking-tight">Phương Trang</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-sm font-bold">4.8</span>
+<span class="text-xs text-neutral-400">(1,240 đánh giá)</span>
+</div>
+<div class="mt-3 flex items-center gap-2 text-primary font-medium text-sm">
+<span class="material-symbols-outlined text-sm">airline_seat_recline_extra</span>
+                                        Giường nằm 40 chỗ
+                                    </div>
+</div>
+</div>
+<div class="flex-1 flex items-center justify-center gap-8 px-8">
+<div class="text-center">
+<div class="text-2xl font-black">07:00</div>
+<div class="text-xs text-neutral-500 font-medium">Sài Gòn</div>
+</div>
+<div class="flex flex-col items-center gap-1 flex-1 max-w-[120px]">
+<div class="text-[10px] text-neutral-400 uppercase tracking-widest font-bold">5h30p</div>
+<div class="w-full h-[2px] bg-neutral-200 relative">
+<div class="absolute -top-1 -left-1 w-2 h-2 rounded-full border-2 border-primary bg-white"></div>
+<div class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary"></div>
+</div>
+<span class="material-symbols-outlined text-neutral-300 text-lg">directions_bus</span>
+</div>
+<div class="text-center">
+<div class="text-2xl font-black">12:30</div>
+<div class="text-xs text-neutral-500 font-medium">Đà Lạt</div>
+</div>
+</div>
+<div class="flex flex-col items-end justify-between min-w-[160px]">
+<div class="text-right">
+<div class="text-secondary text-2xl font-black">250.000đ</div>
+<div class="text-xs text-primary font-bold mt-1">Còn 12 ghế trống</div>
+</div>
+<button class="w-full bg-primary text-white py-3 rounded-xl font-bold hover:shadow-lg hover:shadow-primary/20 active:scale-95 transition-all">
+                                    Chọn chuyến
+                                </button>
+</div>
+</div>
+</div>
+<!-- Card 2 (VIP) -->
+<div class="group bg-surface-container-lowest rounded-xl p-6 shadow-[0_12px_32px_rgba(26,28,28,0.06)] hover:-translate-y-1 transition-all duration-300 border-l-4 border-secondary-container">
+<div class="flex flex-col md:flex-row justify-between gap-6">
+<div class="flex gap-6">
+<div class="w-20 h-20 bg-neutral-100 rounded-xl flex items-center justify-center overflow-hidden">
+<img alt="Logo Thành Bưởi" class="object-contain" data-alt="Logo of Thanh Buoi transport company" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTjOKVaEM3ff7WUzM075llSjZ1jNt1w7cIgIdNpWisav7uxP-IJUMrRx29TvlGEOFkm39iy6qV1jSvsxsPQKPifT2lq7LT4ZRQJlGUXZoIGPy0WFAsE8xjzWejUW0xbtT9OA_gNQY8Ggme72bQcYVoWYcTZXxyGhKr8C6MIHw0_lh_0lZTulgGXdf6g89NVApki6pl8FkNLZbpqQAhYM4chThGxZCJdhPm53gkENCf0DgrMQ5w6lgvEpMMuBQSA0suzlaPk_VvWT8"/>
+</div>
+<div>
+<div class="inline-block bg-secondary-container/10 text-secondary text-[10px] font-black uppercase px-2 py-0.5 rounded mb-1 tracking-wider">Premium Service</div>
+<h3 class="text-xl font-extrabold tracking-tight">Thành Bưởi</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-sm font-bold">4.9</span>
+<span class="text-xs text-neutral-400">(856 đánh giá)</span>
+</div>
+<div class="mt-3 flex items-center gap-2 text-primary font-medium text-sm">
+<span class="material-symbols-outlined text-sm">airline_seat_flat</span>
+                                        VIP Sleeper 22 phòng
+                                    </div>
+</div>
+</div>
+<div class="flex-1 flex items-center justify-center gap-8 px-8">
+<div class="text-center">
+<div class="text-2xl font-black">23:00</div>
+<div class="text-xs text-neutral-500 font-medium">Sài Gòn</div>
+</div>
+<div class="flex flex-col items-center gap-1 flex-1 max-w-[120px]">
+<div class="text-[10px] text-neutral-400 uppercase tracking-widest font-bold">6h00p</div>
+<div class="w-full h-[2px] bg-neutral-200 relative">
+<div class="absolute -top-1 -left-1 w-2 h-2 rounded-full border-2 border-primary bg-white"></div>
+<div class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary"></div>
+</div>
+<span class="material-symbols-outlined text-neutral-300 text-lg">hotel</span>
+</div>
+<div class="text-center">
+<div class="text-2xl font-black">05:00</div>
+<div class="text-xs text-neutral-500 font-medium">Đà Lạt</div>
+</div>
+</div>
+<div class="flex flex-col items-end justify-between min-w-[160px]">
+<div class="text-right">
+<div class="text-secondary text-2xl font-black">450.000đ</div>
+<div class="text-xs text-primary font-bold mt-1">Còn 4 phòng trống</div>
+</div>
+<button class="w-full bg-primary text-white py-3 rounded-xl font-bold hover:shadow-lg hover:shadow-primary/20 active:scale-95 transition-all">
+                                    Chọn chuyến
+                                </button>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="group bg-surface-container-lowest rounded-xl p-6 shadow-[0_12px_32px_rgba(26,28,28,0.06)] hover:-translate-y-1 transition-all duration-300 border-l-4 border-transparent hover:border-primary">
+<div class="flex flex-col md:flex-row justify-between gap-6">
+<div class="flex gap-6">
+<div class="w-20 h-20 bg-neutral-100 rounded-xl flex items-center justify-center overflow-hidden">
+<img alt="Logo Lạc Hồng" class="object-contain" data-alt="Generic bus company logo placeholder" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHy2RNlcub0sIDcpNDRDil-psUn54MguyPZfbE2V5zB1-kVORcYBF1r8EP8q0-FpUY_TRauoxi9EiDOFlD4FC-9-zsSbpweCWFOc7fB0gfRGZO_5Q-qnL9Ky_34l4wp1HjLqYYjgXn1yyUOvyEihHILwYNadqVHHxuYaupE6v2JJmISkcLoTxhm4C7dqhdsZJimsWbJEu28-LsA10KD8BzMMYp6HdNRMHYUpQjq6N3qimCFGI_y7DrOkbgxP3NjTq5x564alMbA3Q"/>
+</div>
+<div>
+<h3 class="text-xl font-extrabold tracking-tight">Lạc Hồng Limousine</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-sm font-bold">4.5</span>
+<span class="text-xs text-neutral-400">(420 đánh giá)</span>
+</div>
+<div class="mt-3 flex items-center gap-2 text-primary font-medium text-sm">
+<span class="material-symbols-outlined text-sm">directions_bus</span>
+                                        Ghế ngồi VIP 9 chỗ
+                                    </div>
+</div>
+</div>
+<div class="flex-1 flex items-center justify-center gap-8 px-8">
+<div class="text-center">
+<div class="text-2xl font-black">09:00</div>
+<div class="text-xs text-neutral-500 font-medium">Sài Gòn</div>
+</div>
+<div class="flex flex-col items-center gap-1 flex-1 max-w-[120px]">
+<div class="text-[10px] text-neutral-400 uppercase tracking-widest font-bold">5h45p</div>
+<div class="w-full h-[2px] bg-neutral-200 relative">
+<div class="absolute -top-1 -left-1 w-2 h-2 rounded-full border-2 border-primary bg-white"></div>
+<div class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary"></div>
+</div>
+<span class="material-symbols-outlined text-neutral-300 text-lg">airport_shuttle</span>
+</div>
+<div class="text-center">
+<div class="text-2xl font-black">14:45</div>
+<div class="text-xs text-neutral-500 font-medium">Đà Lạt</div>
+</div>
+</div>
+<div class="flex flex-col items-end justify-between min-w-[160px]">
+<div class="text-right">
+<div class="text-secondary text-2xl font-black">300.000đ</div>
+<div class="text-xs text-primary font-bold mt-1">Còn 2 ghế trống</div>
+</div>
+<button class="w-full bg-primary text-white py-3 rounded-xl font-bold hover:shadow-lg hover:shadow-primary/20 active:scale-95 transition-all">
+                                    Chọn chuyến
+                                </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Pagination or Load More -->
+<div class="mt-12 flex justify-center">
+<button class="bg-surface-container-low text-on-surface-variant px-12 py-4 rounded-xl font-bold hover:bg-surface-container-high transition-colors flex items-center gap-2">
+                        Xem thêm chuyến xe
+                        <span class="material-symbols-outlined">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-neutral-100 dark:bg-neutral-950 pt-8 mt-12 bg-neutral-200/50 dark:bg-neutral-900">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 max-w-7xl mx-auto py-12 border-t-0">
+<div class="text-lg font-bold text-neutral-900 dark:text-white mb-4 md:mb-0">BusGo Travel</div>
+<div class="flex gap-8 text-xs uppercase tracking-widest font-['Be_Vietnam_Pro']">
+<a class="text-neutral-500 dark:text-neutral-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" href="#">Terms</a>
+<a class="text-neutral-500 dark:text-neutral-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" href="#">Privacy</a>
+<a class="text-neutral-500 dark:text-neutral-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" href="#">Careers</a>
+<a class="text-neutral-500 dark:text-neutral-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" href="#">Press</a>
+</div>
+<div class="mt-4 md:mt-0 text-xs text-neutral-400 uppercase tracking-widest">
+                © 2024 BusGo Travel. Premium Transit Editorial.
+            </div>
+</div>
+</footer>
+<!-- FAB for Filter on Mobile -->
+<div class="md:hidden fixed bottom-6 right-6 z-40">
+<button class="bg-secondary text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+</body></html>
