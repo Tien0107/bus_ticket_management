@@ -240,24 +240,24 @@ export default function Vehicles() {
 
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+            <div className="bg-white rounded-lg sm:rounded-2xl w-full max-w-xl sm:max-w-2xl max-h-[90vh] overflow-y-auto">
               {/* Header */}
-              <div className="sticky top-0 bg-gradient-to-r from-primary to-primary-container text-white p-6 flex items-center justify-between">
-                <h2 className="text-2xl font-bold">
+              <div className="sticky top-0 bg-gradient-to-r from-primary to-primary-container text-white p-3 sm:p-6 flex items-center justify-between gap-2">
+                <h2 className="text-lg sm:text-2xl font-bold">
                   {editingVehicle ? "Chỉnh sửa xe" : "Thêm xe mới"}
                 </h2>
                 <button
                   onClick={handleCloseModal}
-                  className="text-white/80 hover:text-white transition-all"
+                  className="text-white/80 hover:text-white transition-all flex-shrink-0"
                 >
-                  <span className="material-symbols-outlined text-2xl">close</span>
+                  <span className="material-symbols-outlined text-xl sm:text-2xl">close</span>
                 </button>
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit} className="p-3 sm:p-6 space-y-3 sm:space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm font-bold text-on-surface mb-2">Biển số xe *</label>
                     <input

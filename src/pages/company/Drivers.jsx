@@ -239,20 +239,20 @@ export default function Drivers() {
 
         {/* Driver Detail Modal */}
         {showDetailModal && selectedDriver && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-2xl">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+            <div className="bg-white rounded-lg sm:rounded-2xl w-full max-w-xl sm:max-w-2xl">
               {/* Header */}
-              <div className="bg-gradient-to-r from-primary to-primary-container text-white p-6 flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">Chi tiết tài xế</h2>
-                  <p className="text-white/80 mt-1">{selectedDriver.fullName}</p>
+              <div className="bg-gradient-to-r from-primary to-primary-container text-white p-3 sm:p-6 flex items-center justify-between gap-2">
+                <div className="flex-1">
+                  <h2 className="text-lg sm:text-2xl font-bold">Chi tiết tài xế</h2>
+                  <p className="text-xs sm:text-sm text-white/80 mt-0.5 sm:mt-1">{selectedDriver.fullName}</p>
                 </div>
                 <button
                   onClick={() => {
                     setShowDetailModal(false);
                     setSelectedDriver(null);
                   }}
-                  className="text-white/80 hover:text-white text-2xl"
+                  className="text-white/80 hover:text-white text-xl sm:text-2xl flex-shrink-0"
                 >
                   ✕
                 </button>
@@ -326,23 +326,23 @@ export default function Drivers() {
 
         {/* Edit Driver Modal */}
         {showEditModal && selectedDriver && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-2xl">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+            <div className="bg-white rounded-lg sm:rounded-2xl w-full max-w-xl sm:max-w-2xl max-h-[90vh] overflow-y-auto">
               {/* Header */}
-              <div className="bg-gradient-to-r from-primary to-primary-container text-white p-6 flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Sửa thông tin tài xế</h2>
+              <div className="bg-gradient-to-r from-primary to-primary-container text-white p-3 sm:p-6 flex items-center justify-between gap-2">
+                <h2 className="text-lg sm:text-2xl font-bold flex-1">Sửa thông tin tài xế</h2>
                 <button
                   onClick={() => setShowEditModal(false)}
-                  className="text-white/80 hover:text-white text-2xl"
+                  className="text-white/80 hover:text-white text-xl sm:text-2xl flex-shrink-0"
                 >
                   ✕
                 </button>
               </div>
 
               {/* Content */}
-              <div className="p-6 space-y-4">
+              <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2">Tên đầy đủ <span className="text-red-500">*</span></label>
+                  <label className="block text-xs sm:text-sm font-bold text-on-surface mb-1 sm:mb-2\">Tên đầy đủ <span className="text-red-500\">*</span></label>
                   <input
                     type="text"
                     value={editFormData.fullName || ""}
