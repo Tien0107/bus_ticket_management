@@ -11,27 +11,35 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const res = await getCustomerProfile();
-        setProfile(res.data?.user ? res.data : { user: res.data });
-      } catch (err) {
-        console.error("Lỗi lấy hồ sơ:", err);
-        if (err.response?.status === 401) {
-          navigate("/login");
-          return;
-        }
-        setError("Không thể tải thông tin hồ sơ. Vui lòng thử lại.");
-      } finally {
-        setLoading(false);
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await getCustomerProfile();
+      setProfile(res.data?.user ? res.data : { user: res.data });
+    } catch (err) {
+      console.error("Lỗi lấy hồ sơ:", err);
+      if (err.response?.status === 401) {
+        navigate("/login");
+        return;
       }
-    };
+      setError("Không thể tải thông tin hồ sơ. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProfile();
   }, [navigate]);
+
+  const handleProfileUpdated = async (updatedUser) => {
+    if (updatedUser) {
+      setProfile((prev) => ({ ...(prev || {}), user: updatedUser }));
+      return;
+    }
+    await fetchProfile();
+  };
 
   return (
     <div className="min-h-screen bg-surface pt-24 pb-12 px-6">
@@ -56,7 +64,9 @@ export default function Profile() {
           </div>
         )}
 
-        {!loading && !error && profile?.user && <ProfileInfoCard user={profile.user} />}
+        {!loading && !error && profile?.user && (
+          <ProfileInfoCard user={profile.user} onProfileUpdated={handleProfileUpdated} />
+        )}
       </div>
     </div>
   );
