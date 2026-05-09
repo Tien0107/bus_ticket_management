@@ -10,6 +10,8 @@ import {
 import BookingSeatStep from "./BookingSeatStep";
 import BookingCheckoutStep from "./BookingCheckoutStep";
 import SelectPaymentCardModal from "../../components/payment/SelectPaymentCardModal";
+import ReturnTripSelection from "./ReturnTripSelection";
+import { useToast } from "../../context/ToastContext";
 
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -18,11 +20,14 @@ export default function Booking() {
   const { tripId } = useParams(); // Note: This is actually scheduleId
   const navigate = useNavigate();
   const location = useLocation();
+  const { addToast } = useToast();
   
   const today = new Date().toISOString().split('T')[0];
   
   // Trạng thái quản lý luồng Booking
   const [step, setStep] = useState(1);
+  const [isRoundTrip, setIsRoundTrip] = useState(false);
+  const [bookingPhase, setBookingPhase] = useState("outbound"); // "outbound" | "return"
   const [bookingData, setBookingData] = useState({
     scheduleId: tripId,
     companyId: location.state?.companyId || location.state?.schedule?.companyId,
@@ -34,8 +39,10 @@ export default function Booking() {
     passengerInfo: { name: "", phone: "", email: "", note: "" },
     coupon: null,
     paymentMethod: "vnpay",
-    totalPrice: 0
+    totalPrice: 0,
+    schedule: location.state?.schedule || {} // Lưu lại để dùng cho chuyến đi
   });
+  const [returnBookingData, setReturnBookingData] = useState(null);
   const [showCardModal, setShowCardModal] = useState(false);
   const [cards, setCards] = useState([]);
   const [loadingCards, setLoadingCards] = useState(false);
@@ -47,18 +54,18 @@ export default function Booking() {
     const paymentRes = await createPaymentMethod(orderId, "stripe");
     const clientSecret = paymentRes.data?.clientSecret;
     if (!clientSecret) {
-      alert("Đặt vé thành công nhưng không nhận được clientSecret thanh toán thẻ.");
+      addToast("Đặt vé thành công nhưng không nhận được clientSecret thanh toán thẻ.");
       navigate("/profile/tickets");
       return;
     }
     if (!stripePromise) {
-      alert("Thiếu cấu hình Stripe key (REACT_APP_STRIPE_PUBLISHABLE_KEY).");
+      addToast("Thiếu cấu hình Stripe key (REACT_APP_STRIPE_PUBLISHABLE_KEY).");
       navigate("/profile/tickets");
       return;
     }
     const stripe = await stripePromise;
     if (!stripe) {
-      alert("Không thể khởi tạo Stripe.");
+      addToast("Không thể khởi tạo Stripe.");
       navigate("/profile/tickets");
       return;
     }
@@ -66,14 +73,14 @@ export default function Booking() {
       payment_method: selectedPaymentMethodId || undefined,
     });
     if (error) {
-      alert("Thanh toán thẻ thất bại: " + (error.message || "Unknown error"));
+      addToast("Thanh toán thẻ thất bại: " + (error.message || "Unknown error"));
       navigate("/profile/tickets");
       return;
     }
     if (paymentIntent?.status === "succeeded") {
-      alert("Thanh toán bằng thẻ thành công!");
+      addToast("Thanh toán bằng thẻ thành công!");
     } else {
-      alert(`Thanh toán trả về trạng thái: ${paymentIntent?.status || "unknown"}`);
+      addToast(`Thanh toán trả về trạng thái: ${paymentIntent?.status || "unknown"}`);
     }
     navigate("/profile/tickets");
   };
@@ -97,7 +104,7 @@ export default function Booking() {
       );
     } catch (err) {
       setShowCardModal(false);
-      alert("Không thể tải danh sách thẻ: " + (err.response?.data?.message || err.message));
+      addToast("Không thể tải danh sách thẻ: " + (err.response?.data?.message || err.message));
       navigate("/profile/tickets");
     } finally {
       setLoadingCards(false);
@@ -109,14 +116,14 @@ export default function Booking() {
       setProcessingCardPayment(true);
       const paymentMethodId = card?.stripePaymentMethodId || card?.id;
       if (!paymentMethodId || !pendingOrderId) {
-        alert("Thiếu thông tin thẻ hoặc đơn hàng.");
+        addToast("Thiếu thông tin thẻ hoặc đơn hàng.");
         return;
       }
       await setDefaultPaymentMethod(paymentMethodId);
       setShowCardModal(false);
       await performStripePayment(pendingOrderId, paymentMethodId);
     } catch (err) {
-      alert("Không thể đặt thẻ mặc định để thanh toán: " + (err.response?.data?.message || err.message));
+      addToast("Không thể đặt thẻ mặc định để thanh toán: " + (err.response?.data?.message || err.message));
       navigate("/profile/tickets");
     } finally {
       setProcessingCardPayment(false);
@@ -127,31 +134,35 @@ export default function Booking() {
     try {
       setProcessingCardPayment(true);
       if (!paymentMethodId || !pendingOrderId) {
-        alert("Thiếu thông tin thẻ hoặc đơn hàng.");
+        addToast("Thiếu thông tin thẻ hoặc đơn hàng.");
         return;
       }
       setShowCardModal(false);
       await performStripePayment(pendingOrderId, paymentMethodId);
     } catch (err) {
-      alert("Không thể thanh toán bằng thẻ mới: " + (err.response?.data?.message || err.message));
+      addToast("Không thể thanh toán bằng thẻ mới: " + (err.response?.data?.message || err.message));
       navigate("/profile/tickets");
     } finally {
       setProcessingCardPayment(false);
     }
   };
 
-  const handleConfirmBooking = async () => {
+  const [orderIds, setOrderIds] = useState([]);
+
+  const handleProceedToCheckout = async () => {
     try {
       if (bookingData.selectedSeats.length === 0) {
-        alert("Vui lòng chọn ít nhất 1 ghế.");
-        return;
+        addToast("Vui lòng chọn ít nhất 1 ghế chiều đi.");
+        return false;
+      }
+      if (isRoundTrip && (!returnBookingData || returnBookingData.selectedSeats.length === 0)) {
+        addToast("Vui lòng chọn ít nhất 1 ghế chiều về.");
+        return false;
       }
 
-      // Backend API booking thiết kế outBound chỉ nhận 1 seatId mỗi order.
-      // Cần lặp từng ghế để giữ chỗ thành công đồng loạt
-      const bookingPromises = bookingData.selectedSeats.map((seat) => {
+      const bookingPromises = bookingData.selectedSeats.map((seat, index) => {
         const payload = {
-            type: "one_way",
+            type: isRoundTrip ? "round_trip" : "one_way",
             outBound: {
                tripId: Number(bookingData.tripId),
                seatId: Number(seat.id),
@@ -161,6 +172,16 @@ export default function Booking() {
             }
         };
         
+        if (isRoundTrip && returnBookingData && returnBookingData.selectedSeats[index]) {
+            payload.returnBound = {
+               tripId: Number(returnBookingData.tripId),
+               seatId: Number(returnBookingData.selectedSeats[index].id),
+               fromStationId: Number(returnBookingData.pickupId),
+               toStationId: Number(returnBookingData.dropoffId),
+               companyId: Number(returnBookingData.companyId)
+            };
+        }
+        
         if (bookingData.coupon?.id) {
             payload.couponId = Number(bookingData.coupon.id);
         }
@@ -169,7 +190,7 @@ export default function Booking() {
       });
 
       const bookingResponses = await Promise.all(bookingPromises);
-      const orderIds = Array.from(
+      const generatedOrderIds = Array.from(
         new Set(
           bookingResponses
             .map((res) => {
@@ -180,9 +201,30 @@ export default function Booking() {
         ),
       );
 
+      if (generatedOrderIds.length === 0) {
+        addToast("Lỗi: Không thể lấy mã đơn hàng từ Backend.");
+        return false;
+      }
+
+      setOrderIds(generatedOrderIds);
+      setStep(2);
+      return true;
+    } catch (err) {
+      console.error("Booking Error:", err);
+      if (err.response?.data?.issues) {
+         const msgs = err.response.data.issues.map(i => `${i.field}: ${i.reason}`).join(" | ");
+         addToast("Lỗi khi giữ chỗ! " + msgs);
+      } else {
+         addToast("Lỗi khi giữ chỗ! " + (err.response?.data?.message || err.message));
+      }
+      return false;
+    }
+  };
+
+  const handleProcessPayment = async () => {
+    try {
       if (orderIds.length === 0) {
-        alert("Đặt vé thành công! Bạn sẽ được chuyển sang trang quản lý vé.");
-        navigate("/profile/tickets");
+        addToast("Chưa có mã vé. Vui lòng quay lại chọn ghế.");
         return;
       }
 
@@ -205,7 +247,7 @@ export default function Booking() {
       }
 
       if (bookingData.paymentMethod === "cash") {
-        alert(
+        addToast(
           paymentRes.data?.message ||
             "Đặt vé thành công! Đã ghi nhận thanh toán tiền mặt. Vui lòng thanh toán tại quầy trước giờ xuất bến.",
         );
@@ -213,51 +255,53 @@ export default function Booking() {
         return;
       }
 
-      alert("Đặt vé thành công! Bạn sẽ được chuyển sang trang quản lý vé.");
+      addToast("Thanh toán thành công! Bạn sẽ được chuyển sang trang quản lý vé.");
       navigate("/profile/tickets");
     } catch (err) {
-      console.error("Booking Error:", err);
-      // Hiển thị mảng validation lỗi của backend nếu có
-      if (err.response?.data?.issues) {
-         const msgs = err.response.data.issues.map(i => `${i.field}: ${i.reason}`).join(" | ");
-         alert("Đặt vé thất bại! Lỗi cấu trúc: " + msgs);
-      } else {
-         alert("Đặt vé thất bại! " + (err.response?.data?.message || err.message));
-      }
+      console.error("Payment Error:", err);
+      addToast("Lỗi khởi tạo thanh toán: " + (err.response?.data?.message || err.message));
     }
   };
 
   return (
     <div className="bg-surface min-h-screen text-on-surface">
-      {/* Top Navigation Bar from Stitch Design */}
-      <nav className="fixed top-0 w-full z-50 bg-white shadow-sm border-b border-surface-container">
-        <div className="flex justify-between items-center max-w-7xl mx-auto px-6 h-16">
-          <div className="flex items-center gap-2 cursor-pointer hover:opacity-80" onClick={() => navigate("/")}><img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" /><span className="text-2xl font-bold tracking-tighter text-primary">BusGo</span></div>
-          <div className="hidden md:flex space-x-8 items-center cursor-pointer">
-              <span onClick={() => navigate("/")} className="text-on-surface-variant hover:text-primary transition-colors font-medium">Trang chủ</span>
-              <span className="font-bold text-primary border-b-2 border-primary pb-1">Đặt vé</span>
-              <span className="text-on-surface-variant hover:text-primary transition-colors font-medium">Khuyến mãi</span>
-          </div>
-          <button onClick={() => navigate("/")} className="text-on-surface-variant hover:bg-surface-container px-4 py-2 rounded-xl transition-all material-symbols-outlined">close</button>
-        </div>
-      </nav>
-
       {/* Main Content Area */}
       <main className="pt-24 pb-20 max-w-7xl mx-auto px-6">
-          {step === 1 && (
+          {step === 1 && bookingPhase !== "returnSelection" && (
             <BookingSeatStep 
-              bookingData={bookingData} 
-              setBookingData={setBookingData} 
-              onNext={() => setStep(2)} 
+              bookingData={bookingPhase === "outbound" ? bookingData : returnBookingData} 
+              setBookingData={bookingPhase === "outbound" ? setBookingData : setReturnBookingData} 
+              onNext={handleProceedToCheckout} 
+              isRoundTrip={isRoundTrip}
+              setIsRoundTrip={setIsRoundTrip}
+              bookingPhase={bookingPhase}
+              setBookingPhase={setBookingPhase}
+              returnBookingData={returnBookingData}
+              setReturnBookingData={setReturnBookingData}
+              outboundData={bookingData} // To access outbound locations for return trip
             />
+          )}
+
+          {step === 1 && bookingPhase === "returnSelection" && (
+             <ReturnTripSelection
+               outboundData={bookingData}
+               setReturnBookingData={setReturnBookingData}
+               setBookingPhase={setBookingPhase}
+               onCancel={() => {
+                 setIsRoundTrip(false);
+                 setBookingPhase("outbound");
+               }}
+             />
           )}
 
           {step === 2 && (
             <BookingCheckoutStep 
               bookingData={bookingData} 
+              returnBookingData={returnBookingData}
+              isRoundTrip={isRoundTrip}
               setBookingData={setBookingData} 
               onBack={() => setStep(1)}
-              onConfirm={handleConfirmBooking}
+              onConfirm={handleProcessPayment}
             />
           )}
       </main>

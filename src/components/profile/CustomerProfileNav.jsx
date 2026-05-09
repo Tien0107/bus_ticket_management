@@ -11,19 +11,9 @@ export default function CustomerProfileNav() {
   const location = useLocation();
 
   return (
-    <div className="flex items-center justify-between flex-wrap gap-4 mb-8">
-      <Link
-        to="/"
-        className="inline-flex items-center gap-3 rounded-2xl px-1 py-1 bg-transparent shadow-none hover:opacity-90 transition-opacity"
-        aria-label="Về trang chủ Bus Go"
-      >
-        <img src="/img/busgo.jpg" alt="BusGo" className="h-10 w-auto mix-blend-multiply" />
-        <span className="text-xl font-black text-primary tracking-tighter">Bus Go</span>
-      </Link>
-
-      <div className="flex items-center flex-wrap gap-4">
-        {navItems.map((item) => {
-          const isActive =
+    <div className="flex items-center flex-wrap gap-4 mb-8">
+      {navItems.map((item) => {
+        const isActive =
             item.to === "/profile"
               ? location.pathname === "/profile"
               : location.pathname.startsWith(item.to);
@@ -42,7 +32,6 @@ export default function CustomerProfileNav() {
             </Link>
           );
         })}
-      </div>
     </div>
   );
 }

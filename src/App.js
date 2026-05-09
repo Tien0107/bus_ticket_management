@@ -11,6 +11,7 @@ import CompanySignup from "./pages/CompanySignup";
 
 // Layouts
 import DashboardLayout from "./components/layouts/DashboardLayout";
+import MainLayout from "./components/layouts/MainLayout";
 
 // Customer Pages
 import Booking from "./pages/customer/Booking";
@@ -19,6 +20,8 @@ import CustomerMyCoupons from "./pages/customer/MyCoupons";
 import CustomerMyPaymentMethods from "./pages/customer/MyPaymentMethods";
 import TicketDetail from "./pages/customer/TicketDetail";
 import Profile from "./pages/customer/Profile";
+import RoutesPage from "./pages/customer/Routes";
+import Contact from "./pages/Contact";
 
 // Driver Pages
 import DriverDashboard from "./pages/driver/DriverDashboard";
@@ -49,25 +52,32 @@ function App() {
 
       <BrowserRouter>
         <Routes>
-          {/* Public */}
-          <Route path="/" element={<Home />} />
+          {/* Public (No Navbar/Footer) */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/company-signup" element={<CompanySignup />} />
           <Route path="/company-support/register" element={<SupportRegister />} />
-
-          {/* Customer */}
-          <Route path="/booking/:tripId" element={<Booking />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/tickets" element={<CustomerMyTickets />} />
-          <Route path="/profile/coupons" element={<CustomerMyCoupons />} />
-          <Route path="/profile/payment-methods" element={<CustomerMyPaymentMethods />} />
+          
+          {/* Ticket Detail (Standalone Boarding Pass) */}
           <Route path="/profile/tickets/:ticketId" element={<TicketDetail />} />
-
-          <Route path="/my-tickets" element={<Navigate to="/profile/tickets" replace />} />
-          <Route path="/my-coupons" element={<Navigate to="/profile/coupons" replace />} />
-          <Route path="/my-payment-methods" element={<Navigate to="/profile/payment-methods" replace />} />
           <Route path="/my-tickets/:ticketId" element={<TicketDetail />} />
+
+          {/* Main Layout (Home & Customer Pages) */}
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/routes" element={<RoutesPage />} />
+            <Route path="/contact" element={<Contact />} />
+            
+            {/* Customer */}
+            <Route path="/booking/:tripId" element={<Booking />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/tickets" element={<CustomerMyTickets />} />
+            <Route path="/profile/coupons" element={<CustomerMyCoupons />} />
+            <Route path="/profile/payment-methods" element={<CustomerMyPaymentMethods />} />
+            <Route path="/my-tickets" element={<Navigate to="/profile/tickets" replace />} />
+            <Route path="/my-coupons" element={<Navigate to="/profile/coupons" replace />} />
+            <Route path="/my-payment-methods" element={<Navigate to="/profile/payment-methods" replace />} />
+          </Route>
 
           {/* Company Support */}
           <Route path="/company-support" element={<Navigate to="/company-support/tickets" replace />} />

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCompanies } from "../api/public";
 import { getTripSchedules } from "../api/customer";
-import { logout } from "../api/auth";
+import LocationDropdown from "../components/common/LocationDropdown";
 
 // Data features
 const features = [
@@ -28,6 +28,27 @@ const features = [
   },
 ];
 
+// Dummy Promo Data
+const promoHolidays = [
+  { id: 1, title: "Danh sách các nhà xe đã mở bán vé Lễ Giỗ Tổ & 30/4 - 1/5", image: "https://picsum.photos/seed/bus1/600/400" },
+  { id: 2, title: "Cách đặt vé xe Lễ nhanh chóng, tiện lợi tại BusGo", image: "https://picsum.photos/seed/bus2/600/400" },
+  { id: 3, title: "Lưu ý khi đặt vé Lễ", image: "https://picsum.photos/seed/bus3/600/400" },
+  { id: 4, title: "Top 5 địa điểm du lịch Lễ hot nhất", image: "https://picsum.photos/seed/bus4/600/400" }
+];
+
+const promoHighlights = [
+  { id: 1, title: "12h - 14h Thứ 3 - Flash Sale đến 50%", image: "https://picsum.photos/seed/sale1/600/400" },
+  { id: 2, title: "Giảm 15% khi đặt vé các nhà xe mới mở bán tại BusGo", image: "https://picsum.photos/seed/sale2/600/400" },
+  { id: 3, title: "Giới thiệu bạn mới - Nhận quà khủng từ BusGo", image: "https://picsum.photos/seed/sale3/600/400" },
+  { id: 4, title: "Đón hè sang - Săn sale rộn ràng", image: "https://picsum.photos/seed/sale4/600/400" }
+];
+
+const promoPayments = [
+  { id: 1, title: "Giảm đến 100K khi thanh toán bằng Thẻ Tín dụng HD SAISON", image: "https://picsum.photos/seed/pay1/600/400" },
+  { id: 2, title: "Nhận ưu đãi đến 50K và giảm 25% khi đặt vé cho khách hàng UOB", image: "https://picsum.photos/seed/pay2/600/400" },
+  { id: 3, title: "Giảm đến 50K khi thanh toán đơn hàng bằng ví ShopeePay", image: "https://picsum.photos/seed/pay3/600/400" },
+  { id: 4, title: "Thanh toán bằng VNPay nhận ngay hoàn tiền 10%", image: "https://picsum.photos/seed/pay4/600/400" }
+];
 
 
 const Home = () => {
@@ -35,8 +56,6 @@ const Home = () => {
   const [departure, setDeparture] = useState("");
   const [destination, setDestination] = useState("");
   const [date, setDate] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Search states
   const [schedules, setSchedules] = useState([]);
@@ -77,42 +96,23 @@ const Home = () => {
     }
   };
 
-  // Lấy user từ localStorage
-  const [user, setUser] = useState(null);
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("user");
-      if (stored) setUser(JSON.parse(stored));
-    } catch (e) {
-      console.error("Lỗi parse user:", e);
-    }
-  }, []);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (err) {
-      console.error("Lỗi khi đăng xuất:", err);
-    }
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUser(null);
-    setShowUserMenu(false);
-    navigate("/");
-  };
 
   // State cho danh sách nhà xe từ API
   const [companies, setCompanies] = useState([]);
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [companiesError, setCompaniesError] = useState(null);
 
-  // Fetch danh sách nhà xe khi component mount
+  const [popularRoutes, setPopularRoutes] = useState([]);
+  const [loadingPopular, setLoadingPopular] = useState(false);
+
+  // Fetch danh sách nhà xe và tuyến đường phổ biến
   useEffect(() => {
-    const fetchCompanies = async () => {
+    const fetchHomeData = async () => {
+      // 1. Fetch Companies
       try {
         setCompaniesLoading(true);
         const response = await getCompanies({ limit: 10 });
-        // API trả về object có chứa mảng companies
         const data = response.data?.companies || response.data?.data || [];
         setCompanies(Array.isArray(data) ? data : []);
         setCompaniesError(null);
@@ -122,121 +122,85 @@ const Home = () => {
       } finally {
         setCompaniesLoading(false);
       }
+
+      // 2. Fetch Popular Routes
+      try {
+        setLoadingPopular(true);
+        const tripRes = await getTripSchedules({ limit: 50, orderBy: "asc" });
+        const trips = tripRes.data?.trip || [];
+        if (Array.isArray(trips)) {
+          const routesMap = new Map();
+          trips.forEach((trip) => {
+            if (!trip.fromLocation || !trip.toLocation) return;
+            const key = `${trip.fromLocation}-${trip.toLocation}`;
+            if (!routesMap.has(key)) {
+              routesMap.set(key, {
+                id: trip.id,
+                from: trip.fromLocation,
+                to: trip.toLocation,
+                title: `${trip.fromLocation} ➔ ${trip.toLocation}`,
+                image: `https://picsum.photos/seed/${encodeURIComponent(key)}/800/1000`,
+                price: trip.price ? `Từ ${trip.price.toLocaleString('vi-VN')}đ` : "Từ 150.000đ",
+                duration: trip.durationMinutes ? `Khoảng ${Math.floor(trip.durationMinutes/60)}h ${trip.durationMinutes%60}m` : "Khoảng 2-3 giờ"
+              });
+            }
+          });
+          setPopularRoutes(Array.from(routesMap.values()).slice(0, 4));
+        }
+      } catch (err) {
+        console.error("Lỗi tải tuyến đường phổ biến:", err);
+      } finally {
+        setLoadingPopular(false);
+      }
     };
-    fetchCompanies();
+    fetchHomeData();
   }, []);
+
+  const handleSelectPopularRoute = async (from, to) => {
+    setDeparture(from);
+    setDestination(to);
+    
+    // Auto trigger search with today's date if date is empty
+    const searchDate = date || new Date().toISOString().split('T')[0];
+    setDate(searchDate);
+
+    setSearchInitiated(true);
+    setLoadingSearch(true);
+    setSearchError(null);
+
+    // Scroll up slightly to prepare for search results
+    window.scrollTo({ top: 300, behavior: 'smooth' });
+
+    try {
+      const response = await getTripSchedules({
+        from: from,
+        to: to,
+        date: searchDate,
+        limit: 10,
+        orderBy: "asc"
+      });
+      const data = response.data?.trip || [];
+      setSchedules(Array.isArray(data) ? data : []);
+      
+      // Scroll to search results
+      setTimeout(() => {
+        const el = document.getElementById("search-results");
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (err) {
+      console.error("Lỗi tìm chuyến:", err);
+      if (err.response?.status === 401) {
+         setSearchError("Vui lòng Đăng nhập ở góc trên bên phải để tìm và đặt vé.");
+      } else {
+         setSearchError("Không thể tìm chuyến. Vui lòng thử lại sau.");
+      }
+    } finally {
+      setLoadingSearch(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-body">
-      {/* ===== HEADER / NAVIGATION ===== */}
-      <nav className="fixed top-0 w-full z-50 bg-white shadow-editorial">
-        <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" />
-            <span className="text-2xl font-black text-primary tracking-tighter">Bus Go</span>
-          </Link>
-          <div className="hidden md:flex items-center space-x-8">
-            <Link
-              to="/"
-              className="text-primary font-bold border-b-2 border-primary pb-1"
-            >
-              Trang chủ
-            </Link>
-            <a href="#routes" className="text-gray-600 hover:text-primary transition-colors">
-              Lịch trình
-            </a>
-            <a href="#partners" className="text-gray-600 hover:text-primary transition-colors">
-              Khuyến mãi
-            </a>
-            <a href="#footer" className="text-gray-600 hover:text-primary transition-colors">
-              Liên hệ
-            </a>
-          </div>
-          {user ? (
-            /* === Đã đăng nhập === */
-            <div className="relative">
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 bg-primary/10 px-4 py-2.5 rounded-xl hover:bg-primary/20 transition-colors"
-              >
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                  <span className="material-symbols-outlined text-white text-lg">person</span>
-                </div>
-                <span className="text-on-surface font-semibold text-sm max-w-[120px] truncate">
-                  {user.fullName || user.username || "User"}
-                </span>
-                <span className="material-symbols-outlined text-on-surface-variant text-lg">
-                  {showUserMenu ? "expand_less" : "expand_more"}
-                </span>
-              </button>
-              {showUserMenu && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-lg border border-outline-variant/20 py-2 z-50">
-                  <div className="px-4 py-3 border-b border-outline-variant/10">
-                    <p className="text-sm font-bold text-on-surface truncate">{user.fullName || user.username}</p>
-                    <p className="text-xs text-on-surface-variant truncate">{user.email}</p>
-                  </div>
-                  {/* Link Admin cho Company Support */}
-                  {(String(user.role?.name || user.role).toUpperCase().includes('SUPPORT') || String(user.role?.name || user.role).toUpperCase() === 'ADMIN' || String(user.role?.name || user.role).toUpperCase() === 'COMPANY_ADMIN') && (
-                    <button
-                      onClick={() => { navigate("/company-support/tickets"); setShowUserMenu(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-primary font-bold hover:bg-primary/10 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
-                      Vào trang Quản trị Support
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => { navigate("/profile"); setShowUserMenu(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-lg text-primary">account_circle</span>
-                    Hồ sơ cá nhân
-                  </button>
-                  <button
-                    onClick={() => { navigate("/profile/tickets"); setShowUserMenu(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-lg text-primary">confirmation_number</span>
-                    Vé của tôi
-                  </button>
-                  <button
-                    onClick={() => { navigate("/profile/coupons"); setShowUserMenu(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-lg text-secondary">sell</span>
-                    Khuyến mãi của tôi
-                  </button>
-                  <div className="border-t border-outline-variant/10"></div>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-lg">logout</span>
-                    Đăng xuất
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* === Chưa đăng nhập === */
-            <div className="flex items-center gap-3">
-              <Link
-                to="/login"
-                className="text-primary font-semibold px-5 py-2.5 rounded-xl border-2 border-primary hover:bg-primary/5 active:scale-95 transition-all duration-150"
-              >
-                Đăng nhập
-              </Link>
-              <Link
-                to="/register"
-                className="bg-primary text-on-primary px-5 py-2.5 rounded-xl font-bold hover:bg-primary/90 active:scale-95 transition-all duration-150"
-              >
-                Đăng ký
-              </Link>
-            </div>
-          )}
-        </div>
-      </nav>
 
       {/* ===== HERO SECTION ===== */}
       <section className="relative pt-24 pb-20 md:pt-40 md:pb-32 overflow-hidden">
@@ -273,36 +237,24 @@ const Home = () => {
                     <label className="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">
                       Điểm đi
                     </label>
-                    <div className="flex items-center bg-surface-container-low px-4 py-3 rounded-xl focus-within:ring-2 ring-primary/20 transition-all">
-                      <span className="material-symbols-outlined text-primary mr-3">
-                        location_on
-                      </span>
-                      <input
-                        className="bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-on-surface w-full placeholder:text-outline-variant font-medium"
-                        placeholder="Thành phố xuất phát"
-                        type="text"
-                        value={departure}
-                        onChange={(e) => setDeparture(e.target.value)}
-                      />
-                    </div>
+                    <LocationDropdown
+                      value={departure}
+                      onChange={setDeparture}
+                      placeholder="Thành phố xuất phát"
+                      icon="location_on"
+                    />
                   </div>
                   {/* Điểm đến */}
                   <div>
                     <label className="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">
                       Điểm đến
                     </label>
-                    <div className="flex items-center bg-surface-container-low px-4 py-3 rounded-xl focus-within:ring-2 ring-primary/20 transition-all">
-                      <span className="material-symbols-outlined text-primary mr-3">
-                        flag
-                      </span>
-                      <input
-                        className="bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-on-surface w-full placeholder:text-outline-variant font-medium"
-                        placeholder="Thành phố đến"
-                        type="text"
-                        value={destination}
-                        onChange={(e) => setDestination(e.target.value)}
-                      />
-                    </div>
+                    <LocationDropdown
+                      value={destination}
+                      onChange={setDestination}
+                      placeholder="Thành phố đến"
+                      icon="flag"
+                    />
                   </div>
                 </div>
 
@@ -434,6 +386,54 @@ const Home = () => {
         </section>
       )}
 
+      {/* ===== POPULAR ROUTES ===== */}
+      <section className="bg-surface py-20 border-t border-surface-container">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center gap-3 mb-10">
+            <span className="material-symbols-outlined text-4xl text-secondary">local_fire_department</span>
+            <h2 className="text-3xl font-black text-on-surface">Tuyến đường phổ biến</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {loadingPopular ? (
+               <div className="col-span-full flex justify-center items-center py-10">
+                 <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+               </div>
+            ) : popularRoutes.length > 0 ? popularRoutes.map((route) => (
+              <div 
+                key={route.id}
+                className="group relative rounded-3xl overflow-hidden cursor-pointer shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+                onClick={() => handleSelectPopularRoute(route.from, route.to)}
+              >
+                <div className="aspect-[4/5] w-full">
+                  <img 
+                    src={route.image} 
+                    alt={route.title} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <h3 className="text-xl font-bold mb-3 leading-tight">{route.title}</h3>
+                  <div className="flex items-center gap-2 text-sm text-white/90 mb-1.5">
+                    <span className="material-symbols-outlined text-[18px]">schedule</span>
+                    {route.duration}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-secondary-fixed">
+                    <span className="material-symbols-outlined text-[18px]">payments</span>
+                    {route.price}
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="col-span-full text-center py-10 text-on-surface-variant font-medium">
+                Chưa có dữ liệu tuyến đường phổ biến.
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* ===== WHY CHOOSE US ===== */}
       <section className="bg-surface-container-low py-24">
         <div className="max-w-7xl mx-auto px-6">
@@ -519,14 +519,18 @@ const Home = () => {
               {companies.map((company) => (
                 <div
                   key={company.id || company._id}
-                  className="bg-white p-6 rounded-3xl shadow-editorial hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex items-center gap-4"
+                  onClick={() => {
+                     const today = new Date().toISOString().split('T')[0];
+                     navigate("/routes", { state: { companyId: company.id || company._id, companyName: company.name || company.company_name, date: today } });
+                  }}
+                  className="bg-white p-6 rounded-3xl shadow-editorial hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex items-center gap-4 cursor-pointer"
                 >
                   {/* Company Avatar */}
                   <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-                    {company.logo ? (
+                    {(company.logo || company.logoUrl) ? (
                       <img
-                        src={company.logo}
-                        alt={company.name}
+                        src={company.logo || company.logoUrl}
+                        alt={company.name || company.company_name}
                         className="w-12 h-12 object-contain rounded-lg"
                       />
                     ) : (
@@ -567,106 +571,64 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ===== FOOTER ===== */}
-      <footer id="footer" className="w-full rounded-t-3xl mt-20 bg-gray-50">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 px-8 py-16 max-w-7xl mx-auto text-sm leading-6">
-          {/* Brand */}
-          <div>
-            <div className="flex items-center gap-2 mb-6">
-              <img src="/img/busgo.jpg" alt="BusGo" className="h-16 mix-blend-multiply" />
-              <span className="text-xl font-bold text-primary">Bus Go</span>
-            </div>
-            <p className="text-gray-500 mb-6">
-              Nền tảng đặt vé xe khách trực tuyến hàng đầu Việt Nam, giúp bạn
-              kết nối với hàng nghìn hành trình mỗi ngày.
-            </p>
-            <div className="flex space-x-4">
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all"
-              >
-                <span className="material-symbols-outlined">public</span>
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all"
-              >
-                <span className="material-symbols-outlined">phone</span>
-              </a>
+      {/* ===== PROMOTIONS SECTION ===== */}
+      <section className="bg-surface py-16">
+        <div className="max-w-7xl mx-auto px-6">
+          
+          {/* Lễ Giỗ Tổ */}
+          <div className="mb-12">
+            <h3 className="text-xl font-bold text-on-surface mb-6">Lễ Giỗ Tổ Hùng Vương và 30/4 - 1/5/2026</h3>
+            <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {promoHolidays.map((item) => (
+                <div key={item.id} className="min-w-[280px] md:min-w-[320px] bg-white rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden snap-start cursor-pointer hover:shadow-md transition-all">
+                  <div className="h-40 w-full overflow-hidden">
+                    <img src={item.image} alt={item.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-4">
+                    <h4 className="font-bold text-sm text-on-surface line-clamp-2 leading-relaxed">{item.title}</h4>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Dịch vụ */}
-          <div>
-            <h4 className="font-bold text-on-surface mb-6">Dịch vụ</h4>
-            <ul className="space-y-4">
-              <li>
-                <a href="#" className="text-gray-500 hover:text-secondary transition-colors">
-                  Về chúng tôi
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-500 hover:text-secondary transition-colors">
-                  Đăng ký nhà xe
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-500 hover:text-secondary transition-colors">
-                  Hướng dẫn đặt vé
-                </a>
-              </li>
-            </ul>
+          {/* Ưu đãi nổi bật */}
+          <div className="mb-12">
+            <h3 className="text-xl font-bold text-on-surface mb-6">Ưu đãi nổi bật</h3>
+            <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {promoHighlights.map((item) => (
+                <div key={item.id} className="min-w-[280px] md:min-w-[320px] bg-white rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden snap-start cursor-pointer hover:shadow-md transition-all">
+                  <div className="h-40 w-full overflow-hidden">
+                    <img src={item.image} alt={item.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-4">
+                    <h4 className="font-bold text-sm text-on-surface line-clamp-2 leading-relaxed">{item.title}</h4>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Pháp lý */}
-          <div>
-            <h4 className="font-bold text-on-surface mb-6">Pháp lý</h4>
-            <ul className="space-y-4">
-              <li>
-                <a href="#" className="text-gray-500 hover:text-secondary transition-colors">
-                  Điều khoản
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-500 hover:text-secondary transition-colors">
-                  Chính sách
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-500 hover:text-secondary transition-colors">
-                  Hỗ trợ
-                </a>
-              </li>
-            </ul>
+          {/* Ưu đãi thanh toán online */}
+          <div className="mb-8">
+            <h3 className="text-xl font-bold text-on-surface mb-6">Ưu đãi thanh toán online</h3>
+            <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {promoPayments.map((item) => (
+                <div key={item.id} className="min-w-[280px] md:min-w-[320px] bg-white rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden snap-start cursor-pointer hover:shadow-md transition-all">
+                  <div className="h-40 w-full overflow-hidden">
+                    <img src={item.image} alt={item.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-4">
+                    <h4 className="font-bold text-sm text-on-surface line-clamp-2 leading-relaxed">{item.title}</h4>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Liên hệ */}
-          <div>
-            <h4 className="font-bold text-on-surface mb-6">Liên hệ</h4>
-            <ul className="space-y-4 text-gray-500">
-              <li className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary">mail</span>
-                <span>hotro@busgo.vn</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary">call</span>
-                <span>1900 6789</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary">location_on</span>
-                <span>Số 123, Đường Lê Lợi, Quận 1, TP. HCM</span>
-              </li>
-            </ul>
-          </div>
         </div>
+      </section>
 
-        {/* Copyright */}
-        <div className="max-w-7xl mx-auto px-8 pb-12 border-t border-outline-variant/20 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-gray-500 text-sm">
-            © 2024 BusGo. Tất cả quyền được bảo lưu.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 };

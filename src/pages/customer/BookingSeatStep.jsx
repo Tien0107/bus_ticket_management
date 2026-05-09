@@ -1,12 +1,33 @@
 import React, { useState, useEffect } from "react";
 import { getPickupPoints, getDropoffPoints, prepareTrip, getTripSeats } from "../../api/customer";
+import { getTripSchedules } from "../../api/customer"; // Cho việc tìm chuyến về
 import { useNavigate, useLocation } from "react-router-dom";
+import { useToast } from "../../context/ToastContext";
 
-export default function BookingSeatStep({ bookingData, setBookingData, onNext }) {
+export default function BookingSeatStep({ 
+  bookingData, 
+  setBookingData, 
+  onNext,
+  isRoundTrip,
+  setIsRoundTrip,
+  bookingPhase,
+  setBookingPhase,
+  returnBookingData,
+  setReturnBookingData
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [loadingSeats, setLoadingSeats] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { addToast } = useToast();
+
+  const handleNextClick = async () => {
+    setIsSubmitting(true);
+    await onNext();
+    setIsSubmitting(false);
+  };
+
   const [pickups, setPickups] = useState([]);
   const [dropoffs, setDropoffs] = useState([]);
   const [seats, setSeats] = useState([]);
@@ -35,7 +56,7 @@ export default function BookingSeatStep({ bookingData, setBookingData, onNext })
       try {
         setLoading(true);
         if (!bookingData.companyId || !bookingData.date) {
-           alert("Thiếu định danh chuyến đi. Bạn sẽ được chuyển về trang chủ.");
+           addToast("Thiếu định danh chuyến đi. Bạn sẽ được chuyển về trang chủ.", "error");
            navigate("/");
            return;
         }
@@ -67,7 +88,7 @@ export default function BookingSeatStep({ bookingData, setBookingData, onNext })
         });
       } catch (err) {
         console.error("Lỗi API Step 1:", err);
-        alert("Lỗi khi tải thông tin chuyến đi: " + (err.response?.data?.message || err.message));
+        addToast("Lỗi khi tải thông tin chuyến đi: " + (err.response?.data?.message || err.message), "error");
       } finally {
         if (active) setLoading(false);
       }
@@ -127,7 +148,7 @@ export default function BookingSeatStep({ bookingData, setBookingData, onNext })
         setSeats(seatData);
       } catch (err) {
         console.error("Lỗi API lấy sơ đồ ghế:", err);
-        alert("Không thể tải sơ đồ ghế: " + (err.response?.data?.message || err.message));
+        addToast("Không thể tải sơ đồ ghế: " + (err.response?.data?.message || err.message), "error");
       } finally {
         if (active) setLoadingSeats(false);
       }
@@ -176,8 +197,18 @@ export default function BookingSeatStep({ bookingData, setBookingData, onNext })
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-on-surface-variant mb-8">
         <span className="hover:text-primary cursor-pointer" onClick={() => navigate("/")}>Trang chủ</span>
         <span className="material-symbols-outlined text-sm">chevron_right</span>
-        <span className="font-semibold text-on-surface">Chi tiết chuyến</span>
+        <span className="font-semibold text-on-surface">Chi tiết chuyến {bookingPhase === 'returnSeats' ? '(Chiều về)' : '(Chiều đi)'}</span>
       </nav>
+
+      {bookingPhase === 'returnSeats' && (
+        <div className="bg-secondary/10 border border-secondary/20 p-4 rounded-xl mb-6 flex items-start gap-3">
+          <span className="material-symbols-outlined text-secondary">info</span>
+          <div>
+            <p className="font-bold text-secondary">Đang chọn ghế chuyến về</p>
+            <p className="text-sm text-on-surface-variant">Vui lòng chọn 1 ghế cho chuyến về của bạn.</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-24">
         {/* Left Column */}
@@ -359,13 +390,29 @@ export default function BookingSeatStep({ bookingData, setBookingData, onNext })
               <p className="text-2xl font-extrabold text-secondary leading-none">{bookingData.totalPrice.toLocaleString()}đ</p>
             </div>
           </div>
-          <button 
-            disabled={bookingData.selectedSeats.length === 0 || !bookingData.pickupId || !bookingData.dropoffId}
-            onClick={onNext}
-            className="bg-gradient-to-r from-primary to-primary-container text-on-primary px-8 py-3.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all"
-          >
-            Tiếp tục
-          </button>
+          <div className="flex gap-4">
+            {bookingPhase === "outbound" && !isRoundTrip && (
+              <button 
+                disabled={bookingData.selectedSeats.length === 0 || !bookingData.pickupId || !bookingData.dropoffId}
+                onClick={() => {
+                   setIsRoundTrip(true);
+                   setBookingPhase("returnSelection");
+                }}
+                className="bg-secondary text-white px-6 py-3.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-sm">swap_horiz</span>
+                Khứ hồi
+              </button>
+            )}
+            <button 
+              disabled={bookingData.selectedSeats.length === 0 || !bookingData.pickupId || !bookingData.dropoffId || isSubmitting}
+              onClick={handleNextClick}
+              className="bg-gradient-to-r from-primary to-primary-container text-on-primary px-8 py-3.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center justify-center gap-2"
+            >
+              {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
+              {isSubmitting ? "Đang giữ chỗ..." : "Tiếp tục"}
+            </button>
+          </div>
         </div>
       </div>
     </>
