@@ -8,6 +8,7 @@ import ProfileStatusBadge from "./ProfileStatusBadge";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^(?:\+84|0)\d{9}$/;
+const OTP_REGEX = /^\d{4,8}$/;
 
 const FIELD_LABELS = {
   email: "Email",
@@ -114,6 +115,27 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
     return "";
   };
 
+  const validateCurrentValue = (field, value) => {
+    const trimmed = (value || "").trim();
+    if (!trimmed) {
+      return `${FIELD_LABELS[field]} hiện tại không hợp lệ.`;
+    }
+    if (field === "email" && !EMAIL_REGEX.test(trimmed)) {
+      return "Email hiện tại không đúng định dạng.";
+    }
+    if (field === "phone" && !PHONE_REGEX.test(trimmed)) {
+      return "Số điện thoại hiện tại không hợp lệ.";
+    }
+    return "";
+  };
+
+  const validateOtp = (otp, label = "OTP") => {
+    const trimmed = (otp || "").trim();
+    if (!trimmed) return `${label} không được để trống.`;
+    if (!OTP_REGEX.test(trimmed)) return `${label} phải là 4-8 chữ số.`;
+    return "";
+  };
+
   const closeModal = () => {
     setModalState({
       isOpen: false,
@@ -133,8 +155,9 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
 
   const handleStartVerify = async (field) => {
     const value = currentValueByField[field];
-    if (!value) {
-      addToast(`Không tìm thấy ${FIELD_LABELS[field]} hiện tại để xác thực.`, "error");
+    const currentValueError = validateCurrentValue(field, value);
+    if (currentValueError) {
+      addToast(currentValueError, "error");
       return;
     }
 
@@ -175,11 +198,14 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
   const handleVerifyOldContact = async () => {
     const field = modalState.field;
     const value = currentValueByField[field];
-    if (!modalState.oldOtp.trim()) {
-      setModalState((prev) => ({
-        ...prev,
-        error: "Vui lòng nhập OTP xác thực liên hệ hiện tại."
-      }));
+    const currentValueError = validateCurrentValue(field, value);
+    if (currentValueError) {
+      setModalState((prev) => ({ ...prev, error: currentValueError }));
+      return;
+    }
+    const oldOtpError = validateOtp(modalState.oldOtp, "OTP liên hệ hiện tại");
+    if (oldOtpError) {
+      setModalState((prev) => ({ ...prev, error: oldOtpError }));
       return;
     }
 
@@ -205,6 +231,11 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
   const handleSendOtpNewContact = async () => {
     const field = modalState.field;
     const newValue = modalState.newValue.trim();
+    const currentValueError = validateCurrentValue(field, currentValueByField[field]);
+    if (currentValueError) {
+      setModalState((prev) => ({ ...prev, error: currentValueError }));
+      return;
+    }
     const validationError = validateNewValue(field, newValue);
     if (validationError) {
       setModalState((prev) => ({ ...prev, error: validationError }));
@@ -258,12 +289,13 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
       setModalState((prev) => ({ ...prev, error: validationError }));
       return;
     }
-    if (!modalState.newOtpSent) {
-      setModalState((prev) => ({ ...prev, error: "Vui lòng gửi OTP cho liên hệ mới trước khi xác nhận." }));
+    const newOtpError = validateOtp(newOtp, "OTP liên hệ mới");
+    if (newOtpError) {
+      setModalState((prev) => ({ ...prev, error: newOtpError }));
       return;
     }
-    if (!newOtp) {
-      setModalState((prev) => ({ ...prev, error: "Vui lòng nhập OTP của liên hệ mới." }));
+    if (!modalState.newOtpSent) {
+      setModalState((prev) => ({ ...prev, error: "Vui lòng gửi OTP cho liên hệ mới trước khi xác nhận." }));
       return;
     }
 
@@ -474,7 +506,7 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
                   modalState.verifyingOldOtp ||
                   modalState.sendingOldOtp
                 }
-                className="px-5 py-2.5 text-sm font-bold text-white rounded-xl shadow-md bg-secondary hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 text-sm font-bold text-on-primary rounded-xl shadow-md bg-primary hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isStepVerifyOld &&
                   (modalState.verifyingOldOtp ? "Đang xác thực..." : "Xác thực OTP hiện tại")}

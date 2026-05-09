@@ -12,7 +12,18 @@ export const signIn = (data) => {
 
 // đăng xuất
 export const logout = () => {
-  return axiosClient.post("/auth/logout");
+  window.__isLoggingOut = true;
+  return axiosClient
+    .post("/auth/logout")
+    .catch((error) => {
+      if (error?.response?.status === 401) {
+        return { data: { success: true, ignored: true } };
+      }
+      throw error;
+    })
+    .finally(() => {
+      window.__isLoggingOut = false;
+    });
 };
 
 // gửi OTP cho quên mật khẩu

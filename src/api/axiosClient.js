@@ -33,6 +33,9 @@ axiosClient.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     const data = error.response?.data;
+    const requestUrl = error.response?.config?.url || "";
+    const isLogoutRequest = requestUrl.includes("/auth/logout");
+    const isLoggingOut = window.__isLoggingOut === true;
 
     // lưu lỗi cuối để debug
     window.lastError = {
@@ -65,7 +68,7 @@ axiosClient.interceptors.response.use(
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      if (window.location.pathname !== "/login") {
+      if (!isLogoutRequest && !isLoggingOut && window.location.pathname !== "/login") {
         alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         window.location.href = "/login";
       }
