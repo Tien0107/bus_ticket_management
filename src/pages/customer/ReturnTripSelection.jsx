@@ -4,7 +4,7 @@ import { getTripSchedules } from "../../api/customer";
 export default function ReturnTripSelection({ outboundData, setReturnBookingData, setBookingPhase, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [schedules, setSchedules] = useState([]);
-  const [date, setDate] = useState(outboundData.date || ""); // Default to outbound date
+  const [date, setDate] = useState(outboundData.returnDate || outboundData.date || ""); // Ưu tiên returnDate từ Home truyền sang
   
   // Lấy location đi và đến từ outbound schedule để đảo ngược
   const outboundSchedule = outboundData.schedule || {};

@@ -45,6 +45,8 @@ const Home = () => {
   const [departure, setDeparture] = useState("");
   const [destination, setDestination] = useState("");
   const [date, setDate] = useState("");
+  const [tripType, setTripType] = useState("one_way"); // "one_way" | "round_trip"
+  const [returnDate, setReturnDate] = useState("");
 
   // Review Modal States
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -67,38 +69,78 @@ const Home = () => {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [searchError, setSearchError] = useState(null);
   const [searchInitiated, setSearchInitiated] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const handleSearch = async () => {
+  const fetchSchedules = async (currentPage, isLoadMore = false) => {
+    try {
+      if (!isLoadMore) {
+        setLoadingSearch(true);
+        setSearchError(null);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const response = await getTripSchedules({
+        from: departure.trim(),
+        to: destination.trim(),
+        date: date,
+        limit: 10,
+        page: currentPage,
+        orderBy: "asc"
+      });
+      
+      const data = response.data?.trip || [];
+      const dataArray = Array.isArray(data) ? data : [];
+      
+      if (!isLoadMore) {
+        setSchedules(dataArray);
+      } else {
+        setSchedules(prev => [...prev, ...dataArray]);
+      }
+      
+      setHasMore(dataArray.length === 10);
+    } catch (err) {
+      console.error("Lỗi tìm chuyến:", err);
+      if (!isLoadMore) {
+        if (err.response?.status === 401) {
+          setSearchError("Vui lòng Đăng nhập ở góc trên bên phải để tìm và đặt vé.");
+        } else {
+          setSearchError("Không thể tìm chuyến. Vui lòng thử lại sau.");
+        }
+        setSchedules([]);
+      }
+    } finally {
+      setLoadingSearch(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleSearch = () => {
     if (!departure.trim() || !destination.trim() || !date) {
       setSearchInitiated(true);
       setSearchError("Vui lòng nhập đầy đủ Điểm đi, Điểm đến và Ngày đi trước khi tìm kiếm.");
       setSchedules([]);
       return;
     }
+    
+    if (tripType === "round_trip" && !returnDate) {
+      setSearchInitiated(true);
+      setSearchError("Vui lòng chọn ngày về cho chuyến khứ hồi.");
+      setSchedules([]);
+      return;
+    }
 
     setSearchInitiated(true);
-    setLoadingSearch(true);
-    setSearchError(null);
-    try {
-      const response = await getTripSchedules({
-        from: departure.trim(),
-        to: destination.trim(),
-        date: date,
-        limit: 10,
-        orderBy: "asc"
-      });
-      const data = response.data?.trip || [];
-      setSchedules(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Lỗi tìm chuyến:", err);
-      if (err.response?.status === 401) {
-        setSearchError("Vui lòng Đăng nhập ở góc trên bên phải để tìm và đặt vé.");
-      } else {
-        setSearchError("Không thể tìm chuyến. Vui lòng thử lại sau.");
-      }
-    } finally {
-      setLoadingSearch(false);
-    }
+    setPage(1);
+    fetchSchedules(1, false);
+  };
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchSchedules(nextPage, true);
   };
 
 
@@ -215,6 +257,7 @@ const Home = () => {
     setSearchInitiated(true);
     setLoadingSearch(true);
     setSearchError(null);
+    setPage(1);
 
     // Scroll up slightly to prepare for search results
     window.scrollTo({ top: 300, behavior: 'smooth' });
@@ -225,10 +268,13 @@ const Home = () => {
         to: to,
         date: searchDate,
         limit: 10,
+        page: 1,
         orderBy: "asc"
       });
       const data = response.data?.trip || [];
-      setSchedules(Array.isArray(data) ? data : []);
+      const dataArray = Array.isArray(data) ? data : [];
+      setSchedules(dataArray);
+      setHasMore(dataArray.length === 10);
 
       // Scroll to search results
       setTimeout(() => {
@@ -279,6 +325,22 @@ const Home = () => {
           <div className="lg:col-span-5">
             <div className="bg-white p-8 rounded-3xl shadow-editorial">
               <div className="space-y-6">
+                {/* Chọn loại vé: Một chiều / Khứ hồi */}
+                <div className="flex bg-surface-container-low p-1 rounded-xl">
+                  <button
+                    onClick={() => setTripType("one_way")}
+                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${tripType === "one_way" ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:bg-surface-container"}`}
+                  >
+                    Một chiều
+                  </button>
+                  <button
+                    onClick={() => setTripType("round_trip")}
+                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${tripType === "round_trip" ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:bg-surface-container"}`}
+                  >
+                    Khứ hồi
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-1 gap-4">
                   {/* Điểm đi */}
                   <div>
@@ -306,23 +368,46 @@ const Home = () => {
                   </div>
                 </div>
 
-                {/* Ngày đi */}
-                <div>
-                  <label className="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">
-                    Ngày đi
-                  </label>
-                  <div className="flex items-center bg-surface-container-low px-4 py-3 rounded-xl">
-                    <span className="material-symbols-outlined text-primary mr-3">
-                      calendar_today
-                    </span>
-                    <input
-                      className="bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-on-surface w-full placeholder:text-outline-variant font-medium"
-                      placeholder="Chọn ngày"
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                    />
+                {/* Ngày đi và Ngày về */}
+                <div className={`grid ${tripType === "round_trip" ? "grid-cols-2" : "grid-cols-1"} gap-4`}>
+                  <div>
+                    <label className="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">
+                      Ngày đi
+                    </label>
+                    <div className="flex items-center bg-surface-container-low px-4 py-3 rounded-xl">
+                      <span className="material-symbols-outlined text-primary mr-3">
+                        calendar_today
+                      </span>
+                      <input
+                        className="bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-on-surface w-full placeholder:text-outline-variant font-medium text-sm"
+                        placeholder="Chọn ngày đi"
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                      />
+                    </div>
                   </div>
+
+                  {tripType === "round_trip" && (
+                    <div>
+                      <label className="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">
+                        Ngày về
+                      </label>
+                      <div className="flex items-center bg-surface-container-low px-4 py-3 rounded-xl">
+                        <span className="material-symbols-outlined text-primary mr-3">
+                          event_return
+                        </span>
+                        <input
+                          className="bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-on-surface w-full placeholder:text-outline-variant font-medium text-sm"
+                          placeholder="Chọn ngày về"
+                          type="date"
+                          min={date || undefined}
+                          value={returnDate}
+                          onChange={(e) => setReturnDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -421,13 +506,38 @@ const Home = () => {
                       state={{
                         schedule: schedule,
                         companyId: schedule.company?.id || schedule.companyId,
-                        date: date
+                        date: date,
+                        isRoundTrip: tripType === "round_trip",
+                        returnDate: returnDate
                       }}
                       className="w-full md:w-auto md:px-10 shrink-0 text-center bg-secondary-container text-on-secondary-container py-2.5 px-6 rounded-xl font-bold hover:bg-secondary hover:text-white transition-colors">
                       Chọn vé
                     </Link>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Xem thêm button */}
+            {!loadingSearch && hasMore && schedules.length > 0 && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="bg-surface-container text-on-surface-variant px-8 py-3 rounded-xl font-bold hover:bg-surface-container-high transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {loadingMore ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-on-surface-variant/20 border-t-on-surface-variant rounded-full animate-spin"></div>
+                      <span>Đang tải...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Xem thêm chuyến</span>
+                      <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                    </>
+                  )}
+                </button>
               </div>
             )}
           </div>
