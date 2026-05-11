@@ -12,6 +12,7 @@ import CustomerProfileNav from "../../components/profile/CustomerProfileNav";
 import CustomerProfileSectionHeader from "../../components/profile/CustomerProfileSectionHeader";
 import SelectPaymentCardModal from "../../components/payment/SelectPaymentCardModal";
 import ConfirmModal from "../../components/common/ConfirmModal";
+import ReviewTripModal from "../../components/reviews/ReviewTripModal";
 import { useToast } from "../../context/ToastContext";
 
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
@@ -62,6 +63,12 @@ export default function MyTickets() {
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [processingCardPayment, setProcessingCardPayment] = useState(false);
   const [ticketToCancel, setTicketToCancel] = useState(null);
+  const [ticketToDelete, setTicketToDelete] = useState(null);
+  
+  // Review States
+  const [reviewTicket, setReviewTicket] = useState(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  
   const navigate = useNavigate();
   const { addToast } = useToast();
 
@@ -69,7 +76,15 @@ export default function MyTickets() {
     try {
       setLoading(true);
       const res = await getMyTickets({ limit: 10 });
-      setTickets(res.data?.tickets || res.data || []);
+      let list = res.data?.tickets || res.data || [];
+      
+      // Xóa vé ảo (Lọc khỏi danh sách hiển thị)
+      const deletedIds = JSON.parse(localStorage.getItem("busgo_deleted_tickets") || "[]");
+      if (deletedIds.length > 0) {
+        list = list.filter(t => !deletedIds.includes(t.id));
+      }
+      
+      setTickets(list);
     } catch (err) {
       console.error(err);
       if (err.response?.status === 401) {
@@ -105,6 +120,16 @@ export default function MyTickets() {
     } else {
       setTicketToCancel(id);
     }
+  };
+
+  const handleDeleteTicket = (id) => {
+    const deletedIds = JSON.parse(localStorage.getItem("busgo_deleted_tickets") || "[]");
+    if (!deletedIds.includes(id)) {
+      deletedIds.push(id);
+      localStorage.setItem("busgo_deleted_tickets", JSON.stringify(deletedIds));
+    }
+    setTickets(prev => prev.filter(t => t.id !== id));
+    addToast("Đã xóa vé khỏi lịch sử!", "success");
   };
 
   const handlePayment = async (id, method, selectedPaymentMethodId = null) => {
@@ -154,6 +179,8 @@ export default function MyTickets() {
         fetchTickets();
       } else if (method === "cash") {
         addToast(res.data?.message || "Đã ghi nhận yêu cầu thanh toán Tiền mặt! Vui lòng thanh toán tại quầy trước giờ xuất bến.", "success");
+        // Kế hoạch A: Lưu cờ giả vào LocalStorage vì Backend chưa hỗ trợ lưu trạng thái Tiền mặt
+        localStorage.setItem(`busgo_cash_ticket_${id}`, "true");
         fetchTickets();
       }
       
@@ -251,23 +278,43 @@ export default function MyTickets() {
         ) : (
           <div className="space-y-6">
             {tickets.map((t, idx) => {
-               const currentStatus = String(t.status || 'pending').toUpperCase();
+               let currentStatus = String(t.status || 'pending').toUpperCase();
+               const isCashDB = String(t.paymentMethod || t.paymentType || '').toUpperCase() === 'CASH';
+               const isCashLocal = localStorage.getItem(`busgo_cash_ticket_${t.id}`) === "true" || localStorage.getItem(`busgo_cash_ticket_${t.bookingId}`) === "true";
+               const isCash = isCashDB || isCashLocal;
+
+               // Kế hoạch A: Ép vé Tiền mặt thành Đã thanh toán ảo ở giao diện
+               if (isCash && (currentStatus === 'PENDING' || currentStatus === 'RESERVED')) {
+                   currentStatus = 'FAKE_CASH_PAID';
+               }
+
                const isPending = currentStatus === "PENDING" || currentStatus === "RESERVED";
                
                const statusLabelMap = {
                  'PENDING': 'Chờ thanh toán', 'RESERVED': 'Đã giữ chỗ',
                  'PAID': 'Đã thanh toán', 'COMPLETED': 'Hoàn thành',
                  'CANCELLED': 'Đã hủy', 'EXPIRED': 'Hết hạn',
-                 'CHECKED_IN': 'Đã lên xe'
+                 'CHECKED_IN': 'Đã lên xe',
+                 'FAKE_CASH_PAID': 'Thanh toán (Tiền mặt)'
                };
                const statusLabel = statusLabelMap[currentStatus] || currentStatus;
+
+               // Kế hoạch 1: Kiểm tra hạn đánh giá (7 ngày sau khi khởi hành)
+               let isReviewExpired = false;
+               if (t.departureDate) {
+                 const expireDate = new Date(t.departureDate);
+                 expireDate.setDate(expireDate.getDate() + 7);
+                 if (new Date() > expireDate) {
+                   isReviewExpired = true;
+                 }
+               }
                
                return (
                  <div key={idx} className="bg-white border rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                    <div className="space-y-2">
                       <div className="flex items-center gap-3">
                          <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold border border-primary/20">Mã vé: #{t.id} {t.bookingId ? `(Order #${t.bookingId})` : ''}</span>
-                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${currentStatus === 'COMPLETED' || currentStatus === 'PAID' ? 'bg-green-100 text-green-700' : currentStatus === 'CANCELLED' ? 'bg-red-100 text-red-700' : currentStatus === 'EXPIRED' ? 'bg-gray-200 text-gray-600' : 'bg-orange-100 text-orange-700'}`}>
+                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${currentStatus === 'COMPLETED' || currentStatus === 'PAID' || currentStatus === 'FAKE_CASH_PAID' ? 'bg-green-100 text-green-700' : currentStatus === 'CANCELLED' ? 'bg-red-100 text-red-700' : currentStatus === 'EXPIRED' ? 'bg-gray-200 text-gray-600' : 'bg-orange-100 text-orange-700'}`}>
                            {statusLabel}
                          </span>
                       </div>
@@ -330,9 +377,47 @@ export default function MyTickets() {
                            </button>
                          </>
                       ) : (
-                         <button onClick={() => navigate(`/my-tickets/${t.id}`)} className="flex-1 md:flex-none border border-primary text-primary hover:bg-primary hover:text-white transition-colors px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm">
-                           Xem vé
-                         </button>
+                         <>
+                           <button onClick={() => navigate(`/my-tickets/${t.id}`)} className="flex-1 md:flex-none border border-primary text-primary hover:bg-primary hover:text-white transition-colors px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm">
+                             Xem vé
+                           </button>
+                           {(currentStatus === 'COMPLETED' || currentStatus === 'PAID' || currentStatus === 'CHECKED_IN' || currentStatus === 'FAKE_CASH_PAID') && (
+                             isReviewExpired ? (
+                               <div className="flex-1 md:flex-none bg-surface-container text-on-surface-variant px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm cursor-not-allowed opacity-80" title="Đã quá hạn 7 ngày để đánh giá">
+                                 <span className="material-symbols-outlined text-[18px]">history_toggle_off</span>
+                                 Hết hạn ĐG
+                               </div>
+                             ) : (
+                               <button 
+                                 onClick={() => {
+                                   setReviewTicket({
+                                     id: t.id,
+                                     tripId: t.tripId || t.tripScheduleId || t.trip?.id || t.tripSchedule?.id || t.scheduleId || t.id,
+                                     companyName: t.companyName || t.company?.name || "Chuyến xe của bạn",
+                                     departureLocation: t.fromLocation || t.departureLocation || "Điểm đi",
+                                     arrivalLocation: t.toLocation || t.arrivalLocation || "Điểm đến",
+                                     departureDate: t.departureDate
+                                   });
+                                   setIsReviewModalOpen(true);
+                                 }}
+                                 className="flex-1 md:flex-none bg-yellow-400 hover:bg-yellow-500 text-on-surface px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-colors"
+                               >
+                                 <span className="material-symbols-outlined text-[18px]">rate_review</span>
+                                 Đánh giá
+                               </button>
+                             )
+                           )}
+                           
+                           {(currentStatus === 'CANCELLED' || currentStatus === 'EXPIRED') && (
+                             <button 
+                               onClick={() => setTicketToDelete(t.id)} 
+                               className="flex-1 md:flex-none border border-red-200 text-red-500 hover:bg-red-50 transition-colors px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm"
+                             >
+                               <span className="material-symbols-outlined text-[18px]">delete</span>
+                               Xóa vé
+                             </button>
+                           )}
+                         </>
                       )}
                    </div>
                  </div>
@@ -356,6 +441,36 @@ export default function MyTickets() {
         onContinueWithSelected={(card) => handleSelectCardAndPay(card)}
         onContinueWithPaymentMethodId={handlePayWithNewCard}
         continuing={processingCardPayment}
+      />
+      
+      {/* Review Modal */}
+      <ReviewTripModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        ticket={reviewTicket}
+        onSuccess={() => {
+          addToast("Cảm ơn bạn đã gửi đánh giá!", "success");
+          fetchTickets(); // Refresh để có thể cập nhật trạng thái đã đánh giá nếu backend trả về
+        }}
+      />
+      
+      <ConfirmModal 
+        isOpen={!!ticketToCancel}
+        title="Xác nhận hủy vé"
+        message="Bạn có chắc chắn muốn hủy vé này không? Hành động này không thể hoàn tác."
+        onConfirm={() => executeCancel(ticketToCancel)}
+        onCancel={() => setTicketToCancel(null)}
+      />
+
+      <ConfirmModal 
+        isOpen={!!ticketToDelete}
+        title="Xác nhận xóa vé"
+        message="Bạn có chắc chắn muốn xóa vé này khỏi lịch sử đặt vé không?"
+        onConfirm={() => {
+          handleDeleteTicket(ticketToDelete);
+          setTicketToDelete(null);
+        }}
+        onCancel={() => setTicketToDelete(null)}
       />
     </div>
   );

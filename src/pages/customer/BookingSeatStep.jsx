@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getPickupPoints, getDropoffPoints, prepareTrip, getTripSeats } from "../../api/customer";
+import { getPickupPoints, getDropoffPoints, prepareTrip, getTripSeats, getTripScheduleRatings } from "../../api/customer";
 import { getTripSchedules } from "../../api/customer"; // Cho việc tìm chuyến về
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
@@ -31,6 +31,7 @@ export default function BookingSeatStep({
   const [pickups, setPickups] = useState([]);
   const [dropoffs, setDropoffs] = useState([]);
   const [seats, setSeats] = useState([]);
+  const [companyRating, setCompanyRating] = useState("5.0");
   
   // Lấy schedule từ location state (passed từ Home)
   const schedule = location.state?.schedule || {};
@@ -49,6 +50,31 @@ export default function BookingSeatStep({
 
   const durationStr = schedule.durationMinutes ? `${Math.floor(schedule.durationMinutes/60)}h ${schedule.durationMinutes%60}m` : "Di chuyển";
   
+  // 0. Fetch Company Rating
+  useEffect(() => {
+    let active = true;
+    const fetchRating = async () => {
+      const compId = bookingData.companyId || schedule.companyId || schedule.company?.id;
+      if (!compId) return;
+      try {
+        const res = await getTripScheduleRatings({ companyId: compId, limit: 100 });
+        if (!active) return;
+        const comments = res.data?.comments || [];
+        if (comments.length > 0) {
+          let sum = 0;
+          comments.forEach(c => sum += (c.rating || 5));
+          setCompanyRating((sum / comments.length).toFixed(1));
+        } else {
+          setCompanyRating("5.0"); // Fallback if no reviews
+        }
+      } catch (err) {
+        console.error("Lỗi lấy rating:", err);
+      }
+    };
+    fetchRating();
+    return () => { active = false; };
+  }, [bookingData.companyId, schedule]);
+
   // 1. Fetch PrepareTrip và Pickups
   useEffect(() => {
     let active = true;
@@ -228,7 +254,7 @@ export default function BookingSeatStep({
                   <div className="flex items-center gap-2 mt-1">
                     <div className="flex items-center gap-0.5 text-[#FFB800]">
                       <span className="material-symbols-outlined text-sm" style={{fontVariationSettings: "'FILL' 1"}}>star</span>
-                      <span className="font-bold text-on-surface">5.0</span>
+                      <span className="font-bold text-on-surface">{companyRating}</span>
                     </div>
                   </div>
                 </div>

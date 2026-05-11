@@ -93,3 +93,11 @@ export const deletePaymentMethod = (paymentMethodId) => {
 export const setDefaultPaymentMethod = (paymentMethodId) => {
   return axiosClient.put("/customer/payment-methods/default", { paymentMethodId });
 };
+
+export const rateTicket = (data) => {
+  return axiosClient.post("/customer/ticket/rating", data);
+};
+
+export const getTripScheduleRatings = (params) => {
+  return axiosClient.get("/customer/trip-schedule/rating", { params });
+};
