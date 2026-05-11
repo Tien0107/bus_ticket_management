@@ -5,7 +5,7 @@ import { useToast } from "../../context/ToastContext";
 
 export default function Trips() {
   const { scheduleId } = useParams();
-  const { showToast } = useToast();
+  const { addToast } = useToast();
 
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -40,7 +40,7 @@ export default function Trips() {
       const res = await getTrips(scheduleId, params);
       setTrips(res?.data?.trips || []);
     } catch (error) {
-      showToast("Lỗi khi tải dữ liệu chuyến", "error");
+      addToast("Lỗi khi tải dữ liệu chuyến", "error");
       console.error(error);
     } finally {
       setLoading(false);
@@ -51,23 +51,33 @@ export default function Trips() {
     e.preventDefault();
     try {
       if (!editingId) {
-        showToast("Vui lòng chọn chuyến để cập nhật", "error");
+        addToast("Vui lòng chọn chuyến để cập nhật", "error");
+        return;
+      }
+
+      const trip = trips.find((t) => t.id === editingId);
+      if (!trip) {
+        addToast("Không tìm thấy chuyến", "error");
         return;
       }
 
       const payload = {
-        status: formData.status,
-        vehicleId: formData.vehicleId ? parseInt(formData.vehicleId) : null,
-        driverId: formData.driverId ? parseInt(formData.driverId) : null,
+        routeId: trip.routeId || 1,
+        vehicleId: formData.vehicleId ? parseInt(formData.vehicleId) : (trip.vehicleId || 1),
+        driverId: formData.driverId ? parseInt(formData.driverId) : (trip.driverId || 1),
         scheduleId: parseInt(scheduleId),
+        departureDate: trip.departureDate || new Date().toISOString(),
+        status: formData.status,
       };
 
+      console.log("📤 Payload gửi:", JSON.stringify(payload, null, 2));
+
       await updateTrip(scheduleId, editingId, payload);
-      showToast("Cập nhật chuyến thành công", "success");
+      addToast("Cập nhật chuyến thành công", "success");
       fetchTrips();
       resetForm();
     } catch (error) {
-      showToast(error?.response?.data?.message || "Lỗi khi cập nhật", "error");
+      addToast(error?.response?.data?.message || "Lỗi khi cập nhật", "error");
       console.error(error);
     }
   };
@@ -144,8 +154,30 @@ export default function Trips() {
         {/* Update Form */}
         {editingId && (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">Cập nhật Chuyến #{editingId}</h2>
+            <h2 className="text-lg font-semibold text-gray-700 mb-4">Gán Tài Xế & Xe - Chuyến #{editingId}</h2>
             <form onSubmit={handleSubmit} className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tài Xế ID <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  value={formData.driverId}
+                  onChange={(e) => setFormData({ ...formData, driverId: e.target.value })}
+                  placeholder="Nhập ID tài xế"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Xe ID <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  value={formData.vehicleId}
+                  onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })}
+                  placeholder="Nhập ID xe"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
                 <select

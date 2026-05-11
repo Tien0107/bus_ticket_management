@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { getTripDetail, getTripPassengers, getTripRoute, updateTrip } from "../../api/driver";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { getDriverTrips, getTripPassengers, getTripRoute, updateTrip } from "../../api/driver";
 import { useToast } from "../../context/ToastContext";
 import PassengerList from "../../components/driver/PassengerList";
 import CheckInPanel from "../../components/driver/CheckInPanel";
@@ -8,32 +8,52 @@ import CheckInPanel from "../../components/driver/CheckInPanel";
 export default function TripDetail() {
   const { tripId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToast } = useToast();
   
-  const [trip, setTrip] = useState(null);
+  const [trip, setTrip] = useState(location.state?.trip || null);
   const [passengers, setPassengers] = useState([]);
   const [route, setRoute] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!trip);
   const [error, setError] = useState(null);
   const [showCheckInPanel, setShowCheckInPanel] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     fetchTripDetails();
-  }, [tripId]);
+  }, [tripId, trip]);
 
   const fetchTripDetails = async () => {
     try {
       setLoading(true);
-      const [tripRes, passengersRes, routeRes] = await Promise.all([
-        getTripDetail(tripId),
-        getTripPassengers(tripId),
+      
+      // Nếu không có trip data từ navigation, fetch từ list
+      let tripData = trip;
+      if (!tripData) {
+        const response = await getDriverTrips();
+        const allTrips = Array.isArray(response.data?.trips) 
+          ? response.data.trips 
+          : Array.isArray(response.data?.data) 
+          ? response.data.data 
+          : [];
+        tripData = allTrips.find(t => t.id === parseInt(tripId));
+        
+        if (!tripData) {
+          setError("Không tìm thấy chuyến");
+          setLoading(false);
+          return;
+        }
+        setTrip(tripData);
+      }
+      
+      // Fetch hành khách + route
+      const [passengersRes, routeRes] = await Promise.all([
+        getTripPassengers(tripId, { limit: 100 }),
         getTripRoute(tripId),
       ]);
       
-      setTrip(tripRes.data?.trip || tripRes.data);
       setPassengers(Array.isArray(passengersRes.data?.passengers) ? passengersRes.data.passengers : []);
-      setRoute(routeRes.data?.route || routeRes.data);
+      setRoute(routeRes.data?.stops || []);
       setError(null);
     } catch (err) {
       console.error("Lỗi tải chi tiết chuyến:", err);
@@ -46,9 +66,9 @@ export default function TripDetail() {
   const handleStartTrip = async () => {
     try {
       setUpdating(true);
-      await updateTrip(tripId, { status: "in_progress" });
+      await updateTrip(tripId, { status: "running" });
       addToast("Bắt đầu chuyến thành công", "success");
-      setTrip({ ...trip, status: "in_progress" });
+      setTrip({ ...trip, status: "running" });
     } catch (err) {
       console.error("Lỗi bắt đầu chuyến:", err);
       addToast("Bắt đầu chuyến thất bại", "error");
@@ -105,13 +125,12 @@ export default function TripDetail() {
 
   const getStatusBadge = (status) => {
     const statusMap = {
-      pending: { label: "Sắp tới", color: "bg-blue-100 text-blue-700" },
-      upcoming: { label: "Sắp tới", color: "bg-blue-100 text-blue-700" },
-      in_progress: { label: "Đang chạy", color: "bg-green-100 text-green-700" },
+      scheduled: { label: "Sắp tới", color: "bg-blue-100 text-blue-700" },
+      running: { label: "Đang chạy", color: "bg-green-100 text-green-700" },
       completed: { label: "Hoàn thành", color: "bg-gray-100 text-gray-700" },
       cancelled: { label: "Hủy", color: "bg-red-100 text-red-700" },
     };
-    const info = statusMap[status] || statusMap.pending;
+    const info = statusMap[status] || statusMap.scheduled;
     return info;
   };
 
@@ -187,7 +206,7 @@ export default function TripDetail() {
               <span className="material-symbols-outlined">play_arrow</span>
               Bắt đầu chuyến
             </button>
-          ) : trip.status === "in_progress" ? (
+          ) : trip.status === "running" ? (
             <button
               onClick={handleCompleteTrip}
               disabled={updating}
@@ -198,7 +217,7 @@ export default function TripDetail() {
             </button>
           ) : null}
 
-          {trip.status === "in_progress" || trip.status === "pending" || trip.status === "upcoming" ? (
+          {trip.status === "running" || trip.status === "scheduled" ? (
             <button
               onClick={() => setShowCheckInPanel(true)}
               className="bg-secondary text-on-secondary px-6 py-4 rounded-xl font-bold hover:bg-secondary/80 transition-all active:scale-95 flex items-center justify-center gap-2"

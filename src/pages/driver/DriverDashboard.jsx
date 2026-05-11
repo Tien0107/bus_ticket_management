@@ -79,7 +79,7 @@ const DriverDashboard = () => {
   const TripCard = ({ trip }) => {
     const status = getStatusBadge(trip.status);
     return (
-      <Link to={`/driver/trip/${trip.id}`}>
+      <Link to={`/driver/trip/${trip.id}`} state={{ trip }}>
         <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-shadow cursor-pointer">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">

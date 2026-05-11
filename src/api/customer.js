@@ -43,6 +43,14 @@ export const getCustomerProfile = () => {
   return axiosClient.get("/customer/profile");
 };
 
+export const verifyContactIdentity = (data) => {
+  return axiosClient.post("/customer/profile/contact/identity/verify", data);
+};
+
+export const updateCustomerContact = (data) => {
+  return axiosClient.put("/customer/profile/contact", data);
+};
+
 export const getMyTickets = () => {
   return axiosClient.get("/customer/ticket");
 };
