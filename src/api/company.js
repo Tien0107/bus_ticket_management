@@ -17,63 +17,86 @@ export const updateCompanyInfo = (data) => {
   return axiosClient.put("/operator-admin/me", data);
 };
 
-// 4. Get User/Staff Profile
-export const getCompanyProfile = () => {
-  return axiosClient.get("/operator-admin/profile");
-};
-
-// 5. Update User/Staff Profile
-export const updateCompanyProfile = (data) => {
-  return axiosClient.put("/operator-admin/profile", data);
-};
-
-// 6. Verify Company Account
+// 4. Verify Company Account
 export const verifyCompanyAccount = (data) => {
   return axiosClient.post("/operator-admin/account/verify", data);
 };
 
-// 7. Get All Vehicles
+// 5. Get All Vehicles
 export const getVehicles = (params = {}) => {
   return axiosClient.get("/operator-admin/vehicle", { params });
 };
 
-// 8. Create Vehicle
+// 6. Create Vehicle
 export const createVehicle = (data) => {
   return axiosClient.post("/operator-admin/vehicle", data);
 };
 
-// 9. Update Vehicle
+// 7. Update Vehicle
 export const updateVehicle = (vehicleId, data) => {
   return axiosClient.put(`/operator-admin/vehicle/${vehicleId}`, data);
 };
 
-// 10. Delete Vehicle Seat
+// 8. Delete Vehicle Seat
 export const deleteVehicleSeat = (vehicleId) => {
   return axiosClient.delete(`/operator-admin/vehicle/${vehicleId}/seat`);
 };
 
-// 11. Add/Update Seat Configuration
+// 9. Add/Update Seat Configuration
 export const manageSeat = (data) => {
   return axiosClient.post("/operator-admin/seat", data);
 };
 
-// 12. Get All Drivers
+// 10. Get All Drivers
 export const getDrivers = (params = {}) => {
   return axiosClient.get("/operator-admin/driver", { params });
 };
 
-// 13. Get All Staff
+// 11. Get All Staff
 export const getStaff = (params = {}) => {
   return axiosClient.get("/operator-admin/staff", { params });
 };
 
-// 14. Update Staff Info
+// 12. Update Staff Info
 export const updateStaff = (userId, data) => {
   return axiosClient.put(`/operator-admin/staff/${userId}`, data);
 };
 
-// 15. Update Staff Role
+// 13. Update Staff Role
 export const updateStaffRole = (userId, role) => {
   // Swagger show request body là string, không object
   return axiosClient.put(`/operator-admin/staff/${userId}/role`, role);
+};
+
+// ===== Payment Management =====
+// 14. Get All Payments
+export const getPayments = (params = {}) => {
+  return axiosClient.get("/operator-admin/payment", { params });
+};
+
+// 15. Update Payment Status
+export const updatePayment = (paymentCode) => {
+  return axiosClient.put(`/operator-admin/payment/${paymentCode}`);
+};
+
+// ===== Revenue =====
+// 16. Get Revenue
+export const getRevenue = () => {
+  return axiosClient.get("/operator-admin/revenue");
+};
+
+// ===== Stripe Integration =====
+// 17. Create Stripe Account
+export const createStripeAccount = () => {
+  return axiosClient.post("/operator-admin/stripe/account");
+};
+
+// 18. Get Stripe Balance
+export const getStripeBalance = () => {
+  return axiosClient.get("/operator-admin/stripe/balance");
+};
+
+// 19. Withdraw from Stripe Balance
+export const withdrawStripeBalance = (data) => {
+  return axiosClient.post("/operator-admin/stripe/balance/withdraw", data);
 };

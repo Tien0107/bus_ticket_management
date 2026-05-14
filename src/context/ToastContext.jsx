@@ -5,13 +5,27 @@ const ToastContext = createContext();
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback((message, type = "success", duration = 3000) => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type }]);
+  const addToast = useCallback((toastInput, type = "success", duration = 4500) => {
+    const payload =
+      typeof toastInput === "object" && toastInput !== null
+        ? toastInput
+        : { message: toastInput, type, duration };
+
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const toastDuration = payload.duration ?? duration;
+    const toast = {
+      id,
+      type: payload.type || type,
+      title: payload.title || "",
+      message: payload.message || "",
+      duration: toastDuration,
+    };
+
+    setToasts((prev) => [...prev, toast].slice(-5));
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, duration);
+    }, toastDuration);
 
     return id;
   }, []);

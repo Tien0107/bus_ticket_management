@@ -1,245 +1,201 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getVehicles, getDrivers, getStaff, getCompanyInfo, getCompanyProfile } from "../../api/company";
+import { getCompanyInfo, getDrivers, getRevenue, getStaff, getVehicles } from "../../api/company";
 import { useToast } from "../../context/ToastContext";
+import { CompanyPageShell, ErrorState, LoadingState, StatCard } from "./CompanyUI";
+
+const quickLinks = [
+  {
+    to: "/company/vehicles",
+    icon: "directions_bus",
+    title: "Phương tiện",
+    description: "Theo dõi xe, số ghế và trạng thái vận hành.",
+  },
+  {
+    to: "/company/drivers",
+    icon: "badge",
+    title: "Tài xế",
+    description: "Quản lý hồ sơ, liên hệ và trạng thái tài xế.",
+  },
+  {
+    to: "/company/staff",
+    icon: "groups",
+    title: "Nhân viên",
+    description: "Theo dõi đội ngũ vận hành và phân quyền.",
+  },
+  {
+    to: "/company/payments",
+    icon: "payments",
+    title: "Thanh toán",
+    description: "Kiểm tra giao dịch, doanh thu và số dư Stripe.",
+  },
+  {
+    to: "/company/profile",
+    icon: "domain",
+    title: "Hồ sơ",
+    description: "Cập nhật tên, hotline, logo và địa chỉ công ty.",
+  },
+];
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
 
 export default function CompanyDashboard() {
   const { addToast } = useToast();
-
   const [user, setUser] = useState(null);
   const [data, setData] = useState({
-    vehicles: 0,
-    drivers: 0,
-    staff: 0,
+    vehicles: [],
+    drivers: [],
+    staff: [],
     company: null,
-    userProfile: null,
+    revenue: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async (storedUser = null) => {
     try {
       setLoading(true);
-      
-      // Fetch với error handling riêng để partial success
-      const results = await Promise.allSettled([
-        getVehicles({ limit: 100 }),  // Pass limit parameter
-        getDrivers({ limit: 100 }),   // Pass limit parameter
-        getStaff({ limit: 100 }),     // Pass limit parameter
+      setError("");
+
+      const [vehiclesRes, driversRes, staffRes, companyRes, revenueRes] = await Promise.allSettled([
+        getVehicles({ limit: 100 }),
+        getDrivers({ limit: 100 }),
+        getStaff({ limit: 100 }),
         getCompanyInfo(),
-        getCompanyProfile(),          // NEW: Lấy profile của user
+        getRevenue(),
       ]);
 
-      const [vehiclesRes, driversRes, staffRes, companyRes, profileRes] = results;
-
-      // Xử lý từng response
-      const vehicles = vehiclesRes.status === "fulfilled" 
-        ? vehiclesRes.value.data?.vehicles?.length || 0
-        : 0;
-      
-      const drivers = driversRes.status === "fulfilled"
-        ? driversRes.value.data?.drivers?.length || 0
-        : 0;
-      
-      const staff = staffRes.status === "fulfilled"
-        ? staffRes.value.data?.staff?.length || 0
-        : 0;
-      
-      const company = companyRes.status === "fulfilled"
-        ? companyRes.value.data?.company || null
-        : null;
-
-      const userProfile = profileRes.status === "fulfilled"
-        ? profileRes.value.data?.user || null
-        : null;
-
       setData({
-        vehicles,
-        drivers,
-        staff,
-        company: company || { name: user?.fullName || "Công ty của tôi" },
-        userProfile,
+        vehicles: vehiclesRes.status === "fulfilled" ? vehiclesRes.value.data?.vehicles || [] : [],
+        drivers: driversRes.status === "fulfilled" ? driversRes.value.data?.drivers || [] : [],
+        staff: staffRes.status === "fulfilled" ? staffRes.value.data?.staff || [] : [],
+        company:
+          companyRes.status === "fulfilled"
+            ? companyRes.value.data?.company || companyRes.value.data
+            : { name: storedUser?.fullName || "Công ty của tôi" },
+        revenue: revenueRes.status === "fulfilled" ? Number(revenueRes.value.data?.total || 0) : 0,
       });
-
-      // Show warnings nếu có request fail
-      if (vehiclesRes.status === "rejected") {
-        console.warn("⚠️ Lỗi tải danh sách xe:", vehiclesRes.reason);
-      }
-      if (driversRes.status === "rejected") {
-        console.warn("⚠️ Lỗi tải danh sách tài xế:", driversRes.reason);
-      }
-      if (staffRes.status === "rejected") {
-        console.warn("⚠️ Lỗi tải danh sách nhân viên:", staffRes.reason);
-      }
-      if (companyRes.status === "rejected") {
-        console.warn("⚠️ Lỗi tải thông tin công ty:", companyRes.reason);
-      }
-      if (profileRes.status === "rejected") {
-        console.warn("⚠️ Lỗi tải profile user:", profileRes.reason);
-      }
-
     } catch (err) {
       console.error("Lỗi tải dashboard:", err);
-      const errorMsg = err.response?.data?.message || "Lỗi tải dashboard.";
-      addToast(errorMsg, "error");
+      const message = err.response?.data?.message || "Không thể tải dữ liệu tổng quan.";
+      setError(message);
+      addToast(message, "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("user");
+    const storedUser = stored ? JSON.parse(stored) : null;
+    setUser(storedUser);
+    fetchDashboardData(storedUser);
+  }, [fetchDashboardData]);
+
+  const stats = useMemo(() => {
+    const activeVehicles = data.vehicles.filter((vehicle) => vehicle.status === "active").length;
+    const activeDrivers = data.drivers.filter((driver) => driver.status === "active").length;
+    const activeStaff = data.staff.filter((member) => member.status === "active").length;
+
+    return [
+      { icon: "directions_bus", label: "Phương tiện", value: data.vehicles.length, tone: "primary" },
+      { icon: "verified", label: "Xe hoạt động", value: activeVehicles, tone: "emerald" },
+      { icon: "badge", label: "Tài xế hoạt động", value: activeDrivers, tone: "blue" },
+      { icon: "groups", label: "Nhân viên hoạt động", value: activeStaff, tone: "slate" },
+      { icon: "payments", label: "Doanh thu", value: formatCurrency(data.revenue), tone: "amber" },
+    ];
+  }, [data]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface p-6 lg:p-8 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-          <p className="text-on-surface-variant mt-4">Đang tải...</p>
-        </div>
-      </div>
+      <CompanyPageShell title="Tổng quan công ty" description="Đang tải dữ liệu vận hành mới nhất.">
+        <LoadingState />
+      </CompanyPageShell>
     );
   }
 
+  const companyName = data.company?.name || "Nhà xe";
+
   return (
-    <div className="min-h-screen bg-surface p-3 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-on-surface tracking-tight mb-1 sm:mb-2">
-            Xin chào, {data.userProfile?.fullName || user?.fullName || "Nhà xe"}! 👋
-          </h1>
-          <p className="text-sm sm:text-base lg:text-lg text-on-surface-variant">
-            {data.company?.name || data.userProfile?.position || "Tổng quan kinh doanh"}
-          </p>
-        </div>
+    <CompanyPageShell
+      eyebrow="Company Admin"
+      title={`Xin chào, ${user?.fullName || "quản trị viên"}`}
+      description={`${companyName} - tổng quan nhanh về phương tiện, tài xế và nhân sự vận hành.`}
+      actions={
+        <Link
+          to="/company/profile"
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-4 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+        >
+          <span className="material-symbols-outlined text-[20px]">settings</span>
+          Cài đặt hồ sơ
+        </Link>
+      }
+    >
+      {error && <div className="mb-6"><ErrorState message={error} /></div>}
 
-        {/* Stats Grid - Responsive */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8">
-          <div className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-              <div>
-                <p className="text-xs sm:text-sm text-on-surface-variant font-medium mb-1">Phương tiện</p>
-                <p className="text-2xl sm:text-4xl font-bold text-primary">{data.vehicles}</p>
-              </div>
-              <span className="material-symbols-outlined text-3xl sm:text-5xl text-primary-container self-start sm:self-auto">
-                directions_bus
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-              <div>
-                <p className="text-xs sm:text-sm text-on-surface-variant font-medium mb-1">Tài xế</p>
-                <p className="text-2xl sm:text-4xl font-bold text-primary">{data.drivers}</p>
-              </div>
-              <span className="material-symbols-outlined text-3xl sm:text-5xl text-primary-container self-start sm:self-auto">
-                person
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-              <div>
-                <p className="text-xs sm:text-sm text-on-surface-variant font-medium mb-1">Nhân viên</p>
-                <p className="text-2xl sm:text-4xl font-bold text-primary">{data.staff}</p>
-              </div>
-              <span className="material-symbols-outlined text-3xl sm:text-5xl text-primary-container self-start sm:self-auto">
-                group
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-              <div>
-                <p className="text-xs sm:text-sm text-on-surface-variant font-medium mb-1">Chuyến đi</p>
-                <p className="text-2xl sm:text-4xl font-bold text-primary">—</p>
-              </div>
-              <span className="material-symbols-outlined text-3xl sm:text-5xl text-primary-container self-start sm:self-auto">
-                calendar_month
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions - Responsive */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-6 sm:mb-8">
-          <Link
-            to="/company/vehicles"
-            className="bg-gradient-to-br from-primary to-primary-container text-white rounded-lg sm:rounded-2xl p-4 sm:p-6 hover:shadow-editorial transition-shadow cursor-pointer"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex-1">
-                <h3 className="text-base sm:text-xl font-bold mb-1">Quản lý phương tiện</h3>
-                <p className="opacity-90 text-xs sm:text-sm">{data.vehicles} xe</p>
-              </div>
-              <span className="material-symbols-outlined text-3xl sm:text-4xl opacity-50 flex-shrink-0">
-                directions_bus
-              </span>
-            </div>
-          </Link>
-
-          <Link
-            to="/company/drivers"
-            className="bg-white rounded-lg sm:rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-editorial transition-shadow"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex-1">
-                <h3 className="text-base sm:text-xl font-bold text-on-surface mb-1">Nhân viên tài xế</h3>
-                <p className="text-on-surface-variant text-xs sm:text-sm">{data.drivers} tài xế</p>
-              </div>
-              <span className="material-symbols-outlined text-2xl sm:text-3xl text-primary flex-shrink-0">
-                person
-              </span>
-            </div>
-          </Link>
-        </div>
-
-        {/* Navigation Cards - Responsive */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-          <Link
-            to="/company/profile"
-            className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-editorial transition-all text-center"
-          >
-            <span className="material-symbols-outlined text-3xl sm:text-4xl text-primary block mb-2 sm:mb-3">
-              business
-            </span>
-            <p className="font-bold text-on-surface text-xs sm:text-sm">Hồ sơ công ty</p>
-          </Link>
-
-          <Link
-            to="/company/staff"
-            className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-editorial transition-all text-center"
-          >
-            <span className="material-symbols-outlined text-3xl sm:text-4xl text-primary block mb-2 sm:mb-3">
-              group
-            </span>
-            <p className="font-bold text-on-surface text-xs sm:text-sm">Quản lý nhân viên</p>
-          </Link>
-
-          <Link
-            to="/company/schedules"
-            className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-editorial transition-all text-center"
-          >
-            <span className="material-symbols-outlined text-3xl sm:text-4xl text-primary block mb-2 sm:mb-3">
-              schedule
-            </span>
-            <p className="font-bold text-on-surface text-xs sm:text-sm">Lịch biểu</p>
-          </Link>
-
-          <div className="bg-white rounded-lg sm:rounded-2xl p-3 sm:p-6 shadow-sm text-center">
-            <span className="material-symbols-outlined text-3xl sm:text-4xl text-on-surface-variant block mb-2 sm:mb-3">
-              analytics
-            </span>
-            <p className="font-bold text-on-surface-variant text-xs sm:text-sm">Báo cáo (sắp)</p>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {stats.map((stat) => (
+          <StatCard key={stat.label} {...stat} />
+        ))}
       </div>
-    </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <section className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-extrabold text-on-surface">Truy cập nhanh</h2>
+              <p className="mt-1 text-sm text-on-surface-variant">Các khu vực quản trị thường dùng.</p>
+            </div>
+            <span className="material-symbols-outlined text-primary">apps</span>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {quickLinks.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className="group rounded-xl border border-outline-variant/30 p-4 transition-all hover:border-primary/50 hover:bg-primary/5"
+              >
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
+                </div>
+                <h3 className="font-bold text-on-surface group-hover:text-primary">{item.title}</h3>
+                <p className="mt-1 text-sm leading-6 text-on-surface-variant">{item.description}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <aside className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
+          <div className="mb-5">
+            <h2 className="text-xl font-extrabold text-on-surface">Tình trạng hệ thống</h2>
+            <p className="mt-1 text-sm text-on-surface-variant">Tóm tắt từ dữ liệu hiện có.</p>
+          </div>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-surface-container-low p-4">
+              <p className="text-sm font-medium text-on-surface-variant">Tỷ lệ xe hoạt động</p>
+              <p className="mt-2 text-2xl font-extrabold text-primary">
+                {data.vehicles.length ? Math.round((data.vehicles.filter((v) => v.status === "active").length / data.vehicles.length) * 100) : 0}%
+              </p>
+            </div>
+            <div className="rounded-lg bg-surface-container-low p-4">
+              <p className="text-sm font-medium text-on-surface-variant">Nhân sự vận hành</p>
+              <p className="mt-2 text-2xl font-extrabold text-on-surface">{data.drivers.length + data.staff.length}</p>
+            </div>
+            <Link
+              to="/company/payments"
+              className="flex items-center justify-between rounded-lg border border-outline-variant/40 px-4 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+            >
+              Xem thanh toán
+              <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+            </Link>
+          </div>
+        </aside>
+      </div>
+    </CompanyPageShell>
   );
 }

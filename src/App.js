@@ -35,7 +35,7 @@ import Vehicles from "./pages/company/Vehicles";
 import Drivers from "./pages/company/Drivers";
 import Staff from "./pages/company/Staff";
 import CompanyProfile from "./pages/company/CompanyProfile";
-import Schedules from "./pages/company/Schedules";
+import CompanyPayments from "./pages/company/Payments";
 
 // Operator Pages
 import OperatorDashboard from "./pages/operator/OperatorDashboard";
@@ -110,8 +110,8 @@ function App() {
             <Route path="/company/vehicles" element={<Vehicles />} />
             <Route path="/company/drivers" element={<Drivers />} />
             <Route path="/company/staff" element={<Staff />} />
+            <Route path="/company/payments" element={<CompanyPayments />} />
             <Route path="/company/profile" element={<CompanyProfile />} />
-            <Route path="/company/schedules" element={<Schedules />} />
 
             {/* Operator */}
             <Route path="/operator" element={<Navigate to="/operator/dashboard" replace />} />

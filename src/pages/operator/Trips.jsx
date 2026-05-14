@@ -1,28 +1,98 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { getTrips, updateTrip } from "../../api/operator";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { getDrivers, getRoutes, getTrips, getVehicles, updateTrip } from "../../api/operator";
 import { useToast } from "../../context/ToastContext";
+import {
+  EmptyState,
+  ErrorState,
+  Field,
+  IconButton,
+  LoadingState,
+  ModalShell,
+  OperatorPageShell,
+  PrimaryButton,
+  SecondaryButton,
+  SelectControl,
+  StatCard,
+  StatusBadge,
+  ToolbarCard,
+  inputClass,
+} from "./OperatorUI";
+
+const today = () => new Date().toISOString().split("T")[0];
+
+const statusLabel = {
+  scheduled: "Sắp chạy",
+  running: "Đang chạy",
+  completed: "Hoàn thành",
+  cancelled: "Đã hủy",
+};
+
+const statusTone = {
+  scheduled: "blue",
+  running: "amber",
+  completed: "emerald",
+  cancelled: "red",
+};
+
+const emptyForm = {
+  vehicleId: "",
+  driverId: "",
+  departureDate: today(),
+  status: "scheduled",
+};
+
+const findRouteByLocations = (source, routes) => {
+  if (!source) return null;
+  return routes.find(
+    (route) =>
+      String(route.fromLocation || "").toLowerCase() === String(source.fromLocation || "").toLowerCase() &&
+      String(route.toLocation || "").toLowerCase() === String(source.toLocation || "").toLowerCase()
+  );
+};
 
 export default function Trips() {
   const { scheduleId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { addToast } = useToast();
 
   const [trips, setTrips] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [filterStatus, setFilterStatus] = useState("--");
+  const [drivers, setDrivers] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [routes, setRoutes] = useState([]);
+  const [schedule] = useState(location.state?.schedule || null);
+  const [filterStatus, setFilterStatus] = useState("all");
   const [filterDate, setFilterDate] = useState("");
-  const [formData, setFormData] = useState({
-    status: "scheduled",
-    vehicleId: "",
-    driverId: "",
-  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editingTrip, setEditingTrip] = useState(null);
+  const [formData, setFormData] = useState(emptyForm);
 
   useEffect(() => {
     if (scheduleId) {
       fetchTrips();
+      fetchOptions();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduleId, filterStatus, filterDate]);
+
+  const fetchOptions = async () => {
+    try {
+      const [driversRes, vehiclesRes, routesRes] = await Promise.all([
+        getDrivers({ limit: 100, status: "active" }),
+        getVehicles({ limit: 100, status: "active" }),
+        getRoutes({ limit: 100 }),
+      ]);
+      setDrivers(Array.isArray(driversRes.data?.drivers) ? driversRes.data.drivers : []);
+      setVehicles(Array.isArray(vehiclesRes.data?.vehicles) ? vehiclesRes.data.vehicles : []);
+      setRoutes(Array.isArray(routesRes.data?.routes) ? routesRes.data.routes : []);
+    } catch (err) {
+      console.error("Lỗi tải tài xế/xe/tuyến:", err);
+      addToast({ type: "error", title: "Không tải được tài xế hoặc xe" });
+    }
+  };
 
   const fetchTrips = async () => {
     try {
@@ -30,260 +100,243 @@ export default function Trips() {
       const params = {
         limit: 100,
         orderBy: "asc",
+        status: filterStatus !== "all" ? filterStatus : undefined,
+        date: filterDate || undefined,
       };
-      if (filterStatus !== "--") {
-        params.status = filterStatus;
-      }
-      if (filterDate) {
-        params.date = filterDate;
-      }
-      const res = await getTrips(scheduleId, params);
-      setTrips(res?.data?.trips || []);
-    } catch (error) {
-      addToast("Lỗi khi tải dữ liệu chuyến", "error");
-      console.error(error);
+      Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
+
+      const response = await getTrips(scheduleId, params);
+      setTrips(Array.isArray(response.data?.trips) ? response.data.trips : []);
+      setError("");
+    } catch (err) {
+      console.error("Lỗi tải chuyến:", err);
+      setError("Không thể tải danh sách chuyến.");
+      addToast({ type: "error", title: "Không tải được chuyến" });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (!editingId) {
-        addToast("Vui lòng chọn chuyến để cập nhật", "error");
-        return;
-      }
+  const stats = useMemo(() => [
+    { icon: "directions_bus", label: "Tổng chuyến", value: trips.length, tone: "primary" },
+    { icon: "pending_actions", label: "Sắp chạy", value: trips.filter((trip) => trip.status === "scheduled").length, tone: "blue" },
+    { icon: "route", label: "Đang chạy", value: trips.filter((trip) => trip.status === "running").length, tone: "amber" },
+    { icon: "check_circle", label: "Hoàn thành", value: trips.filter((trip) => trip.status === "completed").length, tone: "emerald" },
+  ], [trips]);
 
-      const trip = trips.find((t) => t.id === editingId);
-      if (!trip) {
-        addToast("Không tìm thấy chuyến", "error");
-        return;
-      }
-
-      const payload = {
-        routeId: trip.routeId || 1,
-        vehicleId: formData.vehicleId ? parseInt(formData.vehicleId) : (trip.vehicleId || 1),
-        driverId: formData.driverId ? parseInt(formData.driverId) : (trip.driverId || 1),
-        scheduleId: parseInt(scheduleId),
-        departureDate: trip.departureDate || new Date().toISOString(),
-        status: formData.status,
-      };
-
-      console.log("📤 Payload gửi:", JSON.stringify(payload, null, 2));
-
-      await updateTrip(scheduleId, editingId, payload);
-      addToast("Cập nhật chuyến thành công", "success");
-      fetchTrips();
-      resetForm();
-    } catch (error) {
-      addToast(error?.response?.data?.message || "Lỗi khi cập nhật", "error");
-      console.error(error);
-    }
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingTrip(null);
+    setFormData(emptyForm);
   };
 
-  const resetForm = () => {
+  const openEditModal = (trip) => {
+    setEditingTrip(trip);
     setFormData({
-      status: "scheduled",
-      vehicleId: "",
-      driverId: "",
-    });
-    setEditingId(null);
-  };
-
-  const handleEdit = (trip) => {
-    setEditingId(trip.id);
-    setFormData({
+      vehicleId: trip.vehicleId || "",
+      driverId: trip.driverId || "",
+      departureDate: trip.departureDate ? trip.departureDate.split("T")[0] : filterDate || today(),
       status: trip.status || "scheduled",
-      vehicleId: "",
-      driverId: "",
     });
+    setShowModal(true);
   };
 
-  const getStatusBadge = (status) => {
-    const statusMap = {
-      scheduled: "bg-blue-100 text-blue-800",
-      running: "bg-yellow-100 text-yellow-800",
-      completed: "bg-green-100 text-green-800",
-      cancelled: "bg-red-100 text-red-800",
+  const handleChange = (field, value) => {
+    setFormData((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!editingTrip) return;
+    if (!formData.vehicleId || !formData.driverId || !formData.departureDate) {
+      addToast({ type: "warning", title: "Thiếu xe, tài xế hoặc ngày chạy" });
+      return;
+    }
+
+    const matchedRoute = findRouteByLocations(editingTrip, routes) || findRouteByLocations(schedule, routes);
+    if (!matchedRoute) {
+      addToast({ type: "error", title: "Không xác định được tuyến của chuyến" });
+      return;
+    }
+
+    const payload = {
+      routeId: Number(matchedRoute.id),
+      vehicleId: Number(formData.vehicleId),
+      driverId: Number(formData.driverId),
+      scheduleId: Number(scheduleId),
+      departureDate: formData.departureDate,
+      status: formData.status,
     };
-    return statusMap[status] || "bg-gray-100 text-gray-800";
+
+    try {
+      await updateTrip(scheduleId, editingTrip.id, payload);
+      addToast({ type: "success", title: "Cập nhật chuyến thành công" });
+      closeModal();
+      fetchTrips();
+    } catch (err) {
+      console.error("Lỗi cập nhật chuyến:", err);
+      addToast({
+        type: "error",
+        title: "Không cập nhật được chuyến",
+        message: err.response?.data?.message || "Vui lòng kiểm tra dữ liệu chuyến.",
+      });
+    }
   };
 
   if (!scheduleId) {
     return (
-      <div className="p-6 bg-red-50 rounded-lg">
-        <p className="text-red-600">Vui lòng chọn lịch biểu trước</p>
-      </div>
+      <OperatorPageShell title="Chuyến" description="Không tìm thấy lịch biểu.">
+        <ErrorState message="Vui lòng chọn lịch biểu trước." />
+      </OperatorPageShell>
     );
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Quản lý Chuyến (Lịch biểu #{scheduleId})</h1>
+    <OperatorPageShell
+      eyebrow="Trips"
+      title="Quản lý chuyến"
+      description={schedule ? `${schedule.fromLocation} → ${schedule.toLocation}` : "Danh sách chuyến theo lịch biểu."}
+      actions={<IconButton icon="arrow_back" label="Quay lại lịch biểu" onClick={() => navigate("/operator/schedules")} />}
+    >
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((stat) => (
+          <StatCard key={stat.label} {...stat} />
+        ))}
+      </div>
 
-      {/* Filter & Update Form */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Filter Status */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">Lọc theo Trạng thái</h2>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="--">Tất cả</option>
-            <option value="scheduled">Sắp khởi hành</option>
+      <ToolbarCard>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[220px_220px_auto]">
+          <SelectControl value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+            <option value="all">Tất cả trạng thái</option>
+            <option value="scheduled">Sắp chạy</option>
             <option value="running">Đang chạy</option>
             <option value="completed">Hoàn thành</option>
-            <option value="cancelled">Hủy</option>
-          </select>
-        </div>
-
-        {/* Filter Date */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">Lọc theo Ngày</h2>
+            <option value="cancelled">Đã hủy</option>
+          </SelectControl>
           <input
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
           />
+          <SecondaryButton icon="refresh" onClick={() => {
+            setFilterStatus("all");
+            setFilterDate("");
+          }}>
+            Đặt lại
+          </SecondaryButton>
         </div>
+      </ToolbarCard>
 
-        {/* Update Form */}
-        {editingId && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">Gán Tài Xế & Xe - Chuyến #{editingId}</h2>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tài Xế ID <span className="text-red-500">*</span></label>
+      {loading ? (
+        <LoadingState />
+      ) : error ? (
+        <ErrorState message={error} />
+      ) : trips.length === 0 ? (
+        <EmptyState icon="directions_bus" title="Không có chuyến" description="Thử đổi bộ lọc hoặc quay lại lịch biểu khác." />
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] text-sm">
+              <thead className="bg-surface-container-low">
+                <tr>
+                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Chuyến</th>
+                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Tuyến</th>
+                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Xe</th>
+                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Sức chứa</th>
+                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Trạng thái</th>
+                  <th className="px-5 py-3 text-right font-bold text-on-surface-variant">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/15">
+                {trips.map((trip) => (
+                  <tr key={trip.id} className="hover:bg-surface-container-low/70">
+                    <td className="px-5 py-4">
+                      <p className="font-extrabold text-on-surface">#{trip.id}</p>
+                      <p className="mt-1 text-xs text-on-surface-variant">{trip.companyName || "—"}</p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <p className="font-bold text-on-surface">{trip.fromLocation} → {trip.toLocation}</p>
+                      <p className="mt-1 text-xs text-on-surface-variant">{Number(trip.distanceKm || 0).toLocaleString("vi-VN")} km</p>
+                    </td>
+                    <td className="px-5 py-4 font-medium text-on-surface">{trip.plateNumber || "Chưa gán xe"}</td>
+                    <td className="px-5 py-4 text-on-surface-variant">
+                      {trip.totalSeats || 0} ghế · {trip.type || "—"}
+                    </td>
+                    <td className="px-5 py-4">
+                      <StatusBadge tone={statusTone[trip.status] || "slate"}>
+                        {statusLabel[trip.status] || trip.status || "—"}
+                      </StatusBadge>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end">
+                        <IconButton icon="edit" label="Sửa chuyến" variant="primary" onClick={() => openEditModal(trip)} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {showModal && editingTrip && (
+        <ModalShell
+          title="Cập nhật chuyến"
+          subtitle={`Chuyến #${editingTrip.id}`}
+          onClose={closeModal}
+          footer={
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <SecondaryButton onClick={closeModal}>Hủy</SecondaryButton>
+              <PrimaryButton icon="save" onClick={handleSave}>Cập nhật</PrimaryButton>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Tài xế">
+                <SelectControl value={formData.driverId} onChange={(e) => handleChange("driverId", e.target.value)}>
+                  <option value="">Chọn tài xế</option>
+                  {drivers.map((driver) => (
+                    <option key={driver.id} value={driver.id}>
+                      {driver.fullName} - {driver.phone}
+                    </option>
+                  ))}
+                </SelectControl>
+              </Field>
+              <Field label="Xe">
+                <SelectControl value={formData.vehicleId} onChange={(e) => handleChange("vehicleId", e.target.value)}>
+                  <option value="">Chọn xe</option>
+                  {vehicles.map((vehicle) => (
+                    <option key={vehicle.id} value={vehicle.id}>
+                      {vehicle.plateNumber} - {vehicle.totalSeats} ghế
+                    </option>
+                  ))}
+                </SelectControl>
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Ngày chạy">
                 <input
-                  type="number"
-                  value={formData.driverId}
-                  onChange={(e) => setFormData({ ...formData, driverId: e.target.value })}
-                  placeholder="Nhập ID tài xế"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
+                  type="date"
+                  value={formData.departureDate}
+                  onChange={(e) => handleChange("departureDate", e.target.value)}
+                  className={inputClass}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Xe ID <span className="text-red-500">*</span></label>
-                <input
-                  type="number"
-                  value={formData.vehicleId}
-                  onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })}
-                  placeholder="Nhập ID xe"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="scheduled">Sắp khởi hành</option>
+              </Field>
+              <Field label="Trạng thái">
+                <SelectControl value={formData.status} onChange={(e) => handleChange("status", e.target.value)}>
+                  <option value="scheduled">Sắp chạy</option>
                   <option value="running">Đang chạy</option>
                   <option value="completed">Hoàn thành</option>
-                  <option value="cancelled">Hủy</option>
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                >
-                  Cập nhật
-                </button>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="flex-1 px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 font-medium"
-                >
-                  Hủy
-                </button>
-              </div>
-            </form>
+                  <option value="cancelled">Đã hủy</option>
+                </SelectControl>
+              </Field>
+            </div>
           </div>
-        )}
-      </div>
-
-      {/* Trips Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Chuyến ID</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Tuyến</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Xe</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Số ghế</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Trạng thái</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan="6" className="text-center py-4 text-gray-500">
-                  Đang tải...
-                </td>
-              </tr>
-            ) : trips.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="text-center py-4 text-gray-500">
-                  Không có chuyến nào
-                </td>
-              </tr>
-            ) : (
-              trips.map((trip) => (
-                <tr key={trip.id} className="border-b hover:bg-gray-50">
-                  <td className="px-6 py-3 text-gray-900 font-medium">#{trip.id}</td>
-                  <td className="px-6 py-3 text-gray-900">
-                    <div className="text-sm">
-                      {trip.fromLocation} → {trip.toLocation}
-                    </div>
-                    <div className="text-xs text-gray-500">{trip.distanceKm}km</div>
-                  </td>
-                  <td className="px-6 py-3">
-                    <div className="text-gray-900">{trip.plateNumber || "N/A"}</div>
-                    <div className="text-xs text-gray-500">{trip.companyName}</div>
-                  </td>
-                  <td className="px-6 py-3 text-gray-900">
-                    {trip.totalSeats} ghế ({trip.type})
-                  </td>
-                  <td className="px-6 py-3">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(trip.status)}`}>
-                      {trip.status === "scheduled"
-                        ? "Sắp khởi hành"
-                        : trip.status === "running"
-                        ? "Đang chạy"
-                        : trip.status === "completed"
-                        ? "Hoàn thành"
-                        : "Hủy"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3">
-                    <button
-                      onClick={() => handleEdit(trip)}
-                      className={`font-medium ${
-                        editingId === trip.id
-                          ? "text-gray-400 cursor-default"
-                          : "text-blue-600 hover:text-blue-800"
-                      }`}
-                      disabled={editingId === trip.id}
-                    >
-                      {editingId === trip.id ? "Đang sửa" : "Sửa"}
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+        </ModalShell>
+      )}
+    </OperatorPageShell>
   );
 }

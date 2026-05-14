@@ -1,47 +1,181 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getDriverTrips } from "../../api/driver";
+import { getDriverTripsAllStatuses } from "../../api/driver";
+
+const statusMeta = {
+  scheduled: {
+    label: "Sắp khởi hành",
+    icon: "event_upcoming",
+    badge: "bg-sky-50 text-sky-700 ring-sky-100",
+    dot: "bg-sky-500",
+  },
+  running: {
+    label: "Đang chạy",
+    icon: "directions_bus",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+    dot: "bg-emerald-500",
+  },
+  completed: {
+    label: "Hoàn thành",
+    icon: "check_circle",
+    badge: "bg-slate-100 text-slate-700 ring-slate-200",
+    dot: "bg-slate-400",
+  },
+  cancelled: {
+    label: "Đã hủy",
+    icon: "cancel",
+    badge: "bg-red-50 text-red-700 ring-red-100",
+    dot: "bg-red-500",
+  },
+};
+
+const normalizeStatus = (status) => {
+  const statusMap = {
+    pending: "scheduled",
+    upcoming: "scheduled",
+    scheduled: "scheduled",
+    in_progress: "running",
+    running: "running",
+    completed: "completed",
+    cancelled: "cancelled",
+  };
+
+  return statusMap[status] || "scheduled";
+};
+
+const formatDate = (value) => {
+  if (!value) return "Chưa có ngày";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("vi-VN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+  });
+};
+
+const formatMoney = (value) => {
+  const amount = Number(value || 0);
+  if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
+  return amount.toLocaleString("vi-VN");
+};
+
+const normalizeTrip = (trip) => {
+  const status = normalizeStatus(trip.status);
+
+  return {
+    ...trip,
+    status,
+    date: trip.departureDate?.split("T")[0] || trip.date || "",
+    displayDate: formatDate(trip.departureDate || trip.date),
+    departure: trip.fromLocation || trip.departure || "Điểm đi",
+    destination: trip.toLocation || trip.destination || "Điểm đến",
+    passengerCount: Number(trip.passengerCount || 0),
+    totalSeats: Number(trip.totalSeats || 45),
+    revenue: Number(trip.revenue || 0),
+    departureTime: trip.departureTime || "--:--",
+  };
+};
+
+const StatCard = ({ icon, label, value, tone = "text-primary" }) => (
+  <div className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <p className="text-sm font-medium text-on-surface-variant">{label}</p>
+        <p className={`mt-2 text-3xl font-bold tracking-tight ${tone}`}>{value}</p>
+      </div>
+      <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <span className="material-symbols-outlined text-[26px] leading-none">{icon}</span>
+      </div>
+    </div>
+  </div>
+);
+
+const TripCard = ({ trip }) => {
+  const meta = statusMeta[trip.status] || statusMeta.scheduled;
+  const occupancy = trip.totalSeats ? Math.min(100, Math.round((trip.passengerCount / trip.totalSeats) * 100)) : 0;
+
+  return (
+    <Link
+      to={`/driver/trip/${trip.id}`}
+      className="group block rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-editorial"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 ${meta.badge}`}>
+              <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+              {meta.label}
+            </span>
+            <span className="text-xs font-medium text-on-surface-variant">{trip.displayDate}</span>
+            <span className="text-xs font-medium text-on-surface-variant">{trip.departureTime}</span>
+          </div>
+
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-lg font-bold text-on-surface">{trip.departure}</p>
+              <p className="mt-1 truncate text-lg font-bold text-on-surface">{trip.destination}</p>
+            </div>
+            <span className="material-symbols-outlined shrink-0 text-primary transition-transform group-hover:translate-x-1">
+              arrow_forward
+            </span>
+          </div>
+        </div>
+
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-surface-container-low text-primary">
+          <span className="material-symbols-outlined text-[26px] leading-none">{meta.icon}</span>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-3 gap-3 text-sm">
+        <div>
+          <p className="text-on-surface-variant">Ghế</p>
+          <p className="mt-1 font-semibold text-on-surface">{trip.passengerCount}/{trip.totalSeats}</p>
+        </div>
+        <div>
+          <p className="text-on-surface-variant">Doanh thu</p>
+          <p className="mt-1 font-semibold text-on-surface">{formatMoney(trip.revenue)} đ</p>
+        </div>
+        <div>
+          <p className="text-on-surface-variant">Xe</p>
+          <p className="mt-1 truncate font-semibold text-on-surface">{trip.plateNumber || trip.vehicleNumber || "Chưa gán"}</p>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <div className="h-2 overflow-hidden rounded-full bg-surface-container-high">
+          <div className="h-full rounded-full bg-primary" style={{ width: `${occupancy}%` }} />
+        </div>
+      </div>
+    </Link>
+  );
+};
 
 const DriverDashboard = () => {
   const [user, setUser] = useState(null);
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("upcoming"); // upcoming, inprogress, completed
+  const [activeTab, setActiveTab] = useState("scheduled");
 
   useEffect(() => {
-    // Lấy user info
     const stored = localStorage.getItem("user");
     if (stored) setUser(JSON.parse(stored));
-
-    // Lấy danh sách chuyến
     fetchTrips();
   }, []);
 
   const fetchTrips = async () => {
     try {
       setLoading(true);
-      
-      const response = await getDriverTrips();
-      let tripsData = Array.isArray(response.data?.trips) 
-        ? response.data.trips 
-        : Array.isArray(response.data?.data) 
-        ? response.data.data 
+      const response = await getDriverTripsAllStatuses();
+      const tripsData = Array.isArray(response.data?.trips)
+        ? response.data.trips
+        : Array.isArray(response.data?.data)
+        ? response.data.data
         : [];
-      
-      // Transform API data to match frontend format
-      tripsData = tripsData.map(trip => ({
-        ...trip,
-        date: trip.departureDate?.split('T')[0], // "2026-04-11"
-        departure: trip.fromLocation,
-        destination: trip.toLocation,
-        status: trip.status || 'scheduled', // Default: scheduled nếu API không trả về
-        passengerCount: trip.passengerCount || 0,
-        revenue: trip.revenue || 0,
-        totalSeats: trip.totalSeats || 45
-      }));
-      
-      setTrips(tripsData);
+
+      setTrips(tripsData.map(normalizeTrip));
       setError(null);
     } catch (err) {
       console.error("Lỗi khi lấy danh sách chuyến:", err);
@@ -51,238 +185,126 @@ const DriverDashboard = () => {
     }
   };
 
-  // Filter trips by status
-  const upcomingTrips = trips.filter((t) => t.status === "pending" || t.status === "upcoming" || t.status === "scheduled" || t.status === "running");
-  const inProgressTrips = trips.filter((t) => t.status === "in_progress" || t.status === "running");
-  const completedTrips = trips.filter((t) => t.status === "completed");
+  const groupedTrips = useMemo(() => ({
+    scheduled: trips.filter((trip) => trip.status === "scheduled"),
+    running: trips.filter((trip) => trip.status === "running"),
+    completed: trips.filter((trip) => trip.status === "completed"),
+  }), [trips]);
 
-  // Calculate stats
-  const stats = {
-    today: upcomingTrips.length,
-    totalPassengers: trips.reduce((sum, t) => sum + (t.passengerCount || 0), 0),
-    totalRevenue: trips.reduce((sum, t) => sum + (t.revenue || 0), 0),
-    rating: 4.8,
-  };
+  const stats = useMemo(() => ({
+    scheduled: groupedTrips.scheduled.length,
+    running: groupedTrips.running.length,
+    passengers: trips.reduce((sum, trip) => sum + trip.passengerCount, 0),
+    revenue: trips.reduce((sum, trip) => sum + trip.revenue, 0),
+  }), [groupedTrips, trips]);
 
-  const getStatusBadge = (status) => {
-    const statusMap = {
-      pending: { label: "Sắp tới", color: "bg-blue-100 text-blue-700" },
-      upcoming: { label: "Sắp tới", color: "bg-blue-100 text-blue-700" },
-      in_progress: { label: "Đang chạy", color: "bg-green-100 text-green-700" },
-      completed: { label: "Hoàn thành", color: "bg-gray-100 text-gray-700" },
-      cancelled: { label: "Hủy", color: "bg-red-100 text-red-700" },
-    };
-    const info = statusMap[status] || statusMap.pending;
-    return info;
-  };
+  const tabs = [
+    { id: "scheduled", label: "Sắp chạy", icon: "event_upcoming", count: groupedTrips.scheduled.length },
+    { id: "running", label: "Đang chạy", icon: "directions_bus", count: groupedTrips.running.length },
+    { id: "completed", label: "Hoàn thành", icon: "check_circle", count: groupedTrips.completed.length },
+  ];
 
-  const TripCard = ({ trip }) => {
-    const status = getStatusBadge(trip.status);
-    return (
-      <Link to={`/driver/trip/${trip.id}`} state={{ trip }}>
-        <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-shadow cursor-pointer">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-3">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${status.color}`}>
-                  {status.label}
-                </span>
-                <span className="text-sm text-on-surface-variant">{trip.date}</span>
-              </div>
-
-              <div className="flex items-center gap-2 mb-4">
-                <span className="material-symbols-outlined text-primary text-lg">
-                  location_on
-                </span>
-                <div>
-                  <p className="font-semibold text-on-surface">{trip.departure}</p>
-                  <span className="material-symbols-outlined text-xs text-on-surface-variant">
-                    arrow_forward
-                  </span>
-                  <p className="font-semibold text-on-surface">{trip.destination}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-base text-on-surface-variant">
-                    schedule
-                  </span>
-                  <span className="text-on-surface-variant">{trip.departureTime}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-base text-on-surface-variant">
-                    people
-                  </span>
-                  <span className="text-on-surface-variant">
-                    {trip.passengerCount}/{trip.totalSeats} ghế
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <p className="text-2xl font-bold text-primary">
-                ₫{(trip.revenue || 0).toLocaleString()}
-              </p>
-              <p className="text-xs text-on-surface-variant">Doanh thu</p>
-            </div>
-          </div>
-        </div>
-      </Link>
-    );
-  };
+  const activeTrips = groupedTrips[activeTab] || [];
+  const activeTrip = groupedTrips.running[0];
 
   return (
-    <div className="min-h-screen bg-surface p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-on-surface tracking-tight mb-2">
-            Xin chào, {user?.fullName || "Tài xế"}! 👋
-          </h1>
-          <p className="text-on-surface-variant text-lg">
-            Quản lý chuyến đi và hành khách của bạn
-          </p>
+    <div className="min-h-screen bg-surface px-5 py-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-primary">Bảng điều khiển tài xế</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-on-surface lg:text-4xl">
+              Xin chào, {user?.fullName || "Tài xế"}
+            </h1>
+            <p className="mt-2 text-on-surface-variant">Theo dõi chuyến, hành khách và trạng thái vận hành trong ngày.</p>
+          </div>
+          <button
+            type="button"
+            onClick={fetchTrips}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant/50 bg-white px-4 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container-low"
+          >
+            <span className="material-symbols-outlined text-[20px]">refresh</span>
+            Tải lại
+          </button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-on-surface-variant text-sm font-medium mb-1">
-                  Chuyến hôm nay
-                </p>
-                <p className="text-4xl font-bold text-primary">{stats.today}</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-primary-container">
-                directions_bus
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-on-surface-variant text-sm font-medium mb-1">
-                  Tổng hành khách
-                </p>
-                <p className="text-4xl font-bold text-primary">{stats.totalPassengers}</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-primary-container">
-                people
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-on-surface-variant text-sm font-medium mb-1">
-                  Tổng doanh thu
-                </p>
-                <p className="text-2xl font-bold text-primary">
-                  ₫{(stats.totalRevenue / 1000000).toFixed(1)}M
-                </p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-primary-container">
-                payments
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-on-surface-variant text-sm font-medium mb-1">
-                  Đánh giá
-                </p>
-                <p className="text-4xl font-bold text-primary">{stats.rating}/5</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-primary-container">
-                star
-              </span>
-            </div>
-          </div>
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard icon="event_upcoming" label="Chuyến sắp chạy" value={stats.scheduled} />
+          <StatCard icon="directions_bus" label="Đang chạy" value={stats.running} tone="text-emerald-600" />
+          <StatCard icon="groups" label="Tổng hành khách" value={stats.passengers} />
+          <StatCard icon="payments" label="Tổng doanh thu" value={`${formatMoney(stats.revenue)} đ`} />
         </div>
 
-        {/* Active Trip Banner */}
-        {inProgressTrips.length > 0 && (
-          <div className="bg-gradient-to-r from-primary to-primary-container rounded-2xl p-6 mb-8 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium opacity-90 mb-2">Chuyến đang chạy</p>
-                <h3 className="text-2xl font-bold mb-2">
-                  {inProgressTrips[0].departure} → {inProgressTrips[0].destination}
-                </h3>
-                <p className="opacity-90">
-                  {inProgressTrips[0].passengerCount}/{inProgressTrips[0].totalSeats} hành khách
+        {activeTrip && (
+          <div className="mb-6 rounded-xl bg-primary p-5 text-white shadow-editorial">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white/80">Chuyến đang chạy</p>
+                <h2 className="mt-1 truncate text-2xl font-bold">
+                  {activeTrip.departure} → {activeTrip.destination}
+                </h2>
+                <p className="mt-2 text-sm text-white/85">
+                  {activeTrip.departureTime} · {activeTrip.passengerCount}/{activeTrip.totalSeats} hành khách
                 </p>
               </div>
               <Link
-                to={`/driver/trip/${inProgressTrips[0].id}`}
-                className="bg-white text-primary px-6 py-3 rounded-xl font-bold hover:opacity-90 transition-all"
+                to={`/driver/trip/${activeTrip.id}`}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-bold text-primary transition-opacity hover:opacity-90"
               >
-                Xem chi tiết
+                Mở chuyến
+                <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
               </Link>
             </div>
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="mb-6 flex gap-2 border-b border-outline-variant/20">
-          {[
-            { id: "upcoming", label: "Sắp tới", count: upcomingTrips.length },
-            { id: "inprogress", label: "Đang chạy", count: inProgressTrips.length },
-            { id: "completed", label: "Hoàn thành", count: completedTrips.length },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-3 font-bold transition-all border-b-2 ${
-                activeTab === tab.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-on-surface-variant hover:text-on-surface"
-              }`}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
+        <div className="rounded-xl border border-outline-variant/30 bg-white p-2 shadow-sm">
+          <div className="flex flex-wrap gap-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors sm:flex-none ${
+                  activeTab === tab.id
+                    ? "bg-primary text-white"
+                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[20px]">{tab.icon}</span>
+                {tab.label}
+                <span className={activeTab === tab.id ? "text-white/80" : "text-on-surface-variant"}>({tab.count})</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Trips List */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-            <p className="text-on-surface-variant mt-4">Đang tải...</p>
-          </div>
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-2xl text-center">
-            {error}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {(activeTab === "upcoming"
-              ? upcomingTrips
-              : activeTab === "inprogress"
-              ? inProgressTrips
-              : completedTrips
-            ).map((trip) => (
-              <TripCard key={trip.id} trip={trip} />
-            ))}
-            {((activeTab === "upcoming" && upcomingTrips.length === 0) ||
-              (activeTab === "inprogress" && inProgressTrips.length === 0) ||
-              (activeTab === "completed" && completedTrips.length === 0)) && (
-              <div className="col-span-full text-center py-12">
-                <span className="material-symbols-outlined text-6xl text-on-surface-variant opacity-50">
-                  event_note
-                </span>
-                <p className="text-on-surface-variant mt-4">Không có chuyến nào</p>
+        <div className="mt-6">
+          {loading ? (
+            <div className="flex min-h-[280px] items-center justify-center rounded-xl border border-outline-variant/30 bg-white">
+              <div className="text-center">
+                <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+                <p className="mt-4 text-on-surface-variant">Đang tải chuyến...</p>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          ) : error ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center font-medium text-red-700">
+              {error}
+            </div>
+          ) : activeTrips.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {activeTrips.map((trip) => (
+                <TripCard key={trip.id} trip={trip} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-outline-variant/60 bg-white p-10 text-center">
+              <span className="material-symbols-outlined text-5xl text-outline">event_busy</span>
+              <p className="mt-3 text-lg font-semibold text-on-surface">Không có chuyến</p>
+              <p className="mt-1 text-sm text-on-surface-variant">Danh sách này hiện chưa có chuyến phù hợp.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
