@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getTripSchedules, createTripSchedule, updateTripSchedule, deleteTripSchedule, getRoutes } from "../../api/operator";
 import { useToast } from "../../context/ToastContext";
+import ActionIconButton from "./ActionIconButton";
 
 export default function Schedules() {
   const { addToast } = useToast();
@@ -35,7 +36,11 @@ export default function Schedules() {
       setRoutes(routesRes.data?.routes || []);
     } catch (err) {
       console.error("❌ Lỗi tải dữ liệu:", err);
-      addToast("Không thể tải dữ liệu", "error");
+      addToast({
+        type: "error",
+        title: "Không tải được lịch biểu",
+        message: "Dữ liệu tuyến và lịch biểu chưa thể hiển thị. Hãy thử lại sau.",
+      });
     } finally {
       setLoading(false);
     }
@@ -46,19 +51,35 @@ export default function Schedules() {
     try {
       // Validation
       if (!formData.routeId) {
-        addToast("Vui lòng chọn tuyến đường", "error");
+        addToast({
+          type: "warning",
+          title: "Chưa chọn tuyến đường",
+          message: "Chọn một tuyến trước khi tạo lịch biểu.",
+        });
         return;
       }
       if (!formData.departureTime) {
-        addToast("Vui lòng nhập giờ khởi hành", "error");
+        addToast({
+          type: "warning",
+          title: "Thiếu giờ khởi hành",
+          message: "Nhập thời gian xe bắt đầu xuất bến.",
+        });
         return;
       }
       if (!formData.startDate) {
-        addToast("Vui lòng nhập ngày bắt đầu", "error");
+        addToast({
+          type: "warning",
+          title: "Thiếu ngày bắt đầu",
+          message: "Chọn ngày đầu tiên lịch biểu có hiệu lực.",
+        });
         return;
       }
       if (!formData.endDate) {
-        addToast("Vui lòng nhập ngày kết thúc", "error");
+        addToast({
+          type: "warning",
+          title: "Thiếu ngày kết thúc",
+          message: "Chọn ngày cuối cùng lịch biểu có hiệu lực.",
+        });
         return;
       }
 
@@ -73,10 +94,16 @@ export default function Schedules() {
 
       if (editingId) {
         await updateTripSchedule(editingId, payload);
-        addToast("Cập nhật lịch biểu thành công", "success");
+        addToast({
+          type: "success",
+          title: "Cập nhật lịch biểu thành công",
+        });
       } else {
         await createTripSchedule(payload);
-        addToast("Tạo lịch biểu mới thành công", "success");
+        addToast({
+          type: "success",
+          title: "Tạo lịch biểu thành công",
+        });
       }
       setFormData({
         routeId: "",
@@ -90,19 +117,45 @@ export default function Schedules() {
       setEditingId(null);
       fetchData();
     } catch (err) {
-      addToast(err?.response?.data?.message || "Lỗi khi lưu lịch biểu", "error");
+      addToast({
+        type: "error",
+        title: "Không lưu được lịch biểu",
+        message: err?.response?.data?.message || "Vui lòng kiểm tra dữ liệu lịch biểu và thử lại.",
+      });
       console.error(err);
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Xóa lịch biểu này?")) {
+    const scheduleToDelete = schedules.find(s => s.id === id);
+    
+    if (window.confirm(`Xóa lịch biểu #${id} - ${scheduleToDelete?.fromLocation} → ${scheduleToDelete?.toLocation}?`)) {
       try {
+        console.log("🗑️ Deleting schedule:", id);
         await deleteTripSchedule(id);
-        addToast("Xóa lịch biểu thành công", "success");
+        addToast({
+          type: "success",
+          title: "Xóa lịch biểu thành công",
+        });
         fetchData();
       } catch (err) {
-        addToast("Lỗi khi xóa lịch biểu", "error");
+        console.error("❌ Error deleting schedule:", err);
+        const errorMsg = err?.response?.data?.message;
+        
+        // Check if error is about related trips
+        if (err?.response?.status === 500 || errorMsg?.includes("trip") || errorMsg?.includes("foreign")) {
+          addToast({
+            type: "error",
+            title: "Không thể xóa lịch biểu",
+            message: "Lịch biểu này vẫn còn chuyến. Hãy xóa hoặc xử lý các chuyến trước.",
+          });
+        } else {
+          addToast({
+            type: "error",
+            title: "Không xóa được lịch biểu",
+            message: errorMsg || "Vui lòng thử lại sau.",
+          });
+        }
       }
     }
   };
@@ -249,25 +302,25 @@ export default function Schedules() {
                   <td className="px-6 py-4">{schedule.departureTime}</td>
                   <td className="px-6 py-4">{schedule.name}</td>
                   <td className="px-6 py-4">{schedule.distanceKm} km</td>
-                  <td className="px-6 py-4 space-x-2 flex">
-                    <button
-                      onClick={() => navigate(`/operator/schedules/${schedule.id}/stopping-points`)}
-                      className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                    >
-                      Điểm dừng
-                    </button>
-                    <button
-                      onClick={() => navigate(`/operator/schedules/${schedule.id}/trips`)}
-                      className="text-purple-600 hover:text-purple-800 font-medium text-sm"
-                    >
-                      Chuyến
-                    </button>
-                    <button
-                      onClick={() => handleDelete(schedule.id)}
-                      className="text-red-600 hover:text-red-800 font-medium text-sm"
-                    >
-                      Xóa
-                    </button>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      <ActionIconButton
+                        icon="pin_drop"
+                        label="Điểm dừng"
+                        onClick={() => navigate(`/operator/schedules/${schedule.id}/stopping-points`, { state: { schedule } })}
+                      />
+                      <ActionIconButton
+                        icon="directions_bus"
+                        label="Chuyến"
+                        onClick={() => navigate(`/operator/schedules/${schedule.id}/trips`)}
+                      />
+                      <ActionIconButton
+                        icon="delete"
+                        label="Xóa lịch biểu"
+                        title="Xóa lịch biểu (xóa tất cả chuyến trước)"
+                        onClick={() => handleDelete(schedule.id)}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}

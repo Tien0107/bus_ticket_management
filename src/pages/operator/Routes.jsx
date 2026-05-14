@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getRoutes, createRoute, updateRoute } from "../../api/operator";
 import { useToast } from "../../context/ToastContext";
+import ActionIconButton from "./ActionIconButton";
 
 export default function Routes() {
   const { addToast } = useToast();
@@ -26,7 +27,11 @@ export default function Routes() {
       setRoutes(res.data?.routes || []);
     } catch (err) {
       console.error("❌ Lỗi tải tuyến:", err);
-      addToast("Không thể tải danh sách tuyến", "error");
+      addToast({
+        type: "error",
+        title: "Không tải được tuyến đường",
+        message: "Kiểm tra kết nối hoặc thử tải lại trang.",
+      });
     } finally {
       setLoading(false);
     }
@@ -37,17 +42,27 @@ export default function Routes() {
     try {
       if (editingId) {
         await updateRoute(editingId, formData);
-        addToast("Cập nhật tuyến thành công", "success");
+        addToast({
+          type: "success",
+          title: "Cập nhật tuyến thành công",
+        });
       } else {
         await createRoute(formData);
-        addToast("Tạo tuyến mới thành công", "success");
+        addToast({
+          type: "success",
+          title: "Tạo tuyến thành công",
+        });
       }
       setFormData({ fromLocation: "", toLocation: "", distanceKm: 0, durationMinutes: 0 });
       setShowForm(false);
       setEditingId(null);
       fetchRoutes();
     } catch (err) {
-      addToast("Lỗi khi lưu tuyến", "error");
+      addToast({
+        type: "error",
+        title: "Không lưu được tuyến",
+        message: err?.response?.data?.message || "Vui lòng kiểm tra dữ liệu tuyến và thử lại.",
+      });
     }
   };
 
@@ -173,12 +188,13 @@ export default function Routes() {
                   <td className="px-6 py-4">{route.distanceKm} km</td>
                   <td className="px-6 py-4">{route.durationMinutes} phút</td>
                   <td className="px-6 py-4">
-                    <button
-                      onClick={() => handleEdit(route)}
-                      className="text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      Sửa
-                    </button>
+                    <div className="flex items-center gap-4">
+                      <ActionIconButton
+                        icon="edit_square"
+                        label="Sửa tuyến"
+                        onClick={() => handleEdit(route)}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}

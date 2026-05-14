@@ -1,29 +1,46 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { checkInPassenger } from "../../api/driver";
 import { useToast } from "../../context/ToastContext";
 
-const CheckInPanel = ({ tripId, passengers = [], onCheckInSuccess, isOpen, onClose }) => {
+const CheckInPanel = ({ tripId, passengers = [], onCheckInSuccess, isOpen, onClose, initialPassengerId = null }) => {
   const { addToast } = useToast();
   const [selectedPassenger, setSelectedPassenger] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const pendingPassengers = passengers.filter((p) => p.status === "pending");
-  const filteredPassengers = pendingPassengers.filter(
-    (p) =>
-      p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.ticket?.includes(searchTerm)
+  const pendingPassengers = useMemo(
+    () => passengers.filter((passenger) => passenger.status !== "checked_in"),
+    [passengers]
   );
 
-  const handleCheckIn = async (passengerId) => {
+  const filteredPassengers = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return pendingPassengers;
+
+    return pendingPassengers.filter((passenger) =>
+      [passenger.name, passenger.phone, passenger.ticket, passenger.seat]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [pendingPassengers, searchTerm]);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const initialPassenger = pendingPassengers.find((passenger) => Number(passenger.id) === Number(initialPassengerId));
+    setSelectedPassenger(initialPassenger || null);
+  }, [initialPassengerId, isOpen, pendingPassengers]);
+
+  const handleCheckIn = async () => {
+    if (!selectedPassenger) return;
+
     try {
       setLoading(true);
-      await checkInPassenger(tripId, passengerId);
-      addToast("Check-in thành công", "success");
-      setSelectedPassenger(null);
-      setSearchTerm("");
-      if (onCheckInSuccess) {
-        onCheckInSuccess();
+      const response = await checkInPassenger(tripId, selectedPassenger.id, "checked_in");
+      const success = await onCheckInSuccess?.(selectedPassenger.id, response.data?.ticket || response.data);
+
+      if (success !== false) {
+        setSelectedPassenger(null);
+        setSearchTerm("");
       }
     } catch (err) {
       console.error("Lỗi check-in:", err);
@@ -36,137 +53,139 @@ const CheckInPanel = ({ tripId, passengers = [], onCheckInSuccess, isOpen, onClo
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-outline-variant/20 p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-on-surface">Check-in hành khách</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
+        <div className="border-b border-outline-variant/20 px-5 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-primary">Check-in</p>
+              <h2 className="mt-1 text-2xl font-bold text-on-surface">Xác nhận hành khách lên xe</h2>
+            </div>
             <button
+              type="button"
               onClick={onClose}
-              className="text-on-surface-variant hover:text-on-surface transition-colors"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
+              aria-label="Đóng"
             >
-              <span className="material-symbols-outlined text-2xl">close</span>
+              <span className="material-symbols-outlined">close</span>
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Search/Input */}
-          <div>
-            <label className="block text-sm font-bold text-on-surface mb-2">
-              Tìm hành khách để check-in
-            </label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
-                search
-              </span>
-              <input
-                type="text"
-                placeholder="Nhập tên, mã vé hoặc số ghế..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all"
-                autoFocus
-              />
-            </div>
+        <div className="overflow-y-auto p-5">
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">
+              search
+            </span>
+            <input
+              type="text"
+              placeholder="Tìm theo tên, số điện thoại, mã vé hoặc ghế"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="w-full rounded-lg border border-outline-variant/40 bg-white py-3 pl-12 pr-4 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+              autoFocus
+            />
           </div>
 
-          {/* Passenger List */}
-          {filteredPassengers.length > 0 ? (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {filteredPassengers.map((passenger) => (
+          <div className="mt-5 grid max-h-[360px] gap-3 overflow-y-auto pr-1">
+            {filteredPassengers.map((passenger) => {
+              const active = selectedPassenger?.id === passenger.id;
+
+              return (
                 <button
                   key={passenger.id}
+                  type="button"
                   onClick={() => setSelectedPassenger(passenger)}
-                  className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                    selectedPassenger?.id === passenger.id
-                      ? "border-primary bg-primary/10"
-                      : "border-outline-variant/20 hover:border-primary/50"
+                  className={`w-full rounded-xl border p-4 text-left transition-all ${
+                    active
+                      ? "border-primary bg-primary/5 ring-4 ring-primary/10"
+                      : "border-outline-variant/30 hover:border-primary/50 hover:bg-surface-container-low"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-on-surface">{passenger.name}</p>
-                      <p className="text-sm text-on-surface-variant">
-                        Vé: {passenger.ticket} | Ghế: {passenger.seat}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-on-surface">{passenger.name}</p>
+                      <p className="mt-1 text-sm text-on-surface-variant">
+                        Vé {passenger.ticket} · Ghế {passenger.seat}
+                      </p>
+                      <p className="mt-2 truncate text-xs text-on-surface-variant">
+                        {passenger.pickupPoint} → {passenger.dropoffPoint}
                       </p>
                     </div>
-                    <span className="material-symbols-outlined text-primary">
-                      {selectedPassenger?.id === passenger.id ? "check_circle" : "circle"}
+                    <span className={`material-symbols-outlined ${active ? "text-primary" : "text-outline"}`}>
+                      {active ? "radio_button_checked" : "radio_button_unchecked"}
                     </span>
                   </div>
                 </button>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              {searchTerm ? (
-                <>
-                  <span className="material-symbols-outlined text-4xl text-on-surface-variant opacity-50">
-                    person_off
-                  </span>
-                  <p className="text-on-surface-variant mt-3">Không tìm thấy hành khách</p>
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-4xl text-on-surface-variant opacity-50">
-                    check_circle
-                  </span>
-                  <p className="text-on-surface-variant mt-3">
-                    Tất cả hành khách đã được check-in
-                  </p>
-                </>
-              )}
-            </div>
-          )}
+              );
+            })}
 
-          {/* Selected Passenger Details */}
+            {filteredPassengers.length === 0 && (
+              <div className="rounded-xl border border-dashed border-outline-variant/50 p-8 text-center">
+                <span className="material-symbols-outlined text-5xl text-outline">
+                  {pendingPassengers.length === 0 ? "task_alt" : "person_search"}
+                </span>
+                <p className="mt-3 font-semibold text-on-surface">
+                  {pendingPassengers.length === 0 ? "Tất cả đã check-in" : "Không tìm thấy hành khách"}
+                </p>
+                <p className="mt-1 text-sm text-on-surface-variant">
+                  {pendingPassengers.length === 0
+                    ? "Không còn hành khách chờ xác nhận."
+                    : "Thử tìm bằng tên, mã vé hoặc số ghế khác."}
+                </p>
+              </div>
+            )}
+          </div>
+
           {selectedPassenger && (
-            <div className="bg-surface-container-low rounded-xl p-4 border-2 border-primary">
-              <p className="text-sm text-on-surface-variant mb-2">Hành khách được chọn</p>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-on-surface">{selectedPassenger.name}</span>
-                  <span className="text-primary font-bold">Ghế {selectedPassenger.seat}</span>
+            <div className="mt-5 rounded-xl border border-primary/20 bg-primary/5 p-4">
+              <p className="text-sm font-semibold text-primary">Đang chọn</p>
+              <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+                <div>
+                  <p className="text-on-surface-variant">Hành khách</p>
+                  <p className="mt-1 font-bold text-on-surface">{selectedPassenger.name}</p>
                 </div>
-                <p className="text-sm text-on-surface-variant">
-                  Vé: {selectedPassenger.ticket}
-                </p>
-                <p className="text-sm text-on-surface-variant">
-                  Điểm lên: {selectedPassenger.pickupPoint}
-                </p>
+                <div>
+                  <p className="text-on-surface-variant">Mã vé</p>
+                  <p className="mt-1 font-bold text-on-surface">{selectedPassenger.ticket}</p>
+                </div>
+                <div>
+                  <p className="text-on-surface-variant">Ghế</p>
+                  <p className="mt-1 font-bold text-on-surface">{selectedPassenger.seat}</p>
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-white border-t border-outline-variant/20 p-6 flex gap-4">
-          <button
-            onClick={onClose}
-            className="flex-1 px-6 py-3 border-2 border-primary text-primary font-bold rounded-xl hover:bg-primary/10 transition-all active:scale-95"
-          >
-            Đóng
-          </button>
-          <button
-            onClick={() => selectedPassenger && handleCheckIn(selectedPassenger.id)}
-            disabled={!selectedPassenger || loading}
-            className="flex-1 px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/80 disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Đang xử lý...</span>
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined">check_circle</span>
-                <span>Xác nhận Check-in</span>
-              </>
-            )}
-          </button>
+        <div className="border-t border-outline-variant/20 p-5">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-outline-variant/50 px-5 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+            >
+              Đóng
+            </button>
+            <button
+              type="button"
+              onClick={handleCheckIn}
+              disabled={!selectedPassenger || loading}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[20px]">check_circle</span>
+                  Xác nhận check-in
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

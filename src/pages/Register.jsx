@@ -6,6 +6,33 @@ import { operatorSignUp } from "../api/operator";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 
+const registerOptions = [
+  {
+    id: "customer",
+    icon: "person",
+    title: "Khách hàng",
+    description: "Đặt vé và quản lý hành trình",
+  },
+  {
+    id: "driver",
+    icon: "directions_bus",
+    title: "Tài xế",
+    description: "Theo dõi chuyến và check-in",
+  },
+  {
+    id: "company",
+    icon: "business",
+    title: "Công ty",
+    description: "Quản lý đội xe và nhân sự",
+  },
+  {
+    id: "operator",
+    icon: "support_agent",
+    title: "Điều hành viên",
+    description: "Quản lý tuyến, trạm và lịch",
+  },
+];
+
 function Register() {
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -14,6 +41,7 @@ function Register() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const selectedRegisterOption = registerOptions.find((option) => option.id === registerType) || registerOptions[0];
 
   const [customerForm, setCustomerForm] = useState({
     fullName: "",
@@ -333,101 +361,114 @@ function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-surface text-on-surface font-body flex flex-col">
-      {/* Header */}
-      <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm">
-        <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
-          <Link to="/" className="text-2xl font-bold tracking-tight text-primary">
+    <div className="min-h-screen bg-[#f5f7f4] text-on-surface font-body">
+      <header className="border-b border-outline-variant/30 bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
+          <Link to="/" className="inline-flex items-center gap-3 text-xl font-extrabold tracking-tight text-on-surface">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
+              <span className="material-symbols-outlined text-[22px]">directions_bus</span>
+            </span>
             BusGo
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              className="hidden rounded-lg px-4 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface sm:inline-flex"
+            >
+              Trang chủ
+            </Link>
             <Link
               to="/login"
-              className="text-gray-600 text-sm font-medium hover:text-primary transition-colors"
+              className="rounded-lg border border-outline-variant/50 px-4 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary/5"
             >
               Đăng nhập
             </Link>
-            <span className="material-symbols-outlined text-primary">account_circle</span>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-grow flex pt-16">
-        <div className="w-full max-w-4xl mx-auto px-4 lg:px-12 py-12 lg:py-20">
-          <div className="bg-white rounded-3xl p-8 lg:p-10 shadow-editorial">
-            {/* Tabs */}
-            <div className="mb-8">
-              <h2 className="text-3xl font-extrabold text-on-surface mb-6 tracking-tight">
-                Chọn loại tài khoản
-              </h2>
-              
-              <div className="flex flex-wrap gap-3 md:gap-4">
-                <button
-                  onClick={() => {
-                    setRegisterType("customer");
-                    setError("");
-                    setAgreeTerms(false);
-                  }}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
-                    registerType === "customer"
-                      ? "bg-primary text-white shadow-lg shadow-primary/30"
-                      : "bg-surface-container-high text-on-surface hover:bg-surface-container-highest"
-                  }`}
-                >
-                  <span className="material-symbols-outlined">person</span>
-                  Khách hàng
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setRegisterType("driver");
-                    setError("");
-                    setAgreeTerms(false);
-                  }}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
-                    registerType === "driver"
-                      ? "bg-primary text-white shadow-lg shadow-primary/30"
-                      : "bg-surface-container-high text-on-surface hover:bg-surface-container-highest"
-                  }`}
-                >
-                  <span className="material-symbols-outlined">directions_car</span>
-                  Tài xế
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setRegisterType("company");
-                    setError("");
-                    setAgreeTerms(false);
-                  }}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
-                    registerType === "company"
-                      ? "bg-primary text-white shadow-lg shadow-primary/30"
-                      : "bg-surface-container-high text-on-surface hover:bg-surface-container-highest"
-                  }`}
-                >
-                  <span className="material-symbols-outlined">business</span>
-                  Công ty
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setRegisterType("operator");
-                    setError("");
-                    setAgreeTerms(false);
-                  }}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
-                    registerType === "operator"
-                      ? "bg-primary text-white shadow-lg shadow-primary/30"
-                      : "bg-surface-container-high text-on-surface hover:bg-surface-container-highest"
-                  }`}
-                >
-                  <span className="material-symbols-outlined">person_check</span>
-                  Điều hành viên
-                </button>
+      <main className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-5 py-8 lg:grid-cols-[380px_1fr] lg:px-8 lg:py-10">
+        <aside className="hidden self-start rounded-2xl border border-outline-variant/30 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.06)] lg:block">
+          <div className="rounded-xl bg-primary p-5 text-white">
+            <span className="material-symbols-outlined text-[34px]">route</span>
+            <h1 className="mt-5 text-3xl font-extrabold leading-tight tracking-tight">
+              Tạo tài khoản BusGo
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-white/85">
+              Chọn đúng vai trò để hệ thống mở các công cụ phù hợp cho hành trình, vận hành và quản lý.
+            </p>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {registerOptions.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => {
+                  setRegisterType(option.id);
+                  setError("");
+                  setAgreeTerms(false);
+                }}
+                className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-all ${
+                  registerType === option.id
+                    ? "border-primary bg-primary/5 ring-4 ring-primary/10"
+                    : "border-outline-variant/30 hover:border-primary/40 hover:bg-surface-container-low"
+                }`}
+              >
+                <span className={`material-symbols-outlined mt-0.5 text-[22px] ${
+                  registerType === option.id ? "text-primary" : "text-outline"
+                }`}>
+                  {option.icon}
+                </span>
+                <span>
+                  <span className="block font-bold text-on-surface">{option.title}</span>
+                  <span className="mt-1 block text-xs leading-5 text-on-surface-variant">{option.description}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <section className="rounded-2xl border border-outline-variant/30 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+          <div className="border-b border-outline-variant/20 p-6 lg:p-8">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-700 ring-1 ring-emerald-100">
+              <span className="material-symbols-outlined text-[17px]">{selectedRegisterOption.icon}</span>
+              {selectedRegisterOption.title}
+            </span>
+            <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h1 className="text-3xl font-extrabold tracking-tight text-on-surface lg:text-4xl">
+                  Đăng ký tài khoản
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-on-surface-variant">
+                  Điền thông tin bên dưới để bắt đầu sử dụng BusGo với vai trò {selectedRegisterOption.title.toLowerCase()}.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 lg:hidden">
+                {registerOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => {
+                      setRegisterType(option.id);
+                      setError("");
+                      setAgreeTerms(false);
+                    }}
+                    className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-bold transition-colors ${
+                      registerType === option.id
+                        ? "bg-primary text-white"
+                        : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">{option.icon}</span>
+                    {option.title}
+                  </button>
+                ))}
               </div>
             </div>
+          </div>
+
+          <div className="auth-register-form p-6 lg:p-8">
 
             {/* Error Message */}
             {error && (
@@ -1248,28 +1289,8 @@ function Register() {
               </p>
             </div>
           </div>
-        </div>
+        </section>
       </main>
-
-      {/* Footer */}
-      <footer className="w-full py-8 mt-auto bg-gray-50">
-        <div className="flex flex-col md:flex-row justify-between items-center px-8 gap-4 max-w-7xl mx-auto">
-          <div className="text-xs text-gray-500">
-            © 2024 BusGo. Bản quyền thuộc về Đội ngũ Phát triển.
-          </div>
-          <div className="flex gap-6">
-            <span className="text-xs text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
-              Điều khoản sử dụng
-            </span>
-            <span className="text-xs text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
-              Chính sách bảo mật
-            </span>
-            <span className="text-xs text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
-              Liên hệ
-            </span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

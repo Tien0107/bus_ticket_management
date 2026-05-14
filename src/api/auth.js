@@ -10,6 +10,16 @@ export const signIn = (data) => {
   return axiosClient.post("/auth/sign-in", data);
 };
 
+// đăng nhập CUSTOMER bằng Google
+export const verifyCustomerGoogleToken = (data) => {
+  return axiosClient.post("/customer/google/verify-token", data);
+};
+
+// đăng nhập CUSTOMER bằng Facebook
+export const verifyCustomerFacebookToken = (data) => {
+  return axiosClient.post("/customer/facebook/verify-token", data);
+};
+
 // đăng xuất
 export const logout = () => {
   return axiosClient.post("/auth/logout");

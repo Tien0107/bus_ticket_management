@@ -18,6 +18,12 @@ export default function OperatorDashboard() {
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) setUser(JSON.parse(stored));
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) setUser(JSON.parse(stored));
+    } catch (e) {
+      console.error("Lỗi khi parse thông tin user:", e);
+    }
     fetchDashboardData();
   }, []);
 
@@ -61,7 +67,11 @@ export default function OperatorDashboard() {
     } catch (err) {
       console.error("Lỗi tải dashboard:", err);
       const errorMsg = err.response?.data?.message || "Lỗi tải dashboard.";
-      addToast(errorMsg, "error");
+      addToast({
+        type: "error",
+        title: "Không tải được tổng quan",
+        message: errorMsg,
+      });
     } finally {
       setLoading(false);
     }
@@ -84,7 +94,7 @@ export default function OperatorDashboard() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-extrabold text-on-surface tracking-tight mb-2">
-            Xin chào, {user?.fullName || "Điều hành viên"}! 👋
+            Xin chào, {user?.fullName || "Điều hành viên"}!
           </h1>
           <p className="text-on-surface-variant text-lg">Quản lý tuyến, trạm và lịch biểu chuyến</p>
         </div>

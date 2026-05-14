@@ -99,9 +99,9 @@ export default function DashboardLayout() {
                 <span className="material-symbols-outlined">group</span>
                 {sidebarOpen && <span>Nhân viên</span>}
               </Link>
-              <Link to="/company/schedules" className={getLinkClass("/company/schedules")}>
-                <span className="material-symbols-outlined">schedule</span>
-                {sidebarOpen && <span>Lịch biểu</span>}
+              <Link to="/company/payments" className={getLinkClass("/company/payments")}>
+                <span className="material-symbols-outlined">payments</span>
+                {sidebarOpen && <span>Thanh toán</span>}
               </Link>
               <Link to="/company/profile" className={getLinkClass("/company/profile")}>
                 <span className="material-symbols-outlined">person</span>

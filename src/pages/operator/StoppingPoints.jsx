@@ -1,15 +1,19 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { getStoppingPoints, createStoppingPoint, updateStoppingPoint } from "../../api/operator";
+import { useParams, useLocation } from "react-router-dom";
+import { getStoppingPoints, createStoppingPoint, updateStoppingPoint, getTripSchedules, getRoutes } from "../../api/operator";
 import { getStations } from "../../api/operator";
 import { useToast } from "../../context/ToastContext";
+import ActionIconButton from "./ActionIconButton";
 
 export default function StoppingPoints() {
   const { scheduleId } = useParams();
-  const { showToast } = useToast();
+  const location = useLocation();
+  const { addToast } = useToast();
 
   const [stoppingPoints, setStoppingPoints] = useState([]);
   const [stations, setStations] = useState([]);
+  const [routeId, setRouteId] = useState(null);
+  const [companyId, setCompanyId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
@@ -20,6 +24,20 @@ export default function StoppingPoints() {
   });
 
   useEffect(() => {
+    // Get companyId from localStorage safely
+    try {
+      const userStr = localStorage.getItem("user");
+      const user = userStr ? JSON.parse(userStr) : {};
+      const cid = user?.companyId || parseInt(localStorage.getItem("companyId")) || null;
+      console.log("👤 Current user companyId:", cid);
+      setCompanyId(cid);
+    } catch (e) {
+      console.warn("⚠️ Error reading companyId from localStorage:", e);
+      setCompanyId(null);
+    }
+  }, []);
+
+  useEffect(() => {
     if (scheduleId) {
       fetchData();
     }
@@ -28,14 +46,67 @@ export default function StoppingPoints() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [pointsRes, stationsRes] = await Promise.all([
+      const [pointsRes, stationsRes, schedulesRes, routesRes] = await Promise.all([
         getStoppingPoints(scheduleId),
         getStations({ limit: 100 }),
+        getTripSchedules({ limit: 100, orderBy: 'asc' }),
+        getRoutes({ limit: 100 }),
       ]);
       setStoppingPoints(pointsRes?.data?.stoppingPoints || []);
       setStations(stationsRes?.data?.stations || []);
+      
+      // Debug: Log API responses
+      console.log("📦 Stopping Points Response:", pointsRes?.data?.stoppingPoints);
+      console.log("🏢 Stations Response:", stationsRes?.data?.stations);
+      
+      // Debug: Log all available stations
+      console.log("📋 ALL STATIONS AVAILABLE:");
+      console.table(stationsRes?.data?.stations || []);
+      
+      // Find current schedule
+      const currentSchedule = schedulesRes?.data?.trip?.find(s => s.id === parseInt(scheduleId));
+      console.log("📅 Current Schedule #" + scheduleId + ":", currentSchedule);
+      
+      if (currentSchedule) {
+        const routes = routesRes?.data?.routes || [];
+        console.log("🚌 Available routes:", routes);
+        console.log("   Searching for: FROM [" + currentSchedule.fromLocation + "] TO [" + currentSchedule.toLocation + "]");
+        
+        // Try exact match first
+        let matchedRoute = routes.find(route => 
+          route.fromLocation === currentSchedule.fromLocation && 
+          route.toLocation === currentSchedule.toLocation
+        );
+        
+        // If no exact match, try case-insensitive
+        if (!matchedRoute) {
+          console.warn("⚠️ No exact match found. Trying case-insensitive...");
+          matchedRoute = routes.find(route => 
+            route.fromLocation?.toLowerCase() === currentSchedule.fromLocation?.toLowerCase() && 
+            route.toLocation?.toLowerCase() === currentSchedule.toLocation?.toLowerCase()
+          );
+        }
+        
+        if (matchedRoute) {
+          console.log("✅ Matched route ID:", matchedRoute.id, "From:", matchedRoute.fromLocation, "To:", matchedRoute.toLocation);
+          setRouteId(matchedRoute.id);
+        } else {
+          console.error("❌ NO MATCHING ROUTE! Cannot proceed.");
+          console.table(routes.map(r => ({ id: r.id, from: r.fromLocation, to: r.toLocation })));
+          addToast({
+            type: "error",
+            title: "Không tìm thấy tuyến phù hợp",
+            message: "Hãy tạo tuyến đường tương ứng trước khi thêm điểm dừng.",
+          });
+          setRouteId(null);
+        }
+      }
     } catch (error) {
-      showToast("Lỗi khi tải dữ liệu", "error");
+      addToast({
+        type: "error",
+        title: "Không tải được điểm dừng",
+        message: "Dữ liệu điểm dừng hoặc trạm chưa thể hiển thị.",
+      });
       console.error(error);
     } finally {
       setLoading(false);
@@ -44,34 +115,102 @@ export default function StoppingPoints() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("🔍 Form validation - stationId:", formData.stationId, "stopOrder:", formData.stopOrder);
+    console.log("📊 Stations available:", stations.length);
+    
     try {
       if (!formData.stationId || formData.stopOrder === "") {
-        showToast("Vui lòng điền đầy đủ thông tin", "error");
+        console.warn("⚠️ Form validation failed - missing stationId or stopOrder");
+        if (addToast && typeof addToast === "function") {
+          addToast({
+            type: "warning",
+            title: "Thiếu thông tin điểm dừng",
+            message: "Chọn trạm và nhập thứ tự dừng trước khi lưu.",
+          });
+        }
+        return;
+      }
+      
+      if (!routeId) {
+        console.error("❌ No valid routeId - cannot submit");
+        if (addToast && typeof addToast === "function") {
+          addToast({
+            type: "error",
+            title: "Chưa xác định được tuyến",
+            message: "Vui lòng kiểm tra lại lịch biểu đang chọn.",
+          });
+        }
         return;
       }
 
       const payload = {
-        stationId: parseInt(formData.stationId),
+        scheduleId: parseInt(scheduleId),
         allowPickup: formData.allowPickup,
         allowDropoff: formData.allowDropoff,
+        routeId: routeId,
         stopOrder: parseInt(formData.stopOrder),
-        scheduleId: parseInt(scheduleId),
-        routeId: 0,
+        stationId: parseInt(formData.stationId),
       };
 
+      console.log("📤 Final Payload (EXACTLY as per API Spec):", JSON.stringify(payload));
+      console.log("   Fields check - scheduleId:", payload.scheduleId, "routeId:", payload.routeId, "stationId:", payload.stationId);
+      
+      // Debug: Check if stationId exists in stations
+      const stationObj = stations.find(s => s.id === parseInt(formData.stationId));
+      console.log("🏢 Station object for ID " + formData.stationId + ":", stationObj);
+      
+      if (!stationObj) {
+        console.warn("⚠️ Station ID " + formData.stationId + " NOT FOUND in available stations!");
+        console.log("Available station IDs:", stations.map(s => s.id).join(", "));
+        if (addToast && typeof addToast === "function") {
+          addToast({
+            type: "warning",
+            title: "Trạm không tồn tại",
+            message: "Chọn một trạm khác trong danh sách hiện có.",
+          });
+        }
+        return;
+      }
+      
+      const routeObj = {id: routeId}; // We don't have routes in component scope, but log routeId
+      console.log("🛣️ Route ID:", routeId);
+
       if (editingId) {
-        await updateStoppingPoint(scheduleId, editingId, payload);
-        showToast("Cập nhật điểm dừng thành công", "success");
+        const updateRes = await updateStoppingPoint(scheduleId, editingId, payload);
+        console.log("✅ Update Response:", updateRes?.data);
+        if (addToast && typeof addToast === "function") {
+          addToast({
+            type: "success",
+            title: "Cập nhật điểm dừng thành công",
+          });
+        }
       } else {
-        await createStoppingPoint(scheduleId, payload);
-        showToast("Thêm điểm dừng thành công", "success");
+        const createRes = await createStoppingPoint(scheduleId, payload);
+        console.log("✅ Create Response:", createRes?.data);
+        if (addToast && typeof addToast === "function") {
+          addToast({
+            type: "success",
+            title: "Thêm điểm dừng thành công",
+          });
+        }
       }
 
       fetchData();
       resetForm();
     } catch (error) {
-      showToast(error?.response?.data?.message || "Lỗi khi lưu dữ liệu", "error");
-      console.error(error);
+      console.error("❌ Error response:", error?.response);
+      console.error("❌ Error data:", error?.response?.data);
+      console.error("❌ Error status:", error?.response?.status);
+      console.error("❌ Full error:", error);
+      if (addToast && typeof addToast === "function") {
+        addToast({
+          type: "error",
+          title: "Không lưu được điểm dừng",
+          message: error?.response?.data?.message || "Vui lòng kiểm tra thông tin điểm dừng và thử lại.",
+        });
+      } else {
+        console.error("❌ addToast is not a function:", typeof addToast);
+      }
     }
   };
 
@@ -86,7 +225,7 @@ export default function StoppingPoints() {
   };
 
   const handleEdit = (point) => {
-    setEditingId(point.stationId);
+    setEditingId(point.id);
     setFormData({
       stationId: point.stationId,
       allowPickup: point.allowPickup,
@@ -105,7 +244,7 @@ export default function StoppingPoints() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Quản lý Điểm Dừng (Lịch biểu #{scheduleId})</h1>
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">Quản lý Điểm Dừng</h1>
 
       {/* Form */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -210,7 +349,7 @@ export default function StoppingPoints() {
               </tr>
             ) : (
               stoppingPoints.map((point) => (
-                <tr key={point.stationId} className="border-b hover:bg-gray-50">
+                <tr key={point.id} className="border-b hover:bg-gray-50">
                   <td className="px-6 py-3 text-gray-900">{point.stopOrder}</td>
                   <td className="px-6 py-3 text-gray-900">{point.address}</td>
                   <td className="px-6 py-3 text-gray-900">{point.city}</td>
@@ -225,12 +364,13 @@ export default function StoppingPoints() {
                     </span>
                   </td>
                   <td className="px-6 py-3">
-                    <button
-                      onClick={() => handleEdit(point)}
-                      className="text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      Sửa
-                    </button>
+                    <div className="flex items-center gap-4">
+                      <ActionIconButton
+                        icon="edit_square"
+                        label="Sửa điểm dừng"
+                        onClick={() => handleEdit(point)}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))

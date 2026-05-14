@@ -83,6 +83,16 @@ export const updateTrip = (scheduleId, tripId, data) => {
   return axiosClient.put(`/operator-dispatcher/trip-schedule/${scheduleId}/trip/${tripId}`, data);
 };
 
+// ===== Vehicles =====
+export const getVehicles = (params = {}) => {
+  return axiosClient.get("/operator-dispatcher/vehicle", { params });
+};
+
+// ===== Drivers (Dispatcher view) =====
+export const getDrivers = (params = {}) => {
+  return axiosClient.get("/operator-dispatcher/driver", { params });
+};
+
 // ===== Dispatcher Sign-up =====
 export const operatorSignUp = (data) => {
   return axiosClient.post("/operator-dispatcher/sign-up", data);

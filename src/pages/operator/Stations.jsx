@@ -24,7 +24,11 @@ export default function Stations() {
       setStations(res.data?.stations || []);
     } catch (err) {
       console.error("❌ Lỗi tải trạm:", err);
-      addToast("Không thể tải danh sách trạm", "error");
+      addToast({
+        type: "error",
+        title: "Không tải được trạm",
+        message: "Danh sách trạm chưa thể hiển thị. Hãy thử lại sau.",
+      });
     } finally {
       setLoading(false);
     }
@@ -36,17 +40,27 @@ export default function Stations() {
       if (editingId) {
         // Note: API doesn't have PUT endpoint for stations, so just create new
         await createStation(formData);
-        addToast("Thêm trạm thành công", "success");
+        addToast({
+          type: "success",
+          title: "Cập nhật trạm thành công",
+        });
       } else {
         await createStation(formData);
-        addToast("Tạo trạm mới thành công", "success");
+        addToast({
+          type: "success",
+          title: "Tạo trạm thành công",
+        });
       }
       setFormData({ address: "", city: "" });
       setShowForm(false);
       setEditingId(null);
       fetchStations();
     } catch (err) {
-      addToast("Lỗi khi tạo trạm", "error");
+      addToast({
+        type: "error",
+        title: "Không lưu được trạm",
+        message: err?.response?.data?.message || "Vui lòng kiểm tra địa chỉ và thành phố.",
+      });
     }
   };
 
