@@ -60,7 +60,7 @@ const wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration
 
 const isCheckedInStatus = (status) => {
   const normalizedStatus = String(status || "").toLowerCase();
-  return ["checked_in", "checked-in", "checkedin"].includes(normalizedStatus);
+  return ["checked_in", "checked-in", "checkedin", "confirmed", "present"].includes(normalizedStatus);
 };
 
 const normalizeTrip = (trip = {}) => ({
@@ -80,20 +80,28 @@ const normalizePassengers = (rawPassengers) => {
   if (!Array.isArray(rawPassengers)) return [];
 
   return rawPassengers.map((passenger) => {
-    const rawStatus =
+    const checkInStatus =
+      passenger.checkInStatus ||
+      passenger.checkinStatus ||
+      passenger.check_in_status ||
       passenger.status ||
+      passenger.ticket?.checkInStatus ||
+      passenger.Ticket?.checkInStatus ||
+      "pending";
+    const ticketStatus =
+      passenger.ticketStatus ||
       passenger.ticket?.status ||
       passenger.Ticket?.status ||
       passenger.booking?.status ||
       passenger.Booking?.status ||
-      passenger.checkInStatus ||
-      passenger.ticketStatus ||
       "pending";
-    const normalizedRawStatus = String(rawStatus).toLowerCase();
+    const normalizedCheckInStatus = String(checkInStatus).toLowerCase();
+    const normalizedTicketStatus = String(ticketStatus).toLowerCase();
     const checkedIn =
       passenger.checkedIn ||
       passenger.isCheckedIn ||
-      isCheckedInStatus(normalizedRawStatus);
+      isCheckedInStatus(normalizedCheckInStatus) ||
+      isCheckedInStatus(normalizedTicketStatus);
 
     return {
       id: passenger.id || passenger.passengerId || passenger.ticketId,
@@ -103,8 +111,9 @@ const normalizePassengers = (rawPassengers) => {
       seat: passenger.seat || passenger.seatNumber || passenger.seatCode || "N/A",
       pickupPoint: passenger.pickup || passenger.pickupPoint || passenger.pickupStation || passenger.fromStation || "Chưa có điểm lên",
       dropoffPoint: passenger.dropoff || passenger.dropoffPoint || passenger.dropoffStation || passenger.toStation || "Chưa có điểm xuống",
-      rawStatus,
-      status: checkedIn ? "checked_in" : normalizedRawStatus === "no_show" ? "no_show" : "pending",
+      rawStatus: checkInStatus,
+      ticketStatus,
+      status: checkedIn ? "checked_in" : normalizedCheckInStatus === "no_show" ? "no_show" : "pending",
     };
   });
 };
@@ -151,7 +160,7 @@ export default function TripDetail() {
   const [selectedPassengerId, setSelectedPassengerId] = useState(null);
   const [updating, setUpdating] = useState(false);
 
-  const fetchTripDetails = useCallback(async ({ silent = false } = {}) => {
+  const fetchTripDetails = useCallback(async ({ silent = false, apply = true } = {}) => {
     try {
       if (!silent) setLoading(true);
 
@@ -167,7 +176,7 @@ export default function TripDetail() {
       ]);
 
       if (!tripData) {
-        setError("Không tìm thấy chuyến");
+        if (apply) setError("Không tìm thấy chuyến");
         return [];
       }
 
@@ -177,18 +186,25 @@ export default function TripDetail() {
         ? passengersRes.data
         : [];
 
+      console.log("📥 Raw passenger data from API:", rawPassengers);
+
       const rawRoute = routeRes.data?.route || routeRes.data?.stops || routeRes.data || [];
 
-      setTrip(normalizeTrip(tripData));
       const normalizedPassengers = normalizePassengers(rawPassengers);
 
-      setPassengers(normalizedPassengers);
-      setRoute(normalizeRoute(rawRoute));
-      setError(null);
+      console.log("✨ Final normalized passengers:", normalizedPassengers);
+
+      if (apply) {
+        setTrip(normalizeTrip(tripData));
+        setPassengers(normalizedPassengers);
+        setRoute(normalizeRoute(rawRoute));
+        setError(null);
+      }
+
       return normalizedPassengers;
     } catch (err) {
       console.error("Lỗi tải chi tiết chuyến:", err);
-      setError("Không thể tải chi tiết chuyến");
+      if (apply) setError("Không thể tải chi tiết chuyến");
       return [];
     } finally {
       if (!silent) setLoading(false);
@@ -237,31 +253,31 @@ export default function TripDetail() {
 
     if (!checkedPassengerId) return false;
 
-    if (!isCheckedInStatus(ticket?.status)) {
-      addToast("Backend chưa trả trạng thái check-in", "error");
-      return false;
+    setPassengers((currentPassengers) =>
+      currentPassengers.map((passenger) =>
+        Number(passenger.id) === Number(checkedPassengerId)
+          ? { ...passenger, rawStatus: "checked_in", ticketStatus: ticket?.status || passenger.ticketStatus, status: "checked_in" }
+          : passenger
+      )
+    );
+
+    addToast("Check-in thành công", "success");
+    setShowCheckInPanel(false);
+    setSelectedPassengerId(null);
+
+    await wait(500);
+    const refreshedPassengers = await fetchTripDetails({ silent: true, apply: false });
+    const refreshedPassenger = refreshedPassengers.find(
+      (passenger) => Number(passenger.id) === Number(checkedPassengerId)
+    );
+
+    if (refreshedPassenger?.status === "checked_in") {
+      await fetchTripDetails({ silent: true });
+    } else {
+      console.warn("Passenger API chưa trả trạng thái checked_in sau khi PUT check-in thành công.");
     }
 
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      if (attempt > 0) {
-        await wait(500);
-      }
-
-      const refreshedPassengers = await fetchTripDetails({ silent: true });
-      const refreshedPassenger = refreshedPassengers.find(
-        (passenger) => Number(passenger.id) === Number(checkedPassengerId)
-      );
-
-      if (refreshedPassenger?.status === "checked_in") {
-        addToast("Check-in thành công", "success");
-        setShowCheckInPanel(false);
-        setSelectedPassengerId(null);
-        return true;
-      }
-    }
-
-    addToast("Backend chưa cập nhật trạng thái check-in", "error");
-    return false;
+    return true;
   };
 
   const checkedInCount = useMemo(

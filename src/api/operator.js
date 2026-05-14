@@ -59,8 +59,8 @@ export const deleteTripSchedule = (scheduleId) => {
 };
 
 // ===== Stopping Points =====
-export const getStoppingPoints = (scheduleId) => {
-  return axiosClient.get(`/operator-dispatcher/trip-schedule/${scheduleId}/stopping-point`);
+export const getStoppingPoints = (scheduleId, params = {}) => {
+  return axiosClient.get(`/operator-dispatcher/trip-schedule/${scheduleId}/stopping-point`, { params });
 };
 
 export const createStoppingPoint = (scheduleId, data) => {

@@ -1,227 +1,147 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getRoutes, getStations, getTripSchedules, getTripPrices } from "../../api/operator";
+import { getDrivers, getRoutes, getStations, getTripPrices, getTripSchedules, getVehicles } from "../../api/operator";
 import { useToast } from "../../context/ToastContext";
+import { ErrorState, LoadingState, OperatorPageShell, StatCard } from "./OperatorUI";
+
+const quickLinks = [
+  {
+    to: "/operator/routes",
+    icon: "route",
+    title: "Tuyến đường",
+    description: "Tạo và cập nhật tuyến khai thác.",
+  },
+  {
+    to: "/operator/stations",
+    icon: "pin_drop",
+    title: "Trạm",
+    description: "Tạo trạm đón trả theo địa chỉ và thành phố.",
+  },
+  {
+    to: "/operator/prices",
+    icon: "local_offer",
+    title: "Bảng giá",
+    description: "Quản lý giá vé theo tuyến và trạm.",
+  },
+  {
+    to: "/operator/schedules",
+    icon: "calendar_month",
+    title: "Lịch biểu",
+    description: "Tạo lịch chạy, điểm dừng và chuyến.",
+  },
+];
 
 export default function OperatorDashboard() {
   const { addToast } = useToast();
-
   const [user, setUser] = useState(null);
   const [data, setData] = useState({
-    routes: 0,
-    stations: 0,
-    schedules: 0,
-    priceTemplates: 0,
+    routes: [],
+    stations: [],
+    schedules: [],
+    prices: [],
+    drivers: [],
+    vehicles: [],
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
     try {
       const stored = localStorage.getItem("user");
-      if (stored) setUser(JSON.parse(stored));
-    } catch (e) {
-      console.error("Lỗi khi parse thông tin user:", e);
+      setUser(stored ? JSON.parse(stored) : null);
+    } catch (err) {
+      console.error("Lỗi đọc thông tin người dùng:", err);
     }
     fetchDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-
-      const results = await Promise.allSettled([
+      const [routesRes, stationsRes, schedulesRes, pricesRes, driversRes, vehiclesRes] = await Promise.allSettled([
         getRoutes({ limit: 100 }),
         getStations({ limit: 100 }),
-        getTripSchedules({ limit: 100, orderBy: 'asc' }),
+        getTripSchedules({ limit: 100, orderBy: "asc" }),
         getTripPrices({ limit: 100 }),
+        getDrivers({ limit: 100, status: "active" }),
+        getVehicles({ limit: 100, status: "active" }),
       ]);
 
-      const [routesRes, stationsRes, schedulesRes, pricesRes] = results;
-
-      const routes = routesRes.status === "fulfilled" ? routesRes.value.data?.routes?.length || 0 : 0;
-      const stations = stationsRes.status === "fulfilled" ? stationsRes.value.data?.stations?.length || 0 : 0;
-      const schedules = schedulesRes.status === "fulfilled" ? schedulesRes.value.data?.trip?.length || 0 : 0;
-      const prices = pricesRes.status === "fulfilled" ? pricesRes.value.data?.prices?.length || 0 : 0;
-
       setData({
-        routes,
-        stations,
-        schedules,
-        priceTemplates: prices,
+        routes: routesRes.status === "fulfilled" ? routesRes.value.data?.routes || [] : [],
+        stations: stationsRes.status === "fulfilled" ? stationsRes.value.data?.stations || [] : [],
+        schedules: schedulesRes.status === "fulfilled" ? schedulesRes.value.data?.trip || [] : [],
+        prices: pricesRes.status === "fulfilled" ? pricesRes.value.data?.prices || [] : [],
+        drivers: driversRes.status === "fulfilled" ? driversRes.value.data?.drivers || [] : [],
+        vehicles: vehiclesRes.status === "fulfilled" ? vehiclesRes.value.data?.vehicles || [] : [],
       });
-
-      if (routesRes.status === "rejected") {
-        console.warn("⚠️ Lỗi tải danh sách tuyến:", routesRes.reason);
-      }
-      if (stationsRes.status === "rejected") {
-        console.warn("⚠️ Lỗi tải danh sách trạm:", stationsRes.reason);
-      }
-      if (schedulesRes.status === "rejected") {
-        console.warn("⚠️ Lỗi tải danh sách lịch biểu:", schedulesRes.reason);
-      }
-      if (pricesRes.status === "rejected") {
-        console.warn("⚠️ Lỗi tải bảng giá:", pricesRes.reason);
-      }
+      setError("");
     } catch (err) {
-      console.error("Lỗi tải dashboard:", err);
-      const errorMsg = err.response?.data?.message || "Lỗi tải dashboard.";
-      addToast({
-        type: "error",
-        title: "Không tải được tổng quan",
-        message: errorMsg,
-      });
+      console.error("Lỗi tải tổng quan điều hành:", err);
+      const message = err.response?.data?.message || "Không thể tải dữ liệu tổng quan.";
+      setError(message);
+      addToast({ type: "error", title: "Không tải được tổng quan", message });
     } finally {
       setLoading(false);
     }
   };
 
+  const stats = useMemo(() => [
+    { icon: "route", label: "Tuyến đường", value: data.routes.length, tone: "primary" },
+    { icon: "pin_drop", label: "Trạm", value: data.stations.length, tone: "blue" },
+    { icon: "calendar_month", label: "Lịch biểu", value: data.schedules.length, tone: "amber" },
+    { icon: "local_offer", label: "Bảng giá", value: data.prices.length, tone: "emerald" },
+    { icon: "badge", label: "Tài xế sẵn sàng", value: data.drivers.length, tone: "slate" },
+    { icon: "directions_bus", label: "Xe hoạt động", value: data.vehicles.length, tone: "violet" },
+  ], [data]);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface p-6 lg:p-8 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-          <p className="text-on-surface-variant mt-4">Đang tải...</p>
-        </div>
-      </div>
+      <OperatorPageShell title="Tổng quan điều hành" description="Đang tải dữ liệu vận hành.">
+        <LoadingState />
+      </OperatorPageShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-surface p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-on-surface tracking-tight mb-2">
-            Xin chào, {user?.fullName || "Điều hành viên"}!
-          </h1>
-          <p className="text-on-surface-variant text-lg">Quản lý tuyến, trạm và lịch biểu chuyến</p>
-        </div>
+    <OperatorPageShell
+      eyebrow="Dispatcher"
+      title={`Xin chào, ${user?.fullName || "điều hành viên"}`}
+      description="Tổng quan tuyến, trạm, lịch biểu, giá vé và nguồn lực đang sẵn sàng."
+    >
+      {error && <div className="mb-6"><ErrorState message={error} /></div>}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-on-surface-variant text-sm font-medium mb-1">Tuyến đường</p>
-                <p className="text-4xl font-bold text-primary">{data.routes}</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-primary-container">
-                route
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-on-surface-variant text-sm font-medium mb-1">Trạm dừng</p>
-                <p className="text-4xl font-bold text-primary">{data.stations}</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-primary-container">
-                location_on
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-on-surface-variant text-sm font-medium mb-1">Lịch biểu</p>
-                <p className="text-4xl font-bold text-primary">{data.schedules}</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-primary-container">
-                schedule
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-on-surface-variant text-sm font-medium mb-1">Bảng giá</p>
-                <p className="text-4xl font-bold text-primary">{data.priceTemplates}</p>
-              </div>
-              <span className="material-symbols-outlined text-5xl text-primary-container">
-                local_offer
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <Link
-            to="/operator/routes"
-            className="bg-gradient-to-br from-primary to-primary-container text-white rounded-2xl p-6 hover:shadow-editorial transition-shadow cursor-pointer"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold mb-1">Quản lý tuyến đường</h3>
-                <p className="opacity-90 text-sm">{data.routes} tuyến</p>
-              </div>
-              <span className="material-symbols-outlined text-4xl opacity-50">route</span>
-            </div>
-          </Link>
-
-          <Link
-            to="/operator/schedules"
-            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-shadow"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-on-surface mb-1">Lịch biểu chuyến</h3>
-                <p className="text-on-surface-variant text-sm">{data.schedules} lịch biểu</p>
-              </div>
-              <span className="material-symbols-outlined text-3xl text-primary">schedule</span>
-            </div>
-          </Link>
-        </div>
-
-        {/* Navigation Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link
-            to="/operator/routes"
-            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-all text-center"
-          >
-            <span className="material-symbols-outlined text-4xl text-primary block mb-3">
-              route
-            </span>
-            <p className="font-bold text-on-surface text-sm">Tuyến đường</p>
-          </Link>
-
-          <Link
-            to="/operator/stations"
-            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-all text-center"
-          >
-            <span className="material-symbols-outlined text-4xl text-primary block mb-3">
-              location_on
-            </span>
-            <p className="font-bold text-on-surface text-sm">Trạm dừng</p>
-          </Link>
-
-          <Link
-            to="/operator/prices"
-            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-all text-center"
-          >
-            <span className="material-symbols-outlined text-4xl text-primary block mb-3">
-              local_offer
-            </span>
-            <p className="font-bold text-on-surface text-sm">Bảng giá</p>
-          </Link>
-
-          <Link
-            to="/operator/schedules"
-            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-editorial transition-all text-center"
-          >
-            <span className="material-symbols-outlined text-4xl text-primary block mb-3">
-              schedule
-            </span>
-            <p className="font-bold text-on-surface text-sm">Lịch biểu</p>
-          </Link>
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        {stats.map((stat) => (
+          <StatCard key={stat.label} {...stat} />
+        ))}
       </div>
-    </div>
+
+      <section className="mt-6 rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-on-surface">Khu vực điều hành</h2>
+            <p className="mt-1 text-sm text-on-surface-variant">Các phần vận hành thường dùng trong ca điều phối.</p>
+          </div>
+          <span className="material-symbols-outlined text-primary">apps</span>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {quickLinks.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="group rounded-xl border border-outline-variant/30 p-4 transition-all hover:border-primary/50 hover:bg-primary/5"
+            >
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
+              </div>
+              <h3 className="font-bold text-on-surface group-hover:text-primary">{item.title}</h3>
+              <p className="mt-1 text-sm leading-6 text-on-surface-variant">{item.description}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </OperatorPageShell>
   );
 }
