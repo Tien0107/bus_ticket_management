@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { signIn, verifyCustomerFacebookToken, verifyCustomerGoogleToken } from "../api/auth";
+import { signIn, verifyAuthFacebookToken, verifyAuthGoogleToken } from "../api/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { jwtDecode } from "jwt-decode";
@@ -38,27 +38,150 @@ const loadScript = (src, id) => {
 };
 
 const getRedirectUrl = (user) => {
-  if (user.role === "driver") {
+  const role = normalizeRole(user?.role);
+  const staffRole = normalizeStaffProfileRole(user?.staffProfileRole);
+  const companyAdminRoles = new Set(["company_admin", "operator_admin", "admin"]);
+  const dispatcherRoles = new Set(["dispatcher", "operator_dispatcher"]);
+  const supportRoles = new Set(["support", "company_support", "operator_support"]);
+
+  if (role === "driver") {
     return "/driver/dashboard";
   }
 
-  if (user.role === "operator") {
-    if (user.staffProfileRole === "company_admin") {
+  if (role === "operator") {
+    if (companyAdminRoles.has(staffRole)) {
       return "/company/dashboard";
     }
 
-    return "/operator/dashboard";
+    if (supportRoles.has(staffRole)) {
+      return "/company-support/tickets";
+    }
+
+    if (dispatcherRoles.has(staffRole)) {
+      return "/operator/dashboard";
+    }
+
+    return "/company/dashboard";
   }
 
-  if (user.role === "admin") {
-    return user.staffProfileRole === "support" ? "/company-support/tickets" : "/company/dashboard";
+  if (role === "admin") {
+    return staffRole === "support" ? "/company-support/tickets" : "/company/dashboard";
   }
 
-  if (user.role === "super_admin" || user.role === "superadmin") {
+  if (role === "super_admin" || role === "superadmin") {
     return "/super-admin/dashboard";
   }
 
   return "/";
+};
+
+const firstValue = (...values) => values.find((value) => value !== undefined && value !== null && value !== "");
+
+const getField = (source, keys) => {
+  if (!source || typeof source !== "object") return undefined;
+
+  for (const key of keys) {
+    if (source[key] !== undefined && source[key] !== null && source[key] !== "") {
+      return source[key];
+    }
+  }
+
+  const entries = Object.entries(source);
+  for (const key of keys) {
+    const matchedEntry = entries.find(([entryKey, entryValue]) => (
+      entryKey.toLowerCase() === key.toLowerCase()
+      && entryValue !== undefined
+      && entryValue !== null
+      && entryValue !== ""
+    ));
+
+    if (matchedEntry) {
+      return matchedEntry[1];
+    }
+  }
+
+  return undefined;
+};
+
+const toAuthString = (value) => {
+  if (value && typeof value === "object") {
+    return toAuthString(firstValue(value.name, value.code, value.value, value.role));
+  }
+
+  return value === undefined || value === null ? "" : String(value).trim();
+};
+
+const normalizeRole = (value) => toAuthString(value).replace(/[\s-]+/g, "_").toLowerCase();
+
+const normalizeStaffProfileRole = (value) => {
+  const normalized = normalizeRole(value);
+
+  const aliases = {
+    admin: "company_admin",
+    companyadmin: "company_admin",
+    company_admin: "company_admin",
+    operator_admin: "company_admin",
+    operatoradmin: "company_admin",
+    dispatcher: "dispatcher",
+    operator_dispatcher: "dispatcher",
+    operatordispatcher: "dispatcher",
+    support: "support",
+    company_support: "support",
+    operator_support: "support",
+    company_admin_support: "support",
+  };
+
+  return aliases[normalized] || normalized;
+};
+
+const getRoleValue = (source) =>
+  firstValue(
+    getField(source, ["role", "userRole", "accountRole"]),
+    getField(source?.user, ["role", "userRole", "accountRole"]),
+    getField(source?.data, ["role", "userRole", "accountRole"]),
+    getField(source?.account, ["role", "userRole", "accountRole"])
+  );
+
+const getStaffProfileRoleValue = (source) =>
+  firstValue(
+    getField(source, [
+      "staffProfileRole",
+      "staff_profile_role",
+      "staffRole",
+      "profileRole",
+      "roleProfile",
+      "operatorRole",
+      "operatorProfileRole",
+    ]),
+    getField(source?.staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+    getField(source?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+    getField(source?.operatorProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+    getField(source?.operator_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+    getField(source?.user, ["staffProfileRole", "staff_profile_role", "staffRole", "profileRole", "roleProfile"]),
+    getField(source?.user?.staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+    getField(source?.user?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+    getField(source?.data, ["staffProfileRole", "staff_profile_role", "staffRole", "profileRole", "roleProfile"]),
+    getField(source?.data?.user, ["staffProfileRole", "staff_profile_role", "staffRole", "profileRole", "roleProfile"]),
+    getField(source?.data?.user?.staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+    getField(source?.data?.user?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"])
+  );
+
+const mergeAuthClaims = (user, source) => {
+  if (!source || typeof source !== "object") return user;
+
+  const role = getRoleValue(source);
+  const staffProfileRole = getStaffProfileRoleValue(source);
+
+  if (role) user.role = normalizeRole(role);
+  if (staffProfileRole) user.staffProfileRole = normalizeStaffProfileRole(staffProfileRole);
+  if (source.companyId !== undefined) user.companyId = source.companyId;
+  if (source.company_id !== undefined) user.companyId = source.company_id;
+  if (source.email && !user.email) user.email = source.email;
+  if (source.phone && !user.phone) user.phone = source.phone;
+  if (source.fullName && !user.fullName) user.fullName = source.fullName;
+  if (source.full_name && !user.fullName) user.fullName = source.full_name;
+
+  return user;
 };
 
 function Login() {
@@ -77,29 +200,54 @@ function Login() {
     console.log("Facebook App ID:", FACEBOOK_APP_ID);
   }, []);
 
-  const completeLogin = useCallback((data, successMessage = "Đăng nhập thành công") => {
-    const token = data?.token || data?.accessToken;
-    let user = data?.user || data?.data || { role: "customer" };
+  const completeLogin = useCallback(async (data, successMessage = "Đăng nhập thành công") => {
+    const token = firstValue(data?.token, data?.accessToken, data?.data?.token, data?.data?.accessToken);
+    const userPayload = firstValue(data?.user, data?.data?.user, data?.profile, data?.data?.profile);
+    let user = userPayload && typeof userPayload === "object" ? { ...userPayload } : {};
 
     if (!token) {
       throw new Error("Backend không trả về token. Kiểm tra API.");
     }
 
     if (!user || typeof user !== "object") {
-      user = { role: "customer" };
+      user = {};
     }
+
+    try {
+      const decoded = jwtDecode(token);
+      [
+        decoded,
+        decoded?.user,
+        decoded?.data,
+        decoded?.data?.user,
+        decoded?.staffProfile,
+        decoded?.staff_profile,
+      ].forEach((source) => {
+        user = mergeAuthClaims(user, source);
+      });
+      user = mergeAuthClaims(user, decoded);
+    } catch (decodeError) {
+      console.warn("Không thể decode token:", decodeError);
+    }
+
+    [
+      user,
+      data,
+      data?.user,
+      data?.data,
+      data?.data?.user,
+      data?.profile,
+      data?.data?.profile,
+    ].forEach((source) => {
+      user = mergeAuthClaims(user, source);
+    });
 
     if (!user.role) {
       user.role = "customer";
     }
 
-    try {
-      const decoded = jwtDecode(token);
-      if (decoded?.companyId) {
-        user.companyId = decoded.companyId;
-      }
-    } catch (decodeError) {
-      console.warn("Không thể decode token:", decodeError);
+    if (normalizeRole(user.role) === "operator" && !user.staffProfileRole) {
+      throw new Error("Backend chưa trả staffProfileRole cho tài khoản operator.");
     }
 
     localStorage.setItem("token", token);
@@ -124,8 +272,8 @@ function Login() {
     setSocialLoading("google");
 
     try {
-      const res = await verifyCustomerGoogleToken({ idToken: response.credential });
-      completeLogin(res.data, "Đăng nhập Google thành công");
+      const res = await verifyAuthGoogleToken({ idToken: response.credential });
+      await completeLogin(res.data, "Đăng nhập Google thành công");
     } catch (err) {
       console.error("Google login error:", err);
       const errorMsg = err.response?.data?.message || err.message || "Đăng nhập Google thất bại";
@@ -240,12 +388,12 @@ function Login() {
       }
 
       const { accessToken, signedRequest } = loginResponse.authResponse;
-      const res = await verifyCustomerFacebookToken({
+      const res = await verifyAuthFacebookToken({
         accessToken,
         idToken: loginResponse.authResponse.idToken || signedRequest || "",
       });
 
-      completeLogin(res.data, "Đăng nhập Facebook thành công");
+      await completeLogin(res.data, "Đăng nhập Facebook thành công");
     } catch (err) {
       console.error("Facebook login error:", err);
       const errorMsg = err.response?.data?.message || err.message || "Đăng nhập Facebook thất bại";
@@ -265,7 +413,7 @@ function Login() {
       const res = await signIn({ email, password });
       console.log("Login response:", res.data); // Debug
       console.log("User object:", res.data?.user); // Debug user
-      completeLogin(res.data);
+      await completeLogin(res.data);
     } catch (err) {
       console.error("Login error:", err); // Debug
       const errorMsg = err.response?.data?.message || err.message || "Đăng nhập thất bại";

@@ -7,6 +7,11 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const role = String(user?.role || "").replace(/[\s-]+/g, "_").toLowerCase();
+  const staffProfileRole = String(user?.staffProfileRole || "").replace(/[\s-]+/g, "_").toLowerCase();
+  const isCompanyAdmin = role === "admin" || (role === "operator" && ["company_admin", "operator_admin", "admin"].includes(staffProfileRole));
+  const isDispatcher = role === "operator" && ["dispatcher", "operator_dispatcher"].includes(staffProfileRole);
+
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) {
@@ -62,12 +67,12 @@ export default function DashboardLayout() {
 
           <div className="my-4">
             <div className={`text-xs font-bold uppercase transition-all ${sidebarOpen ? "px-4 py-2" : "px-2"}`}>
-              {sidebarOpen ? user?.role === "driver" ? "Tài xế" : (user?.role === "admin" || (user?.role === "operator" && user?.staffProfileRole === "company_admin")) ? "Công ty" : user?.role === "operator" && user?.staffProfileRole === "dispatcher" ? "Điều hành" : "Quản trị" : ""}
+              {sidebarOpen ? role === "driver" ? "Tài xế" : isCompanyAdmin ? "Công ty" : isDispatcher ? "Điều hành" : "Quản trị" : ""}
             </div>
           </div>
 
           {/* Driver Menu */}
-          {user?.role === "driver" && (
+          {role === "driver" && (
             <>
               <Link to="/driver/dashboard" className={getLinkClass("/driver/dashboard")}>
                 <span className="material-symbols-outlined">dashboard</span>
@@ -81,7 +86,7 @@ export default function DashboardLayout() {
           )}
 
           {/* Company Menu */}
-          {(user?.role === "admin" || (user?.role === "operator" && user?.staffProfileRole === "company_admin")) && (
+          {isCompanyAdmin && (
             <>
               <Link to="/company/dashboard" className={getLinkClass("/company/dashboard")}>
                 <span className="material-symbols-outlined">dashboard</span>
@@ -111,7 +116,7 @@ export default function DashboardLayout() {
           )}
 
           {/* Operator Menu */}
-          {user?.role === "operator" && user?.staffProfileRole === "dispatcher" && (
+          {isDispatcher && (
             <>
               <Link to="/operator/dashboard" className={getLinkClass("/operator/dashboard")}>
                 <span className="material-symbols-outlined">dashboard</span>
@@ -137,7 +142,7 @@ export default function DashboardLayout() {
           )}
 
           {/* Super Admin Menu */}
-          {(user?.role === "super_admin" || user?.role === "superadmin") && (
+          {(role === "super_admin" || role === "superadmin") && (
             <>
               <Link to="/super-admin/dashboard" className={getLinkClass("/super-admin/dashboard")}>
                 <span className="material-symbols-outlined">dashboard</span>
