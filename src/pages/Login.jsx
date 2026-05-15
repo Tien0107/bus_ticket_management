@@ -197,6 +197,16 @@ function Login() {
   const [googleRenderKey, setGoogleRenderKey] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
 
+  const logGoogleClick = useCallback((source) => {
+    console.log("Google login clicked:", {
+      source,
+      googleReady,
+      hasGoogleSdk: !!window.google?.accounts?.id,
+      currentOrigin: window.location.origin,
+      clientId: GOOGLE_CLIENT_ID,
+    });
+  }, [googleReady]);
+
   useEffect(() => {
     console.log("Facebook App ID:", FACEBOOK_APP_ID);
   }, []);
@@ -263,6 +273,12 @@ function Login() {
   }, [addToast, navigate]);
 
   const handleGoogleCredential = useCallback(async (response) => {
+    console.log("Google credential callback:", {
+      hasCredential: !!response?.credential,
+      selectBy: response?.select_by,
+      clientId: response?.clientId,
+    });
+
     if (!response?.credential) {
       setError("Không nhận được Google ID token.");
       addToast("Đăng nhập Google thất bại", "error");
@@ -290,10 +306,19 @@ function Login() {
 
     const initGoogleLogin = async () => {
       try {
+        console.log("Google SDK init start:", {
+          origin: window.location.origin,
+          clientId: GOOGLE_CLIENT_ID,
+        });
         setGoogleReady(false);
         await loadScript("https://accounts.google.com/gsi/client?hl=vi", "google-identity-services");
 
         if (!mounted || !window.google?.accounts?.id || !googleButtonRef.current) {
+          console.warn("Google SDK init skipped:", {
+            mounted,
+            hasGoogleSdk: !!window.google?.accounts?.id,
+            hasButtonRef: !!googleButtonRef.current,
+          });
           return;
         }
 
@@ -313,6 +338,7 @@ function Login() {
         });
 
         setGoogleReady(true);
+        console.log("Google SDK render ready");
       } catch (err) {
         console.error("Google SDK load error:", err);
         setGoogleReady(false);
@@ -599,7 +625,10 @@ function Login() {
                 {!googleReady && (
                   <button
                     type="button"
-                    onClick={() => setGoogleRenderKey((key) => key + 1)}
+                    onClick={() => {
+                      logGoogleClick("fallback-render-button");
+                      setGoogleRenderKey((key) => key + 1);
+                    }}
                     className="absolute inset-0 z-10 rounded-xl"
                     aria-label="Đăng nhập bằng Google"
                     title="Google"
@@ -607,6 +636,7 @@ function Login() {
                 )}
                 <div
                   ref={googleButtonRef}
+                  onClickCapture={() => logGoogleClick("google-official-overlay")}
                   className={`auth-google-render absolute inset-0 z-20 flex h-full w-full items-center justify-center rounded-xl opacity-0 ${googleReady ? "" : "pointer-events-none"}`}
                 />
               </div>
