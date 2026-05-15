@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { logout } from "../../api/auth";
 import NotificationBell from "../common/NotificationBell";
+import ChatWidget from "../chat/ChatWidget";
 
 export default function DashboardLayout() {
   const [user, setUser] = useState(null);
@@ -40,6 +41,8 @@ export default function DashboardLayout() {
       ? `${baseClass} bg-primary text-white`
       : `${baseClass} text-on-surface-variant hover:bg-surface-container-high`;
   };
+
+  const showChatWidget = role === "driver" || isCompanyAdmin || isDispatcher;
 
   return (
     <div className="flex min-h-screen bg-surface">
@@ -188,6 +191,7 @@ export default function DashboardLayout() {
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>
+      {showChatWidget && <ChatWidget />}
     </div>
   );
 }

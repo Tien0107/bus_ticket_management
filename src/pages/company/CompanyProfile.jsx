@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCompanyInfo, updateCompanyInfo } from "../../api/company";
+import {
+  getAdminCompanyUploadPresigned,
+  getCompanyInfo,
+  updateCompanyInfo,
+  uploadAdminCompanyFile,
+} from "../../api/company";
 import { useToast } from "../../context/ToastContext";
 import {
   CompanyPageShell,
@@ -59,6 +64,18 @@ const buildCompanyPayload = (formData) => {
   return payload;
 };
 
+const isAcceptedFileType = (file, acceptedMimeTypes = []) => {
+  if (!acceptedMimeTypes.length) return true;
+
+  return acceptedMimeTypes.some((mimeType) => {
+    if (mimeType.endsWith("/*")) {
+      return file.type.startsWith(mimeType.replace("/*", "/"));
+    }
+
+    return file.type === mimeType;
+  });
+};
+
 export default function CompanyProfile() {
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -69,6 +86,7 @@ export default function CompanyProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -95,6 +113,44 @@ export default function CompanyProfile() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleLogoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    try {
+      setUploadingLogo(true);
+
+      const presignedResponse = await getAdminCompanyUploadPresigned();
+      const uploadConfig = presignedResponse.data || {};
+      const acceptedMimeTypes = uploadConfig.acceptedMimeTypes || [];
+
+      if (!isAcceptedFileType(file, acceptedMimeTypes)) {
+        addToast(
+          `Định dạng ảnh không hợp lệ. Chỉ hỗ trợ ${uploadConfig.allowedFormats || acceptedMimeTypes.join(", ")}.`,
+          "error"
+        );
+        return;
+      }
+
+      const uploadResult = await uploadAdminCompanyFile(file, uploadConfig);
+      const uploadedUrl = uploadResult.secure_url || uploadResult.url;
+
+      if (!uploadedUrl) {
+        throw new Error("Upload thành công nhưng không nhận được URL ảnh.");
+      }
+
+      setFormData((current) => ({ ...current, logoUrl: uploadedUrl }));
+      addToast("Upload logo thành công. Bấm lưu để cập nhật hồ sơ.", "success");
+    } catch (err) {
+      console.error("Lỗi upload logo công ty:", err);
+      addToast(err.message || "Upload logo thất bại", "error");
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
   const handleSave = async () => {
@@ -144,6 +200,8 @@ export default function CompanyProfile() {
     );
   }
 
+  const logoPreviewUrl = isEditing ? formData.logoUrl : profile.logoUrl;
+
   return (
     <CompanyPageShell
       eyebrow="Profile"
@@ -166,9 +224,9 @@ export default function CompanyProfile() {
           <div className="border-b border-outline-variant/20 p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
-                {profile.logoUrl ? (
+                {logoPreviewUrl ? (
                   <img
-                    src={profile.logoUrl}
+                    src={logoPreviewUrl}
                     alt={profile.name || "Logo công ty"}
                     className="h-14 w-14 rounded-xl border border-outline-variant/30 object-cover"
                   />
@@ -211,15 +269,53 @@ export default function CompanyProfile() {
                     placeholder="0901234567"
                   />
                 </Field>
-                <Field label="Logo URL">
-                  <input
-                    type="url"
-                    name="logoUrl"
-                    value={formData.logoUrl || ""}
-                    onChange={handleChange}
-                    className={inputClass}
-                    placeholder="https://..."
-                  />
+                <Field label="Logo công ty">
+                  <div className="rounded-xl border border-outline-variant/40 bg-white p-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      {formData.logoUrl ? (
+                        <img
+                          src={formData.logoUrl}
+                          alt={formData.name || "Logo công ty"}
+                          className="h-20 w-20 rounded-xl border border-outline-variant/30 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <span className="material-symbols-outlined text-[34px]">image</span>
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap gap-3">
+                          <label className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-4 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low ${uploadingLogo ? "pointer-events-none opacity-60" : ""}`}>
+                            <span className="material-symbols-outlined text-[20px]">
+                              {uploadingLogo ? "sync" : "upload"}
+                            </span>
+                            {uploadingLogo ? "Đang upload..." : "Chọn ảnh"}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleLogoUpload}
+                              disabled={uploadingLogo || saving}
+                            />
+                          </label>
+                          {formData.logoUrl && (
+                            <SecondaryButton
+                              icon="delete"
+                              onClick={() => setFormData((current) => ({ ...current, logoUrl: "" }))}
+                              disabled={uploadingLogo || saving}
+                            >
+                              Xóa ảnh
+                            </SecondaryButton>
+                          )}
+                        </div>
+                        {formData.logoUrl && (
+                          <p className="mt-3 truncate text-xs font-medium text-on-surface-variant">
+                            {formData.logoUrl}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </Field>
                 <Field label="Địa chỉ">
                   <input
