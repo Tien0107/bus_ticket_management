@@ -407,6 +407,15 @@ export default function MyTickets() {
                                  );
                                }
 
+                               if (t.isReviewed || t.hasRating) {
+                                 return (
+                                   <div className="flex-1 md:flex-none bg-green-50 text-green-600 border border-green-200 px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm cursor-default" title="Bạn đã đánh giá chuyến xe này">
+                                     <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                                     Đã đánh giá
+                                   </div>
+                                 );
+                               }
+
                                return (
                                  <button 
                                    onClick={() => {

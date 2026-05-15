@@ -16,8 +16,8 @@ const ReviewTripModal = ({ isOpen, onClose, ticket, onSuccess }) => {
       return;
     }
     
-    // Nếu comment quá ngắn
-    if (comment.trim().length < 10) {
+    // Nếu user có nhập comment nhưng quá ngắn
+    if (comment.trim().length > 0 && comment.trim().length < 10) {
       setError("Vui lòng nhập đánh giá ít nhất 10 ký tự để giúp các hành khách khác tham khảo nhé.");
       return;
     }
@@ -25,12 +25,18 @@ const ReviewTripModal = ({ isOpen, onClose, ticket, onSuccess }) => {
     try {
       setLoading(true);
       setError(null);
-      // Gọi API rateTicket
-      await rateTicket({ 
+      
+      // DEBUG: Xem chính xác data gửi đi
+      const payload = { 
         tripId: parseInt(ticket.tripId, 10),
         rating: parseInt(rating, 10), 
         comment: comment.trim()
-      });
+      };
+      console.log("🎫 Ticket object:", ticket);
+      console.log("📦 Rating payload:", JSON.stringify(payload));
+      
+      // Gọi API rateTicket
+      await rateTicket(payload);
       
       if (onSuccess) onSuccess();
       onClose();
