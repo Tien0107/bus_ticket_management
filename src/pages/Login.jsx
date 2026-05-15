@@ -302,6 +302,18 @@ function Login() {
         });
 
         googleButtonRef.current.innerHTML = "";
+        const googleButtonWidth = Math.min(
+          400,
+          Math.max(
+            260,
+            Math.round(
+              googleButtonRef.current.parentElement?.clientWidth
+              || googleButtonRef.current.clientWidth
+              || 400
+            )
+          )
+        );
+
         window.google.accounts.id.renderButton(googleButtonRef.current, {
           type: "standard",
           theme: "outline",
@@ -309,7 +321,7 @@ function Login() {
           text: "signin_with",
           shape: "rectangular",
           logo_alignment: "left",
-          width: Math.min(400, Math.max(220, Math.round(googleButtonRef.current.clientWidth || 220))),
+          width: googleButtonWidth,
           locale: "vi",
         });
 
@@ -585,28 +597,17 @@ function Login() {
             </div>
 
             <div className="grid grid-cols-1 gap-3">
-              <div className={`relative h-14 overflow-hidden rounded-xl ${googleReady ? "cursor-pointer" : "cursor-wait opacity-70"}`}>
-                <div className="pointer-events-none absolute inset-0 z-0 flex h-14 items-center justify-center gap-3 rounded-xl border border-outline-variant/50 bg-white px-4 text-[15px] font-bold text-on-surface shadow-sm transition-colors">
-                  {socialLoading === "google" ? (
+              <div className="relative min-h-14 overflow-hidden rounded-xl">
+                {!googleReady && (
+                  <div className="flex h-14 w-full cursor-wait items-center justify-center gap-3 rounded-xl border border-outline-variant/50 bg-white px-4 text-[15px] font-bold text-on-surface opacity-70 shadow-sm">
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-                  ) : (
-                    <img
-                      alt=""
-                      className="h-5 w-5 shrink-0"
-                      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                    />
-                  )}
-                  <span className="truncate">
-                    {socialLoading === "google" ? "Đang đăng nhập..." : "Đăng nhập bằng Google"}
-                  </span>
-                </div>
+                    <span className="truncate">Đang tải Google...</span>
+                  </div>
+                )}
                 <div
                   ref={googleButtonRef}
-                  className={`auth-google-render absolute inset-0 z-10 h-14 w-full overflow-hidden rounded-xl ${googleReady ? "opacity-0" : "pointer-events-none opacity-0"}`}
+                  className={`auth-google-render flex h-14 w-full items-center justify-center overflow-hidden rounded-xl transition-opacity ${googleReady ? "opacity-100" : "pointer-events-none absolute inset-0 opacity-0"}`}
                 />
-                {!googleReady && (
-                  <div className="absolute inset-0 z-20 rounded-xl" />
-                )}
               </div>
 
               <button
