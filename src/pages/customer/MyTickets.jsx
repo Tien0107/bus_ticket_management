@@ -69,6 +69,9 @@ export default function MyTickets() {
   const [reviewTicket, setReviewTicket] = useState(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   
+  // Filter State
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  
   const navigate = useNavigate();
   const { addToast } = useToast();
 
@@ -262,6 +265,25 @@ export default function MyTickets() {
         
         <CustomerProfileNav />
 
+        {tickets.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-6 mb-6">
+            {[
+              { id: 'ALL', label: 'Tất cả' },
+              { id: 'PENDING', label: 'Chờ thanh toán' },
+              { id: 'COMPLETED', label: 'Đã thanh toán / Hoàn thành' },
+              { id: 'CANCELLED', label: 'Đã hủy' }
+            ].map(f => (
+              <button 
+                key={f.id}
+                onClick={() => setFilterStatus(f.id)}
+                className={`px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm ${filterStatus === f.id ? 'bg-primary text-white' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <ConfirmModal 
           isOpen={!!ticketToCancel} 
           title="Xác nhận hủy vé" 
@@ -273,18 +295,44 @@ export default function MyTickets() {
         />
 
         {loading ? (
-          <p className="text-on-surface-variant animate-pulse">Đang tải danh sách vé...</p>
+          <p className="text-on-surface-variant animate-pulse mt-6">Đang tải danh sách vé...</p>
         ) : tickets.length === 0 ? (
-          <div className="bg-surface-container-lowest p-12 text-center rounded-2xl shadow-sm border border-surface-container">
+          <div className="bg-surface-container-lowest p-12 text-center rounded-2xl shadow-sm border border-surface-container mt-6">
              <span className="material-symbols-outlined text-6xl text-on-surface-variant mb-4">confirmation_number</span>
              <h2 className="text-xl font-bold text-on-surface mb-2">Chưa có vé nào</h2>
              <p className="text-on-surface-variant mb-6">Bạn chưa đặt chuyến xe nào cùng BusGo.</p>
              <button onClick={() => navigate("/")} className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors">Tìm chuyến ngay</button>
           </div>
-        ) : (
-          <div className="space-y-6">
-            {tickets.map((t, idx) => {
-               let currentStatus = String(t.status || 'pending').toUpperCase();
+        ) : (() => {
+          const filteredTickets = tickets.filter(t => {
+            if (filterStatus === 'ALL') return true;
+            
+            let currentStatus = String(t.status || 'pending').toUpperCase();
+            const isCash = String(t.paymentMethod || t.paymentType || '').toUpperCase() === 'CASH';
+            if (isCash && (currentStatus === 'PENDING' || currentStatus === 'RESERVED')) {
+                currentStatus = 'CASH_PAID';
+            }
+
+            if (filterStatus === 'PENDING') return currentStatus === 'PENDING' || currentStatus === 'RESERVED';
+            if (filterStatus === 'COMPLETED') return ['COMPLETED', 'PAID', 'CHECKED_IN', 'CASH_PAID'].includes(currentStatus);
+            if (filterStatus === 'CANCELLED') return ['CANCELLED', 'EXPIRED'].includes(currentStatus);
+            
+            return true;
+          });
+
+          if (filteredTickets.length === 0) {
+            return (
+              <div className="bg-surface-container-lowest p-12 text-center rounded-2xl shadow-sm border border-surface-container">
+                 <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-2 opacity-50">filter_list_off</span>
+                 <p className="text-on-surface-variant font-medium">Không có vé nào phù hợp với bộ lọc.</p>
+              </div>
+            );
+          }
+
+          return (
+            <div className="space-y-6">
+              {filteredTickets.map((t, idx) => {
+                 let currentStatus = String(t.status || 'pending').toUpperCase();
                const isCash = String(t.paymentMethod || t.paymentType || '').toUpperCase() === 'CASH';
 
                // Nếu backend trả về là CASH thì ta coi như đã thanh toán (Tiền mặt)
@@ -452,9 +500,10 @@ export default function MyTickets() {
                    </div>
                  </div>
                )
-            })}
-          </div>
-        )}
+              })}
+            </div>
+          );
+        })}
       </div>
       <SelectPaymentCardModal
         open={showCardModal}
