@@ -503,7 +503,7 @@ export default function MyTickets() {
               })}
             </div>
           );
-        })}
+        })()}
       </div>
       <SelectPaymentCardModal
         open={showCardModal}
