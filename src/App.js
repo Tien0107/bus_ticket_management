@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+import { Toaster } from "react-hot-toast";
 import { ToastProvider } from "./context/ToastContext";
 import Toast from "./components/Toast";
 import Home from "./pages/Home";
@@ -61,6 +62,7 @@ function App() {
   return (    
     <ToastProvider>
       <Toast />
+      <Toaster position="top-right" reverseOrder={false} />
 
       <BrowserRouter>
         <Routes>

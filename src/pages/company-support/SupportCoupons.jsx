@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { getSupportCoupons, createSupportCoupon, updateSupportCoupon } from "../../api/companySupport";
 import { useNavigate, Link } from "react-router-dom";
 import { logout } from "../../api/auth";
+import toast from "react-hot-toast";
 export default function SupportCoupons() {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -87,17 +88,17 @@ export default function SupportCoupons() {
 
       if (editId) {
         await updateSupportCoupon(editId, payload);
-        alert("Cập nhật mã khuyến mãi thành công!");
+        toast.success("Cập nhật mã khuyến mãi thành công!");
       } else {
         await createSupportCoupon(payload);
-        alert("Tạo mã khuyến mãi thành công!");
+        toast.success("Tạo mã khuyến mãi thành công!");
       }
       
       setEditId(null);
       setForm({ code: "", discountType: "percent", discountValue: "", minOrderAmount: "", maxDiscountAmount: "", totalQuantity: "", startDate: "", endDate: "" });
       fetchCoupons();
     } catch (err) {
-      alert("Lỗi: " + (err.response?.data?.message || err.message));
+      toast.error("Lỗi: " + (err.response?.data?.message || err.message));
     }
   };
 

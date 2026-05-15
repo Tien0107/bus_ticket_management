@@ -1,4 +1,5 @@
 import axios from "axios";
+import toast from "react-hot-toast";
 
 const axiosClient = axios.create({
   baseURL: "https://my-server.serveminecraft.net",
@@ -87,8 +88,10 @@ axiosClient.interceptors.response.use(
       const isHomePage = window.location.pathname === "/" || window.location.pathname === "";
 
       if (!isLogoutRequest && !isLoggingOut && window.location.pathname !== "/login" && !isHomePage) {
-        alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
-        window.location.href = "/login";
+        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", { duration: 4000 });
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1500);
       }
     }
 

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { companySupportRegister } from "../../api/companySupport";
 import { useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
 
 export default function SupportRegister() {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ export default function SupportRegister() {
         localStorage.setItem("user", JSON.stringify(res.data.user));
         navigate("/company-support/tickets");
       } else {
-        alert("Đăng ký thành công! Vui lòng chờ công ty duyệt hoặc tiến hành đăng nhập.");
+        toast.success("Đăng ký thành công! Vui lòng chờ công ty duyệt hoặc tiến hành đăng nhập.");
         navigate("/login");
       }
     } catch (err) {
