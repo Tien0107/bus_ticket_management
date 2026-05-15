@@ -17,6 +17,36 @@ export const updateCompanyInfo = (data) => {
   return axiosClient.put("/operator-admin/me", data);
 };
 
+// 3.1. Get signed upload config for company logo/images
+export const getAdminCompanyUploadPresigned = () => {
+  return axiosClient.get("/file/upload/admin-company/presigned");
+};
+
+export const uploadAdminCompanyFile = async (file, presignedConfig) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("api_key", presignedConfig.apiKey);
+  formData.append("timestamp", presignedConfig.timestamp);
+  formData.append("signature", presignedConfig.signature);
+
+  if (presignedConfig.folder) {
+    formData.append("folder", presignedConfig.folder);
+  }
+
+  const response = await fetch(presignedConfig.uploadUrl, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data?.error?.message || data?.message || "Upload ảnh thất bại");
+  }
+
+  return data;
+};
+
 // 4. Verify Company Account
 export const verifyCompanyAccount = (data) => {
   return axiosClient.post("/operator-admin/account/verify", data);
