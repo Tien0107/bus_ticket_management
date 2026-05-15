@@ -23,6 +23,8 @@ import TicketDetail from "./pages/customer/TicketDetail";
 import Profile from "./pages/customer/Profile";
 import RoutesPage from "./pages/customer/Routes";
 import Contact from "./pages/Contact";
+import Companies from "./pages/customer/Companies";
+import Promotions from "./pages/customer/Promotions";
 
 // Driver Pages
 import DriverDashboard from "./pages/driver/DriverDashboard";
@@ -77,6 +79,8 @@ function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/routes" element={<RoutesPage />} />
+            <Route path="/companies" element={<Companies />} />
+            <Route path="/promotions" element={<Promotions />} />
             <Route path="/contact" element={<Contact />} />
             
             {/* Customer */}

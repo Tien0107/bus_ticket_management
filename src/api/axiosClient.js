@@ -83,7 +83,10 @@ axiosClient.interceptors.response.use(
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      if (!isLogoutRequest && !isLoggingOut && window.location.pathname !== "/login") {
+      // Không tự động alert và redirect nếu đang ở trang chủ (để khách vãng lai có thể xem trang chủ)
+      const isHomePage = window.location.pathname === "/" || window.location.pathname === "";
+
+      if (!isLogoutRequest && !isLoggingOut && window.location.pathname !== "/login" && !isHomePage) {
         alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         window.location.href = "/login";
       }
