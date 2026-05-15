@@ -203,7 +203,7 @@ const Home = () => {
         setLoadingPopular(true);
         const tripRes = await getTripSchedules({ limit: 50, orderBy: "asc" });
         const trips = tripRes.data?.trip || [];
-        if (Array.isArray(trips)) {
+        if (Array.isArray(trips) && trips.length > 0) {
           const routesMap = new Map();
           trips.forEach((trip) => {
             if (!trip.fromLocation || !trip.toLocation) return;
@@ -221,9 +221,18 @@ const Home = () => {
             }
           });
           setPopularRoutes(Array.from(routesMap.values()).slice(0, 4));
+        } else {
+          throw new Error("No trips found");
         }
       } catch (err) {
-        console.error("Lỗi tải tuyến đường phổ biến:", err);
+        console.error("Lỗi tải tuyến đường phổ biến (hoặc do chưa đăng nhập):", err);
+        // Fallback dữ liệu tĩnh nếu API lỗi (chưa đăng nhập hoặc server lỗi)
+        setPopularRoutes([
+          { id: 1, from: "Hà Nội", to: "Sapa", title: "Hà Nội ➔ Sapa", image: "https://picsum.photos/seed/hn-sp/800/1000", price: "Từ 250.000đ", duration: "Khoảng 6 giờ" },
+          { id: 2, from: "TP. Hồ Chí Minh", to: "Đà Lạt", title: "TP. Hồ Chí Minh ➔ Đà Lạt", image: "https://picsum.photos/seed/hcm-dl/800/1000", price: "Từ 300.000đ", duration: "Khoảng 8 giờ" },
+          { id: 3, from: "Đà Nẵng", to: "Hội An", title: "Đà Nẵng ➔ Hội An", image: "https://picsum.photos/seed/dn-ha/800/1000", price: "Từ 100.000đ", duration: "Khoảng 1 giờ" },
+          { id: 4, from: "Hà Nội", to: "Hải Phòng", title: "Hà Nội ➔ Hải Phòng", image: "https://picsum.photos/seed/hn-hp/800/1000", price: "Từ 120.000đ", duration: "Khoảng 2 giờ" }
+        ]);
       } finally {
         setLoadingPopular(false);
       }
@@ -395,7 +404,7 @@ const Home = () => {
                       </label>
                       <div className="flex items-center bg-surface-container-low px-4 py-3 rounded-xl">
                         <span className="material-symbols-outlined text-primary mr-3">
-                          event_return
+                          calendar_month
                         </span>
                         <input
                           className="bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-on-surface w-full placeholder:text-outline-variant font-medium text-sm"
