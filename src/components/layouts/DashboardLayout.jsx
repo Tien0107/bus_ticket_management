@@ -54,7 +54,7 @@ export default function DashboardLayout() {
           <div className="flex items-center justify-between">
             {sidebarOpen && <h2 className="text-xl font-bold text-primary">Bus Go</h2>}
             <div className="flex items-center gap-2">
-              <NotificationBell />
+              <NotificationBell align="left" />
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="p-2 hover:bg-surface-container-high rounded-lg transition-all"

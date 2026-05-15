@@ -4,7 +4,7 @@ import { getNotifications } from "../../api/notification";
 
 const LOCAL_STORAGE_KEY = "busgo_read_notifications";
 
-export default function NotificationBell() {
+export default function NotificationBell({ align = "right" }) {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [readIds, setReadIds] = useState(new Set());
@@ -111,17 +111,9 @@ export default function NotificationBell() {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface-container-lowest rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-outline-variant/20 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className={`absolute ${align === "left" ? "left-0" : "right-0"} mt-2 w-[300px] sm:w-96 bg-surface-container-lowest rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-outline-variant/20 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200`}>
           <div className="px-4 py-3 border-b border-outline-variant/20 flex items-center justify-between bg-surface/50">
             <h3 className="font-bold text-lg text-on-surface">Thông báo</h3>
-            {unreadCount > 0 && (
-              <button 
-                onClick={markAllAsRead}
-                className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-              >
-                Đánh dấu đã đọc tất cả
-              </button>
-            )}
           </div>
           
           <div className="max-h-[400px] overflow-y-auto overscroll-contain">
