@@ -95,6 +95,40 @@ axiosClient.interceptors.response.use(
       }
     }
 
+    // --- Bắt đầu: Dịch lỗi sang Tiếng Việt ---
+    const translateError = (msg) => {
+      if (!msg) return msg;
+      const lowerMsg = msg.toLowerCase();
+      if (lowerMsg.includes("network error")) return "Lỗi kết nối mạng, vui lòng thử lại sau.";
+      if (lowerMsg.includes("timeout")) return "Kết nối quá hạn, vui lòng kiểm tra mạng.";
+      if (lowerMsg.includes("unauthorized") || lowerMsg.includes("invalid token")) return "Phiên đăng nhập không hợp lệ hoặc đã hết hạn.";
+      if (lowerMsg.includes("forbidden") || lowerMsg.includes("not allowed")) return "Bạn không có quyền thực hiện thao tác này.";
+      if (lowerMsg.includes("not found")) return "Không tìm thấy dữ liệu yêu cầu.";
+      if (lowerMsg.includes("internal server error")) return "Lỗi hệ thống máy chủ. Vui lòng thử lại sau.";
+      if (lowerMsg.includes("bad request") || lowerMsg.includes("invalid input")) return "Dữ liệu đầu vào không hợp lệ.";
+      if (lowerMsg.includes("already exists")) return "Dữ liệu đã tồn tại trong hệ thống.";
+      if (lowerMsg.includes("invalid credentials") || lowerMsg.includes("wrong password")) return "Sai tên đăng nhập hoặc mật khẩu.";
+      if (lowerMsg.includes("user not found") || lowerMsg.includes("not exist")) return "Tài khoản không tồn tại.";
+      if (lowerMsg.includes("email already in use") || lowerMsg.includes("email exists")) return "Email này đã được sử dụng.";
+      if (lowerMsg.includes("validation failed")) return "Dữ liệu không đúng định dạng.";
+      if (lowerMsg.includes("not enough seats") || lowerMsg.includes("seat unavailable") || lowerMsg.includes("already booked")) return "Ghế này đã có người đặt, vui lòng chọn ghế khác.";
+      if (lowerMsg.includes("invalid coupon") || lowerMsg.includes("coupon expired") || lowerMsg.includes("not valid")) return "Mã khuyến mãi không hợp lệ hoặc đã hết hạn.";
+      return msg; // giữ nguyên nếu không match
+    };
+
+    if (error.response && error.response.data) {
+      if (error.response.data.message) {
+        error.response.data.message = translateError(error.response.data.message);
+      }
+      if (error.response.data.error) {
+        error.response.data.error = translateError(error.response.data.error);
+      }
+    }
+    if (error.message) {
+      error.message = translateError(error.message);
+    }
+    // --- Kết thúc: Dịch lỗi ---
+
     return Promise.reject(error);
   }
 );
