@@ -59,8 +59,8 @@ export const deleteTripSchedule = (scheduleId) => {
 };
 
 // ===== Stopping Points =====
-export const getStoppingPoints = (scheduleId) => {
-  return axiosClient.get(`/operator-dispatcher/trip-schedule/${scheduleId}/stopping-point`);
+export const getStoppingPoints = (scheduleId, params = {}) => {
+  return axiosClient.get(`/operator-dispatcher/trip-schedule/${scheduleId}/stopping-point`, { params });
 };
 
 export const createStoppingPoint = (scheduleId, data) => {
@@ -81,6 +81,16 @@ export const getTrips = (scheduleId, params = {}) => {
 
 export const updateTrip = (scheduleId, tripId, data) => {
   return axiosClient.put(`/operator-dispatcher/trip-schedule/${scheduleId}/trip/${tripId}`, data);
+};
+
+// ===== Vehicles =====
+export const getVehicles = (params = {}) => {
+  return axiosClient.get("/operator-dispatcher/vehicle", { params });
+};
+
+// ===== Drivers (Dispatcher view) =====
+export const getDrivers = (params = {}) => {
+  return axiosClient.get("/operator-dispatcher/driver", { params });
 };
 
 // ===== Dispatcher Sign-up =====

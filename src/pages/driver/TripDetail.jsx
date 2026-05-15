@@ -1,54 +1,226 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { getTripDetail, getTripPassengers, getTripRoute, updateTrip } from "../../api/driver";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { getDriverTripsAllStatuses, getTripPassengers, getTripRoute, updateTrip } from "../../api/driver";
 import { useToast } from "../../context/ToastContext";
 import PassengerList from "../../components/driver/PassengerList";
 import CheckInPanel from "../../components/driver/CheckInPanel";
+
+const normalizeStatus = (status) => {
+  const map = {
+    pending: "scheduled",
+    upcoming: "scheduled",
+    scheduled: "scheduled",
+    in_progress: "running",
+    running: "running",
+    completed: "completed",
+    cancelled: "cancelled",
+  };
+
+  return map[status] || "scheduled";
+};
+
+const statusMeta = {
+  scheduled: {
+    label: "Sắp khởi hành",
+    icon: "event_upcoming",
+    badge: "bg-sky-50 text-sky-700 ring-sky-100",
+  },
+  running: {
+    label: "Đang chạy",
+    icon: "directions_bus",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+  },
+  completed: {
+    label: "Hoàn thành",
+    icon: "check_circle",
+    badge: "bg-slate-100 text-slate-700 ring-slate-200",
+  },
+  cancelled: {
+    label: "Đã hủy",
+    icon: "cancel",
+    badge: "bg-red-50 text-red-700 ring-red-100",
+  },
+};
+
+const formatDate = (value) => {
+  if (!value) return "Chưa có ngày";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("vi-VN", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+const formatMoney = (value) => Number(value || 0).toLocaleString("vi-VN");
+const wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration));
+
+const isCheckedInStatus = (status) => {
+  const normalizedStatus = String(status || "").toLowerCase();
+  return ["checked_in", "checked-in", "checkedin", "confirmed", "present"].includes(normalizedStatus);
+};
+
+const normalizeTrip = (trip = {}) => ({
+  ...trip,
+  status: normalizeStatus(trip.status),
+  departure: trip.fromLocation || trip.departure || "Điểm đi",
+  destination: trip.toLocation || trip.destination || "Điểm đến",
+  departureTime: trip.departureTime || "--:--",
+  departureDate: trip.departureDate || trip.date || "",
+  displayDate: formatDate(trip.departureDate || trip.date),
+  passengerCount: Number(trip.passengerCount || 0),
+  totalSeats: Number(trip.totalSeats || 45),
+  revenue: Number(trip.revenue || 0),
+});
+
+const normalizePassengers = (rawPassengers) => {
+  if (!Array.isArray(rawPassengers)) return [];
+
+  return rawPassengers.map((passenger) => {
+    const checkInStatus =
+      passenger.checkInStatus ||
+      passenger.checkinStatus ||
+      passenger.check_in_status ||
+      passenger.status ||
+      passenger.ticket?.checkInStatus ||
+      passenger.Ticket?.checkInStatus ||
+      "pending";
+    const ticketStatus =
+      passenger.ticketStatus ||
+      passenger.ticket?.status ||
+      passenger.Ticket?.status ||
+      passenger.booking?.status ||
+      passenger.Booking?.status ||
+      "pending";
+    const normalizedCheckInStatus = String(checkInStatus).toLowerCase();
+    const normalizedTicketStatus = String(ticketStatus).toLowerCase();
+    const checkedIn =
+      passenger.checkedIn ||
+      passenger.isCheckedIn ||
+      isCheckedInStatus(normalizedCheckInStatus) ||
+      isCheckedInStatus(normalizedTicketStatus);
+
+    return {
+      id: passenger.id || passenger.passengerId || passenger.ticketId,
+      name: passenger.name || passenger.fullName || passenger.passengerName || "Chưa có tên",
+      phone: passenger.phone || passenger.phoneNumber || "Chưa có SĐT",
+      ticket: passenger.ticket || passenger.ticketNumber || passenger.bookingCode || `#${passenger.id || ""}`,
+      seat: passenger.seat || passenger.seatNumber || passenger.seatCode || "N/A",
+      pickupPoint: passenger.pickup || passenger.pickupPoint || passenger.pickupStation || passenger.fromStation || "Chưa có điểm lên",
+      dropoffPoint: passenger.dropoff || passenger.dropoffPoint || passenger.dropoffStation || passenger.toStation || "Chưa có điểm xuống",
+      rawStatus: checkInStatus,
+      ticketStatus,
+      status: checkedIn ? "checked_in" : normalizedCheckInStatus === "no_show" ? "no_show" : "pending",
+    };
+  });
+};
+
+const normalizeRoute = (rawRoute) => {
+  const stops = Array.isArray(rawRoute)
+    ? rawRoute
+    : Array.isArray(rawRoute?.stops)
+    ? rawRoute.stops
+    : Array.isArray(rawRoute?.route)
+    ? rawRoute.route
+    : [];
+
+  return stops.map((stop) => ({
+    name: stop.name || stop.address || stop.stationName || "Điểm dừng",
+    address: stop.address || stop.stationAddress || "",
+    city: stop.city || "",
+    stopOrder: stop.stopOrder,
+    time: stop.time || stop.arrivalTime || stop.departureTime || "",
+  })).sort((a, b) => (a.stopOrder ?? 0) - (b.stopOrder ?? 0));
+};
+
+const InfoTile = ({ label, value, icon }) => (
+  <div className="rounded-lg bg-surface-container-low p-4">
+    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white text-primary">
+      <span className="material-symbols-outlined text-[22px] leading-none">{icon}</span>
+    </div>
+    <p className="text-sm text-on-surface-variant">{label}</p>
+    <p className="mt-1 font-bold text-on-surface">{value}</p>
+  </div>
+);
 
 export default function TripDetail() {
   const { tripId } = useParams();
   const navigate = useNavigate();
   const { addToast } = useToast();
-  
+
   const [trip, setTrip] = useState(null);
   const [passengers, setPassengers] = useState([]);
-  const [route, setRoute] = useState(null);
+  const [route, setRoute] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showCheckInPanel, setShowCheckInPanel] = useState(false);
+  const [selectedPassengerId, setSelectedPassengerId] = useState(null);
   const [updating, setUpdating] = useState(false);
+
+  const fetchTripDetails = useCallback(async ({ silent = false, apply = true } = {}) => {
+    try {
+      if (!silent) setLoading(true);
+
+      const tripPromise = getDriverTripsAllStatuses().then((response) => {
+        const allTrips = Array.isArray(response.data?.trips) ? response.data.trips : [];
+        return allTrips.find((item) => item.id === Number(tripId));
+      });
+
+      const [tripData, passengersRes, routeRes] = await Promise.all([
+        tripPromise,
+        getTripPassengers(tripId, { limit: 100 }),
+        getTripRoute(tripId),
+      ]);
+
+      if (!tripData) {
+        if (apply) setError("Không tìm thấy chuyến");
+        return [];
+      }
+
+      const rawPassengers = Array.isArray(passengersRes.data?.passengers)
+        ? passengersRes.data.passengers
+        : Array.isArray(passengersRes.data)
+        ? passengersRes.data
+        : [];
+
+      console.log("📥 Raw passenger data from API:", rawPassengers);
+
+      const rawRoute = routeRes.data?.route || routeRes.data?.stops || routeRes.data || [];
+
+      const normalizedPassengers = normalizePassengers(rawPassengers);
+
+      console.log("✨ Final normalized passengers:", normalizedPassengers);
+
+      if (apply) {
+        setTrip(normalizeTrip(tripData));
+        setPassengers(normalizedPassengers);
+        setRoute(normalizeRoute(rawRoute));
+        setError(null);
+      }
+
+      return normalizedPassengers;
+    } catch (err) {
+      console.error("Lỗi tải chi tiết chuyến:", err);
+      if (apply) setError("Không thể tải chi tiết chuyến");
+      return [];
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [tripId]);
 
   useEffect(() => {
     fetchTripDetails();
-  }, [tripId]);
-
-  const fetchTripDetails = async () => {
-    try {
-      setLoading(true);
-      const [tripRes, passengersRes, routeRes] = await Promise.all([
-        getTripDetail(tripId),
-        getTripPassengers(tripId),
-        getTripRoute(tripId),
-      ]);
-      
-      setTrip(tripRes.data?.trip || tripRes.data);
-      setPassengers(Array.isArray(passengersRes.data?.passengers) ? passengersRes.data.passengers : []);
-      setRoute(routeRes.data?.route || routeRes.data);
-      setError(null);
-    } catch (err) {
-      console.error("Lỗi tải chi tiết chuyến:", err);
-      setError("Không thể tải chi tiết chuyến");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchTripDetails]);
 
   const handleStartTrip = async () => {
     try {
       setUpdating(true);
-      await updateTrip(tripId, { status: "in_progress" });
+      await updateTrip(tripId, { status: "running" });
+      setTrip((current) => ({ ...current, status: "running" }));
       addToast("Bắt đầu chuyến thành công", "success");
-      setTrip({ ...trip, status: "in_progress" });
     } catch (err) {
       console.error("Lỗi bắt đầu chuyến:", err);
       addToast("Bắt đầu chuyến thất bại", "error");
@@ -61,8 +233,8 @@ export default function TripDetail() {
     try {
       setUpdating(true);
       await updateTrip(tripId, { status: "completed" });
+      setTrip((current) => ({ ...current, status: "completed" }));
       addToast("Hoàn thành chuyến thành công", "success");
-      setTrip({ ...trip, status: "completed" });
     } catch (err) {
       console.error("Lỗi hoàn thành chuyến:", err);
       addToast("Hoàn thành chuyến thất bại", "error");
@@ -71,16 +243,56 @@ export default function TripDetail() {
     }
   };
 
-  const handleCheckInSuccess = () => {
-    fetchTripDetails();
+  const handleOpenCheckIn = (passengerId = null) => {
+    setSelectedPassengerId(passengerId);
+    setShowCheckInPanel(true);
   };
+
+  const handleCheckInSuccess = async (passengerId, ticket) => {
+    const checkedPassengerId = passengerId || selectedPassengerId;
+
+    if (!checkedPassengerId) return false;
+
+    setPassengers((currentPassengers) =>
+      currentPassengers.map((passenger) =>
+        Number(passenger.id) === Number(checkedPassengerId)
+          ? { ...passenger, rawStatus: "checked_in", ticketStatus: ticket?.status || passenger.ticketStatus, status: "checked_in" }
+          : passenger
+      )
+    );
+
+    addToast("Check-in thành công", "success");
+    setShowCheckInPanel(false);
+    setSelectedPassengerId(null);
+
+    await wait(500);
+    const refreshedPassengers = await fetchTripDetails({ silent: true, apply: false });
+    const refreshedPassenger = refreshedPassengers.find(
+      (passenger) => Number(passenger.id) === Number(checkedPassengerId)
+    );
+
+    if (refreshedPassenger?.status === "checked_in") {
+      await fetchTripDetails({ silent: true });
+    } else {
+      console.warn("Passenger API chưa trả trạng thái checked_in sau khi PUT check-in thành công.");
+    }
+
+    return true;
+  };
+
+  const checkedInCount = useMemo(
+    () => passengers.filter((passenger) => passenger.status === "checked_in").length,
+    [passengers]
+  );
+  const pendingCount = Math.max(passengers.length - checkedInCount, 0);
+  const checkInProgress = passengers.length ? Math.round((checkedInCount / passengers.length) * 100) : 0;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface p-6 lg:p-8 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-surface p-6">
         <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-          <p className="text-on-surface-variant mt-4">Đang tải...</p>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+          <p className="mt-4 text-on-surface-variant">Đang tải chuyến...</p>
         </div>
       </div>
     );
@@ -90,164 +302,156 @@ export default function TripDetail() {
     return (
       <div className="min-h-screen bg-surface p-6 lg:p-8">
         <button
+          type="button"
           onClick={() => navigate("/driver/dashboard")}
-          className="mb-6 flex items-center gap-2 text-primary font-bold hover:opacity-80 transition-all"
+          className="mb-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-bold text-primary shadow-sm"
         >
-          <span className="material-symbols-outlined">arrow_back</span>
+          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
           Quay lại
         </button>
-        <div className="bg-red-50 border border-red-200 text-red-600 p-6 rounded-2xl text-center">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center font-medium text-red-700">
           {error}
         </div>
       </div>
     );
   }
 
-  const getStatusBadge = (status) => {
-    const statusMap = {
-      pending: { label: "Sắp tới", color: "bg-blue-100 text-blue-700" },
-      upcoming: { label: "Sắp tới", color: "bg-blue-100 text-blue-700" },
-      in_progress: { label: "Đang chạy", color: "bg-green-100 text-green-700" },
-      completed: { label: "Hoàn thành", color: "bg-gray-100 text-gray-700" },
-      cancelled: { label: "Hủy", color: "bg-red-100 text-red-700" },
-    };
-    const info = statusMap[status] || statusMap.pending;
-    return info;
-  };
-
-  const statusBadge = getStatusBadge(trip.status);
-  const checkedInCount = passengers.filter((p) => p.status === "checked_in").length;
+  const currentStatus = statusMeta[trip.status] || statusMeta.scheduled;
 
   return (
-    <div className="min-h-screen bg-surface p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto">
-        {/* Back Button */}
+    <div className="min-h-screen bg-surface px-5 py-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
         <button
+          type="button"
           onClick={() => navigate("/driver/dashboard")}
-          className="mb-6 flex items-center gap-2 text-primary font-bold hover:opacity-80 transition-all"
+          className="mb-5 inline-flex items-center gap-2 rounded-lg border border-outline-variant/40 bg-white px-4 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
         >
-          <span className="material-symbols-outlined">arrow_back</span>
+          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
           Quay lại
         </button>
 
-        {/* Header */}
-        <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-sm mb-6">
-          <div className="flex items-start justify-between gap-4 mb-6">
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <span className={`px-4 py-2 rounded-full text-sm font-bold ${statusBadge.color}`}>
-                  {statusBadge.label}
-                </span>
-                <span className="text-on-surface-variant">{trip.date} - {trip.departureTime}</span>
-              </div>
-              <h1 className="text-4xl font-extrabold text-on-surface mb-2">
+        <section className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm lg:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold ring-1 ${currentStatus.badge}`}>
+                <span className="material-symbols-outlined text-[18px]">{currentStatus.icon}</span>
+                {currentStatus.label}
+              </span>
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-on-surface lg:text-4xl">
                 {trip.departure} → {trip.destination}
               </h1>
-              <p className="text-on-surface-variant">Biển số xe: <span className="font-semibold">{trip.vehicleNumber}</span></p>
+              <p className="mt-2 text-on-surface-variant">{trip.displayDate} · Xuất bến {trip.departureTime}</p>
             </div>
-            <div className="text-right">
-              <p className="text-3xl font-bold text-primary mb-1">
-                ₫{(trip.revenue || 0).toLocaleString()}
-              </p>
-              <p className="text-on-surface-variant text-sm">Doanh thu</p>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {trip.status === "scheduled" && (
+                <button
+                  type="button"
+                  onClick={handleStartTrip}
+                  disabled={updating}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
+                >
+                  <span className="material-symbols-outlined text-[20px]">play_arrow</span>
+                  Bắt đầu chuyến
+                </button>
+              )}
+              {trip.status === "running" && (
+                <button
+                  type="button"
+                  onClick={handleCompleteTrip}
+                  disabled={updating}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  <span className="material-symbols-outlined text-[20px]">task_alt</span>
+                  Kết thúc chuyến
+                </button>
+              )}
+              {trip.status !== "completed" && trip.status !== "cancelled" && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenCheckIn()}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant/50 bg-white px-5 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+                >
+                  <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
+                  Check-in
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Trip Info Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-surface-container-low rounded-xl p-4">
-              <p className="text-on-surface-variant text-sm mb-1">Thời gian dự tính</p>
-              <p className="font-bold text-on-surface">{trip.estimatedDuration || "3h 30p"}</p>
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <InfoTile icon="confirmation_number" label="Hành khách" value={`${passengers.length || trip.passengerCount}/${trip.totalSeats}`} />
+            <InfoTile icon="task_alt" label="Đã check-in" value={`${checkedInCount}/${passengers.length || trip.passengerCount || 0}`} />
+            <InfoTile icon="directions_bus" label="Biển số" value={trip.plateNumber || trip.vehicleNumber || "Chưa gán"} />
+            <InfoTile icon="payments" label="Doanh thu" value={`${formatMoney(trip.revenue)} đ`} />
+          </div>
+
+          <div className="mt-6 rounded-xl bg-surface-container-low p-4">
+            <div className="mb-3 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-on-surface">Tiến độ check-in</p>
+                <p className="mt-1 text-sm text-on-surface-variant">{pendingCount} hành khách còn chờ xác nhận</p>
+              </div>
+              <p className="text-2xl font-bold text-primary">{checkInProgress}%</p>
             </div>
-            <div className="bg-surface-container-low rounded-xl p-4">
-              <p className="text-on-surface-variant text-sm mb-1">Ghế</p>
-              <p className="font-bold text-on-surface">
-                {trip.passengerCount}/{trip.totalSeats}
-              </p>
-            </div>
-            <div className="bg-surface-container-low rounded-xl p-4">
-              <p className="text-on-surface-variant text-sm mb-1">Check-in</p>
-              <p className="font-bold text-green-600">{checkedInCount}/{trip.passengerCount}</p>
-            </div>
-            <div className="bg-surface-container-low rounded-xl p-4">
-              <p className="text-on-surface-variant text-sm mb-1">Tài xế</p>
-              <p className="font-bold text-on-surface">{trip.driverName || "Bạn"}</p>
+            <div className="h-3 overflow-hidden rounded-full bg-white">
+              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${checkInProgress}%` }} />
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {trip.status === "pending" || trip.status === "upcoming" ? (
-            <button
-              onClick={handleStartTrip}
-              disabled={updating}
-              className="bg-primary text-white px-6 py-4 rounded-xl font-bold hover:bg-primary/80 disabled:opacity-60 transition-all active:scale-95 flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined">play_arrow</span>
-              Bắt đầu chuyến
-            </button>
-          ) : trip.status === "in_progress" ? (
-            <button
-              onClick={handleCompleteTrip}
-              disabled={updating}
-              className="bg-green-600 text-white px-6 py-4 rounded-xl font-bold hover:bg-green-700 disabled:opacity-60 transition-all active:scale-95 flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined">check_circle</span>
-              Kết thúc chuyến
-            </button>
-          ) : null}
+        <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
+          <PassengerList passengers={passengers} onCheckIn={handleOpenCheckIn} />
 
-          {trip.status === "in_progress" || trip.status === "pending" || trip.status === "upcoming" ? (
-            <button
-              onClick={() => setShowCheckInPanel(true)}
-              className="bg-secondary text-on-secondary px-6 py-4 rounded-xl font-bold hover:bg-secondary/80 transition-all active:scale-95 flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined">how_to_reg</span>
-              Check-in hành khách
-            </button>
-          ) : null}
-        </div>
+          <aside className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-on-surface">Tuyến đường</h2>
+                <p className="mt-1 text-sm text-on-surface-variant">{route.length} điểm dừng</p>
+              </div>
+              <span className="material-symbols-outlined text-primary">route</span>
+            </div>
 
-        {/* Passenger List */}
-        <PassengerList
-          passengers={passengers}
-          tripId={tripId}
-          onCheckIn={() => setShowCheckInPanel(true)}
-        />
+            {route.length > 0 ? (
+              <div className="space-y-0">
+                {route.map((stop, index) => {
+                  const first = index === 0;
+                  const last = index === route.length - 1;
 
-        {/* Route Info */}
-        {route && (
-          <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-sm mt-6">
-            <h3 className="text-xl font-bold text-on-surface mb-4">Tuyến đường</h3>
-            <div className="space-y-4">
-              {route.stops && route.stops.map((stop, idx) => (
-                <div key={idx} className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                      idx === 0 ? "bg-green-500 text-white" : idx === route.stops.length - 1 ? "bg-red-500 text-white" : "bg-primary-container text-primary"
-                    }`}>
-                      {idx + 1}
+                  return (
+                    <div key={`${stop.name}-${index}`} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+                          first ? "bg-emerald-500 text-white" : last ? "bg-red-500 text-white" : "bg-primary/10 text-primary"
+                        }`}>
+                          {index + 1}
+                        </div>
+                        {!last && <div className="h-14 w-px bg-outline-variant/60" />}
+                      </div>
+                      <div className="min-w-0 pb-5">
+                        <p className="truncate font-semibold text-on-surface">{stop.name}</p>
+                        <p className="mt-1 truncate text-sm text-on-surface-variant">{stop.address || stop.city || "Chưa có địa chỉ"}</p>
+                        {stop.time && <p className="mt-1 text-xs font-medium text-primary">{stop.time}</p>}
+                      </div>
                     </div>
-                    {idx < route.stops.length - 1 && <div className="w-1 h-12 bg-outline-variant mt-2"></div>}
-                  </div>
-                  <div className="pt-1">
-                    <p className="font-bold text-on-surface">{stop.name}</p>
-                    <p className="text-sm text-on-surface-variant">{stop.address}</p>
-                    <p className="text-xs text-on-surface-variant mt-1">{stop.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-outline-variant/50 p-6 text-center">
+                <span className="material-symbols-outlined text-4xl text-outline">route</span>
+                <p className="mt-2 text-sm text-on-surface-variant">Chưa có dữ liệu tuyến đường</p>
+              </div>
+            )}
+          </aside>
+        </div>
       </div>
 
-      {/* Check-in Panel */}
       <CheckInPanel
         tripId={tripId}
         passengers={passengers}
         isOpen={showCheckInPanel}
+        initialPassengerId={selectedPassengerId}
         onClose={() => setShowCheckInPanel(false)}
         onCheckInSuccess={handleCheckInSuccess}
       />

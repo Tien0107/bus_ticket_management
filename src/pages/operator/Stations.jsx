@@ -1,158 +1,194 @@
-import React, { useState, useEffect } from "react";
-import { getStations, createStation } from "../../api/operator";
+import React, { useEffect, useMemo, useState } from "react";
+import { createStation, getStations } from "../../api/operator";
 import { useToast } from "../../context/ToastContext";
+import {
+  EmptyState,
+  ErrorState,
+  Field,
+  IconButton,
+  LoadingState,
+  ModalShell,
+  OperatorPageShell,
+  PrimaryButton,
+  SearchInput,
+  SecondaryButton,
+  StatCard,
+  ToolbarCard,
+  inputClass,
+} from "./OperatorUI";
+
+const emptyForm = {
+  address: "",
+  city: "",
+};
 
 export default function Stations() {
   const { addToast } = useToast();
   const [stations, setStations] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({
-    address: "",
-    city: "",
-  });
-
-  useEffect(() => {
-    fetchStations();
-  }, []);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState(emptyForm);
 
   const fetchStations = async () => {
     try {
       setLoading(true);
-      const res = await getStations({ limit: 100 });
-      setStations(res.data?.stations || []);
+      const response = await getStations({ limit: 100 });
+      setStations(Array.isArray(response.data?.stations) ? response.data.stations : []);
+      setError("");
     } catch (err) {
-      console.error("❌ Lỗi tải trạm:", err);
-      addToast("Không thể tải danh sách trạm", "error");
+      console.error("Lỗi tải trạm:", err);
+      setError("Không thể tải danh sách trạm.");
+      addToast({ type: "error", title: "Không tải được trạm" });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    fetchStations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const filteredStations = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return stations;
+
+    return stations.filter((station) =>
+      [station.address, station.city]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [stations, searchTerm]);
+
+  const stats = useMemo(() => {
+    const cityCount = new Set(stations.map((station) => station.city).filter(Boolean)).size;
+
+    return [
+      { icon: "location_on", label: "Tổng trạm", value: stations.length, tone: "primary" },
+      { icon: "location_city", label: "Thành phố", value: cityCount, tone: "blue" },
+    ];
+  }, [stations]);
+
+  const closeModal = () => {
+    setShowModal(false);
+    setFormData(emptyForm);
+  };
+
+  const handleSave = async () => {
+    if (!formData.address.trim() || !formData.city.trim()) {
+      addToast({ type: "warning", title: "Thiếu địa chỉ hoặc thành phố" });
+      return;
+    }
+
     try {
-      if (editingId) {
-        // Note: API doesn't have PUT endpoint for stations, so just create new
-        await createStation(formData);
-        addToast("Thêm trạm thành công", "success");
-      } else {
-        await createStation(formData);
-        addToast("Tạo trạm mới thành công", "success");
-      }
-      setFormData({ address: "", city: "" });
-      setShowForm(false);
-      setEditingId(null);
+      await createStation({
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+      });
+      addToast({ type: "success", title: "Tạo trạm thành công" });
+      closeModal();
       fetchStations();
     } catch (err) {
-      addToast("Lỗi khi tạo trạm", "error");
+      console.error("Lỗi tạo trạm:", err);
+      addToast({
+        type: "error",
+        title: "Không tạo được trạm",
+        message: err.response?.data?.message || "Vui lòng kiểm tra địa chỉ và thành phố.",
+      });
     }
   };
 
-  const handleEdit = (station) => {
-    setEditingId(station.id);
-    setFormData({
-      address: station.address,
-      city: station.city,
-    });
-    setShowForm(true);
-  };
-
-  const handleCancel = () => {
-    setShowForm(false);
-    setEditingId(null);
-    setFormData({ address: "", city: "" });
-  };
-
-  // Note: API does not support PUT/DELETE for stations, only CREATE
-
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Quản lý Trạm</h1>
-        <button
-          onClick={() => {
-            if (editingId) {
-              handleCancel();
-            } else {
-              setShowForm(!showForm);
-            }
-          }}
-          className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90"
-        >
-          {showForm ? "Hủy" : "+ Trạm mới"}
-        </button>
+    <OperatorPageShell
+      eyebrow="Stations"
+      title="Quản lý trạm"
+      description="Tạo trạm đón trả và tra cứu trạm theo địa chỉ hoặc thành phố."
+      actions={<IconButton icon="add" label="Thêm trạm" variant="primary" onClick={() => setShowModal(true)} />}
+    >
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {stats.map((stat) => (
+          <StatCard key={stat.label} {...stat} />
+        ))}
       </div>
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg mb-6 shadow-sm">
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Địa chỉ</label>
+      <ToolbarCard>
+        <SearchInput
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Tìm theo địa chỉ hoặc thành phố"
+        />
+      </ToolbarCard>
+
+      {loading ? (
+        <LoadingState />
+      ) : error ? (
+        <ErrorState message={error} />
+      ) : filteredStations.length === 0 ? (
+        <EmptyState icon="pin_drop" title="Không tìm thấy trạm" description="Thử đổi từ khóa tìm kiếm hoặc thêm trạm mới." />
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead className="bg-surface-container-low">
+                <tr>
+                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Địa chỉ</th>
+                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Thành phố</th>
+                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Công ty</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/15">
+                {filteredStations.map((station) => (
+                  <tr key={station.id} className="hover:bg-surface-container-low/70">
+                    <td className="px-5 py-4">
+                      <p className="font-bold text-on-surface">{station.address || "—"}</p>
+                      <p className="mt-1 text-xs text-on-surface-variant">ID: {station.id}</p>
+                    </td>
+                    <td className="px-5 py-4 font-medium text-on-surface">{station.city || "—"}</td>
+                    <td className="px-5 py-4 text-on-surface-variant">#{station.companyId || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {showModal && (
+        <ModalShell
+          title="Thêm trạm mới"
+          subtitle="Thông tin trạm đón trả."
+          onClose={closeModal}
+          footer={
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <SecondaryButton onClick={closeModal}>Hủy</SecondaryButton>
+              <PrimaryButton icon="add_location" onClick={handleSave}>Tạo trạm</PrimaryButton>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <Field label="Địa chỉ">
               <input
                 type="text"
                 value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                placeholder="VD: 123 Đường Nguyễn Huệ"
-                required
+                onChange={(e) => setFormData((current) => ({ ...current, address: e.target.value }))}
+                className={inputClass}
+                placeholder="Quốc Lộ 14"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Thành phố</label>
+            </Field>
+            <Field label="Thành phố">
               <input
                 type="text"
                 value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                placeholder="VD: TP. Hồ Chí Minh"
-                required
+                onChange={(e) => setFormData((current) => ({ ...current, city: e.target.value }))}
+                className={inputClass}
+                placeholder="Đắk Lắk"
               />
-            </div>
+            </Field>
           </div>
-          <div className="flex gap-2">
-            <button type="submit" className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
-              {editingId ? "Cập nhật" : "Tạo trạm"}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="bg-gray-400 text-white px-6 py-2 rounded-lg hover:bg-gray-500"
-              >
-                Hủy chỉnh sửa
-              </button>
-            )}
-          </div>
-        </form>
+        </ModalShell>
       )}
-
-      {loading ? (
-        <div className="text-center py-8">Đang tải...</div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-6 py-3 text-left text-sm font-semibold">Địa chỉ</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold">Thành phố</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stations.map((station) => (
-                <tr key={station.id} className="border-b hover:bg-gray-50">
-                  <td className="px-6 py-4">{station.address}</td>
-                  <td className="px-6 py-4">{station.city}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {stations.length === 0 && (
-            <div className="text-center py-8 text-gray-500">Không có trạm nào</div>
-          )}
-        </div>
-      )}
-    </div>
+    </OperatorPageShell>
   );
 }

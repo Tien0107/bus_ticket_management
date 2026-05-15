@@ -8,13 +8,28 @@ const axiosClient = axios.create({
   }
 });
 
+const publicEndpoints = [
+  "/auth/send-otp",
+  "/auth/reset-password",
+  "/auth/sign-in",
+  "/auth/google/verify-token",
+  "/auth/facebook/verify-token",
+  "/customer/sign-in",
+  "/customer/sign-up",
+  "/customer/google/verify-token",
+  "/customer/facebook/verify-token",
+  "/driver/login",
+  "/driver/sign-up",
+];
+
 // Request interceptor - Gắn token tự động
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
+  const isPublicEndpoint = publicEndpoints.some((endpoint) => config.url?.startsWith(endpoint));
 
-  if (token) {
+  if (token && !isPublicEndpoint) {
     config.headers.Authorization = `Bearer ${token}`;
-  } else {
+  } else if (!isPublicEndpoint) {
     console.warn("⚠️ Không tìm thấy token trong localStorage");
   }
 

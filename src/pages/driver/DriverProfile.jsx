@@ -1,6 +1,30 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
+
+const ProfileField = ({ label, value, icon }) => (
+  <div className="rounded-lg border border-outline-variant/30 bg-white p-4">
+    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+      <span className="material-symbols-outlined text-[22px] leading-none">{icon}</span>
+    </div>
+    <p className="text-sm font-medium text-on-surface-variant">{label}</p>
+    <p className="mt-1 break-words font-semibold text-on-surface">{value || "Chưa cập nhật"}</p>
+  </div>
+);
+
+const TextInput = ({ label, name, value, onChange, type = "text", disabled = false }) => (
+  <label className="block">
+    <span className="text-sm font-semibold text-on-surface">{label}</span>
+    <input
+      type={type}
+      name={name}
+      value={value || ""}
+      onChange={onChange}
+      disabled={disabled}
+      className="mt-2 w-full rounded-lg border border-outline-variant/40 bg-white px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-surface-container-low disabled:text-on-surface-variant"
+    />
+  </label>
+);
 
 const DriverProfile = () => {
   const navigate = useNavigate();
@@ -20,17 +44,14 @@ const DriverProfile = () => {
     }
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({ ...current, [name]: value }));
   };
 
   const handleSave = async () => {
     try {
       setLoading(true);
-      // In production, call API to update profile
-      // await updateDriverProfile(formData);
-      
       localStorage.setItem("user", JSON.stringify(formData));
       setUser(formData);
       setIsEditing(false);
@@ -52,233 +73,133 @@ const DriverProfile = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-surface p-6 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-surface p-6">
         <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-          <p className="text-on-surface-variant mt-4">Đang tải...</p>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+          <p className="mt-4 text-on-surface-variant">Đang tải hồ sơ...</p>
         </div>
       </div>
     );
   }
 
+  const initials = (user.fullName || "TX")
+    .split(" ")
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
   return (
-    <div className="min-h-screen bg-surface p-6 lg:p-8">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-4xl font-extrabold text-on-surface mb-2">Hồ sơ cá nhân</h1>
-          <p className="text-on-surface-variant">Quản lý thông tin tài khoản của bạn</p>
+    <div className="min-h-screen bg-surface px-5 py-6 lg:px-8">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-primary">Hồ sơ tài xế</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-on-surface lg:text-4xl">
+              Thông tin cá nhân
+            </h1>
+            <p className="mt-2 text-on-surface-variant">Quản lý thông tin liên hệ, bằng lái và phương tiện đang phụ trách.</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition-colors hover:bg-red-100"
+          >
+            <span className="material-symbols-outlined text-[20px]">logout</span>
+            Đăng xuất
+          </button>
         </div>
 
-        {/* Profile Card */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 lg:p-8 mb-6">
-          {/* Avatar Section */}
-          <div className="flex items-center gap-6 mb-8 pb-8 border-b border-outline-variant/20">
-            <div className="w-20 h-20 bg-primary-container rounded-full flex items-center justify-center">
-              <span className="material-symbols-outlined text-4xl text-primary">person</span>
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold text-on-surface">{user.fullName}</h2>
-              <p className="text-on-surface-variant">{user.email}</p>
-              <p className="text-sm text-on-surface-variant mt-1">ID: {user.id || "N/A"}</p>
+        <section className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
+          <div className="bg-primary p-6 text-white">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-white/15 text-3xl font-bold ring-1 ring-white/20">
+                  {initials}
+                </div>
+                <div className="min-w-0">
+                  <h2 className="truncate text-2xl font-bold">{user.fullName || "Tài xế"}</h2>
+                  <p className="mt-1 truncate text-white/85">{user.email}</p>
+                  <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-sm font-semibold ring-1 ring-white/20">
+                    <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                    {user.status === "inactive" ? "Tạm ngưng" : "Đang hoạt động"}
+                  </div>
+                </div>
+              </div>
+              {!isEditing && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-bold text-primary transition-opacity hover:opacity-90"
+                >
+                  <span className="material-symbols-outlined text-[20px]">edit</span>
+                  Chỉnh sửa
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Profile Form */}
-          {isEditing ? (
-            <div className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2">Họ và tên</label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName || ""}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2">Tên đăng nhập</label>
-                  <input
-                    type="text"
-                    name="username"
-                    value={formData.username || ""}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email || ""}
-                    onChange={handleChange}
-                    disabled
-                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none opacity-50 cursor-not-allowed"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2">Số điện thoại</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone || ""}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2">Số CCCD/Passport</label>
-                  <input
-                    type="text"
-                    name="idNumber"
-                    value={formData.idNumber || ""}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2">Số bằng lái</label>
-                  <input
-                    type="text"
-                    name="licenseNumber"
-                    value={formData.licenseNumber || ""}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2">Số xe</label>
-                  <input
-                    type="text"
-                    name="vehicleNumber"
-                    value={formData.vehicleNumber || ""}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2">Loại xe</label>
-                  <input
-                    type="text"
-                    name="vehicleType"
-                    value={formData.vehicleType || ""}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-2">Công ty</label>
-                <input
-                  type="text"
-                  name="companyName"
-                  value={formData.companyName || ""}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-on-surface-variant text-sm font-medium">Tên đăng nhập</p>
-                  <p className="text-on-surface font-semibold">{formData.username || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-on-surface-variant text-sm font-medium">Số điện thoại</p>
-                  <p className="text-on-surface font-semibold">{formData.phone || "—"}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-on-surface-variant text-sm font-medium">Số bằng lái</p>
-                  <p className="text-on-surface font-semibold">{formData.licenseNumber || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-on-surface-variant text-sm font-medium">Số xe</p>
-                  <p className="text-on-surface font-semibold">{formData.vehicleNumber || "—"}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-on-surface-variant text-sm font-medium">Loại xe</p>
-                  <p className="text-on-surface font-semibold">{formData.vehicleType || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-on-surface-variant text-sm font-medium">Công ty</p>
-                  <p className="text-on-surface font-semibold">{formData.companyName || "—"}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 mt-8">
+          <div className="p-5 lg:p-6">
             {isEditing ? (
-              <>
-                <button
-                  onClick={() => {
-                    setIsEditing(false);
-                    setFormData(user);
-                  }}
-                  className="flex-1 px-6 py-3 border-2 border-primary text-primary font-bold rounded-xl hover:bg-primary/10 transition-all active:scale-95"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="flex-1 px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/80 disabled:opacity-60 transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Đang lưu...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined">check</span>
-                      <span>Lưu thay đổi</span>
-                    </>
-                  )}
-                </button>
-              </>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <TextInput label="Họ và tên" name="fullName" value={formData.fullName} onChange={handleChange} />
+                  <TextInput label="Tên đăng nhập" name="username" value={formData.username} onChange={handleChange} />
+                  <TextInput label="Email" name="email" type="email" value={formData.email} onChange={handleChange} disabled />
+                  <TextInput label="Số điện thoại" name="phone" value={formData.phone} onChange={handleChange} />
+                  <TextInput label="Số CCCD/Passport" name="idNumber" value={formData.idNumber} onChange={handleChange} />
+                  <TextInput label="Số bằng lái" name="licenseNumber" value={formData.licenseNumber} onChange={handleChange} />
+                  <TextInput label="Biển số xe" name="vehicleNumber" value={formData.vehicleNumber} onChange={handleChange} />
+                  <TextInput label="Loại xe" name="vehicleType" value={formData.vehicleType} onChange={handleChange} />
+                </div>
+                <TextInput label="Công ty" name="companyName" value={formData.companyName} onChange={handleChange} />
+
+                <div className="flex flex-col-reverse gap-3 border-t border-outline-variant/20 pt-5 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setFormData(user);
+                    }}
+                    className="rounded-lg border border-outline-variant/50 px-5 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {loading ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        Đang lưu...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[20px]">check</span>
+                        Lưu thay đổi
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex-1 px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/80 transition-all active:scale-95 flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined">edit</span>
-                <span>Chỉnh sửa</span>
-              </button>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <ProfileField icon="badge" label="Tên đăng nhập" value={formData.username} />
+                <ProfileField icon="call" label="Số điện thoại" value={formData.phone} />
+                <ProfileField icon="credit_card" label="Số CCCD/Passport" value={formData.idNumber} />
+                <ProfileField icon="license" label="Số bằng lái" value={formData.licenseNumber} />
+                <ProfileField icon="directions_bus" label="Biển số xe" value={formData.vehicleNumber} />
+                <ProfileField icon="airline_seat_recline_normal" label="Loại xe" value={formData.vehicleType} />
+                <ProfileField icon="business" label="Công ty" value={formData.companyName} />
+                <ProfileField icon="verified_user" label="Trạng thái" value={user.status === "inactive" ? "Tạm ngưng" : "Đang hoạt động"} />
+              </div>
             )}
           </div>
-        </div>
-
-        {/* Logout Button */}
-        <button
-          onClick={handleLogout}
-          className="w-full px-6 py-4 border-2 border-error text-error font-bold rounded-xl hover:bg-error/10 transition-all active:scale-95 flex items-center justify-center gap-2"
-        >
-          <span className="material-symbols-outlined">logout</span>
-          <span>Đăng xuất</span>
-        </button>
+        </section>
       </div>
     </div>
   );
