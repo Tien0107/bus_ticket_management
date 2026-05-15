@@ -8,7 +8,6 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
-import CompanySignup from "./pages/CompanySignup";
 
 // Layouts
 import DashboardLayout from "./components/layouts/DashboardLayout";
@@ -64,7 +63,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/company-signup" element={<CompanySignup />} />
+          <Route path="/company-signup" element={<Navigate to="/register?type=company" replace />} />
           <Route path="/company-support/register" element={<SupportRegister />} />
 
           {/* Customer */}
