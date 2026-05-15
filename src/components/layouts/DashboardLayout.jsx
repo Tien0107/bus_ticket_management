@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import { logout } from "../../api/auth";
 
 export default function DashboardLayout() {
   const [user, setUser] = useState(null);
@@ -14,7 +15,12 @@ export default function DashboardLayout() {
     }
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error("Lỗi khi gọi API logout:", err);
+    }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login");
