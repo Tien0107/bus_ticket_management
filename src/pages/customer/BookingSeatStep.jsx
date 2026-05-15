@@ -417,7 +417,19 @@ export default function BookingSeatStep({
             </div>
           </div>
           <div className="flex gap-4">
-            {/* Đã loại bỏ nút Khứ hồi */}
+            {bookingPhase === "outbound" && !isRoundTrip && (
+              <button 
+                disabled={bookingData.selectedSeats.length === 0 || !bookingData.pickupId || !bookingData.dropoffId}
+                onClick={() => {
+                   setIsRoundTrip(true);
+                   setBookingPhase("returnSelection");
+                }}
+                className="bg-secondary text-white px-6 py-3.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-sm">swap_horiz</span>
+                Khứ hồi
+              </button>
+            )}
             <button 
               disabled={bookingData.selectedSeats.length === 0 || !bookingData.pickupId || !bookingData.dropoffId || isSubmitting}
               onClick={handleNextClick}
