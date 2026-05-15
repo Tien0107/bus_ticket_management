@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { getTripSchedules } from "../../api/customer";
+import { getTripSchedules, getTripScheduleRatings } from "../../api/customer";
+import CompanyReviewsModal from "../../components/reviews/CompanyReviewsModal";
 
 export default function RoutesPage() {
   const navigate = useNavigate();
@@ -11,6 +12,19 @@ export default function RoutesPage() {
   const [popularRoutes, setPopularRoutes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+
+  const openReviewModal = (schedule, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedCompany({
+      id: schedule.company?.id || schedule.companyId,
+      name: schedule.name || schedule.company?.name || "Nhà xe"
+    });
+    setIsReviewModalOpen(true);
+  };
 
   useEffect(() => {
     const fetchSchedules = async () => {
@@ -28,6 +42,40 @@ export default function RoutesPage() {
         
         if (Array.isArray(data) && filterState.companyId) {
           data = data.filter(t => String(t.company?.id || t.companyId) === String(filterState.companyId));
+        }
+
+        // Lấy rating thật cho từng nhà xe (duy nhất để tránh gọi quá nhiều lần)
+        if (Array.isArray(data) && data.length > 0) {
+          const uniqueCompanyIds = [...new Set(data.map(t => t.company?.id || t.companyId).filter(Boolean))];
+          const companyRatings = {};
+          await Promise.all(uniqueCompanyIds.map(async (cId) => {
+             try {
+               const res = await getTripScheduleRatings({ companyId: cId, limit: 100 });
+               const comments = res.data?.comments || [];
+               if (comments.length > 0) {
+                 let sum = 0;
+                 comments.forEach(c => sum += (c.rating || 5));
+                 companyRatings[cId] = { rating: sum / comments.length, reviewCount: comments.length };
+               }
+             } catch (e) {
+               console.error("Lỗi tải rating", e);
+             }
+          }));
+          
+          data = data.map(t => {
+            const cId = t.company?.id || t.companyId;
+            if (cId && companyRatings[cId]) {
+               return { 
+                 ...t, 
+                 company: { 
+                   ...(t.company || {}), 
+                   rating: companyRatings[cId].rating, 
+                   reviewCount: companyRatings[cId].reviewCount 
+                 }
+               };
+            }
+            return t;
+          });
         }
 
         setSchedules(Array.isArray(data) ? data : []);
@@ -181,6 +229,14 @@ export default function RoutesPage() {
                         )}
                         <div>
                           <p className="font-bold text-on-surface">{schedule.name || "Chuyến xe"}</p>
+                          <div 
+                            onClick={(e) => openReviewModal(schedule, e)}
+                            className="inline-flex items-center gap-1 mt-0.5 mb-1 px-2 py-0.5 -ml-2 rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-yellow-400 text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                            <span className="font-bold text-xs text-on-surface">{schedule.company?.rating ? schedule.company.rating.toFixed(1) : (schedule.rating ? schedule.rating.toFixed(1) : "0.0")}</span>
+                            <span className="text-on-surface-variant text-[10px] underline decoration-dotted underline-offset-2">({schedule.company?.totalReviews || schedule.company?.reviewCount || schedule.totalReviews || schedule.reviewCount || 0} đánh giá)</span>
+                          </div>
                           <p className="text-xs text-on-surface-variant flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">call</span> {schedule.hotline || "Đang cập nhật"}</p>
                         </div>
                       </div>
@@ -233,6 +289,12 @@ export default function RoutesPage() {
           )}
         </div>
       </div>
+      <CompanyReviewsModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        companyId={selectedCompany?.id}
+        companyName={selectedCompany?.name}
+      />
     </div>
   );
 }

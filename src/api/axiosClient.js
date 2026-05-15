@@ -83,7 +83,10 @@ axiosClient.interceptors.response.use(
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      if (!isLogoutRequest && !isLoggingOut && window.location.pathname !== "/login") {
+      // Không tự động alert và redirect nếu đang gọi API lấy lịch trình chuyến đi (vì trang chủ gọi API này)
+      const isTripScheduleRequest = requestUrl.includes("/customer/trip-schedule");
+
+      if (!isLogoutRequest && !isLoggingOut && window.location.pathname !== "/login" && !isTripScheduleRequest) {
         alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         window.location.href = "/login";
       }

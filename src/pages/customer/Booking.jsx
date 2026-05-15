@@ -26,12 +26,13 @@ export default function Booking() {
   
   // Trạng thái quản lý luồng Booking
   const [step, setStep] = useState(1);
-  const [isRoundTrip, setIsRoundTrip] = useState(false);
+  const [isRoundTrip, setIsRoundTrip] = useState(location.state?.isRoundTrip || false);
   const [bookingPhase, setBookingPhase] = useState("outbound"); // "outbound" | "return"
   const [bookingData, setBookingData] = useState({
     scheduleId: tripId,
     companyId: location.state?.companyId || location.state?.schedule?.companyId,
     date: location.state?.date || today,
+    returnDate: location.state?.returnDate || "",
     tripId: null, // Sẽ được lấy sau khi Prepare
     selectedSeats: [],
     pickupId: null,

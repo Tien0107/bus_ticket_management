@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import { logout } from "../../api/auth";
+import NotificationBell from "../common/NotificationBell";
 
 export default function DashboardLayout() {
   const [user, setUser] = useState(null);
@@ -19,7 +21,12 @@ export default function DashboardLayout() {
     }
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error("Lỗi khi gọi API logout:", err);
+    }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login");
@@ -46,14 +53,17 @@ export default function DashboardLayout() {
         <div className="p-4 border-b border-outline-variant/20">
           <div className="flex items-center justify-between">
             {sidebarOpen && <h2 className="text-xl font-bold text-primary">Bus Go</h2>}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-surface-container-high rounded-lg transition-all"
-            >
-              <span className="material-symbols-outlined">
-                {sidebarOpen ? "menu_open" : "menu"}
-              </span>
-            </button>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 hover:bg-surface-container-high rounded-lg transition-all"
+              >
+                <span className="material-symbols-outlined">
+                  {sidebarOpen ? "menu_open" : "menu"}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 
