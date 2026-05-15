@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { logout } from "../../api/auth";
+import NotificationBell from "../common/NotificationBell";
 
 import { getCustomerProfile } from "../../api/customer";
 
@@ -82,7 +83,9 @@ const MainNavbar = () => {
         </div>
         {user ? (
           /* === Đã đăng nhập === */
-          <div className="relative">
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-xl hover:bg-primary/20 transition-colors"
@@ -147,6 +150,7 @@ const MainNavbar = () => {
                 </button>
               </div>
             )}
+          </div>
           </div>
         ) : (
           /* === Chưa đăng nhập === */
