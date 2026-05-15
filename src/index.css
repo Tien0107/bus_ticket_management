@@ -36,12 +36,8 @@ body {
 }
 
 .auth-google-render,
-.auth-google-render > div,
-.auth-google-render iframe {
-  width: 100% !important;
-  min-width: 0 !important;
-}
-
-.auth-google-render iframe {
-  height: 56px !important;
+.auth-google-render > div {
+  display: flex !important;
+  justify-content: center !important;
+  max-width: 100% !important;
 }

@@ -194,6 +194,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState("");
   const [googleReady, setGoogleReady] = useState(false);
+  const [googleRenderKey, setGoogleRenderKey] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -289,6 +290,7 @@ function Login() {
 
     const initGoogleLogin = async () => {
       try {
+        setGoogleReady(false);
         await loadScript("https://accounts.google.com/gsi/client?hl=vi", "google-identity-services");
 
         if (!mounted || !window.google?.accounts?.id || !googleButtonRef.current) {
@@ -302,26 +304,11 @@ function Login() {
         });
 
         googleButtonRef.current.innerHTML = "";
-        const googleButtonWidth = Math.min(
-          400,
-          Math.max(
-            260,
-            Math.round(
-              googleButtonRef.current.parentElement?.clientWidth
-              || googleButtonRef.current.clientWidth
-              || 400
-            )
-          )
-        );
-
         window.google.accounts.id.renderButton(googleButtonRef.current, {
-          type: "standard",
+          type: "icon",
           theme: "outline",
           size: "large",
-          text: "signin_with",
-          shape: "rectangular",
-          logo_alignment: "left",
-          width: googleButtonWidth,
+          shape: "circle",
           locale: "vi",
         });
 
@@ -337,7 +324,7 @@ function Login() {
     return () => {
       mounted = false;
     };
-  }, [handleGoogleCredential]);
+  }, [handleGoogleCredential, googleRenderKey]);
 
   const loadFacebookSdk = useCallback(() => {
     return new Promise((resolve, reject) => {
@@ -596,17 +583,31 @@ function Login() {
               <div className="h-px flex-1 bg-outline-variant/40" />
             </div>
 
-            <div className="grid grid-cols-1 gap-3">
-              <div className="relative min-h-14 overflow-hidden rounded-xl">
-                {!googleReady && (
-                  <div className="flex h-14 w-full cursor-wait items-center justify-center gap-3 rounded-xl border border-outline-variant/50 bg-white px-4 text-[15px] font-bold text-on-surface opacity-70 shadow-sm">
+            <div className="flex items-center justify-center gap-3">
+              <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl bg-white transition-colors hover:bg-surface-container-low">
+                <div className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center">
+                  {socialLoading === "google" ? (
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-                    <span className="truncate">Đang tải Google...</span>
-                  </div>
+                  ) : (
+                    <img
+                      alt=""
+                      className="h-7 w-7"
+                      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                    />
+                  )}
+                </div>
+                {!googleReady && (
+                  <button
+                    type="button"
+                    onClick={() => setGoogleRenderKey((key) => key + 1)}
+                    className="absolute inset-0 z-10 rounded-xl"
+                    aria-label="Đăng nhập bằng Google"
+                    title="Google"
+                  />
                 )}
                 <div
                   ref={googleButtonRef}
-                  className={`auth-google-render flex h-14 w-full items-center justify-center overflow-hidden rounded-xl transition-opacity ${googleReady ? "opacity-100" : "pointer-events-none absolute inset-0 opacity-0"}`}
+                  className={`auth-google-render absolute inset-0 z-20 flex h-full w-full items-center justify-center rounded-xl opacity-0 ${googleReady ? "" : "pointer-events-none"}`}
                 />
               </div>
 
@@ -614,16 +615,15 @@ function Login() {
                 type="button"
                 onClick={handleFacebookLogin}
                 disabled={loading || socialLoading === "facebook"}
-                className="flex h-14 w-full items-center justify-center gap-3 rounded-xl border border-outline-variant/50 bg-white px-4 text-[15px] font-bold text-on-surface shadow-sm transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Đăng nhập bằng Facebook"
+                title="Facebook"
               >
                 {socialLoading === "facebook" ? (
                   <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
                 ) : (
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1877F2] text-sm font-extrabold text-white">f</span>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1877F2] text-xl font-extrabold text-white">f</span>
                 )}
-                <span className="truncate">
-                  {socialLoading === "facebook" ? "Đang đăng nhập..." : "Đăng nhập bằng Facebook"}
-                </span>
               </button>
             </div>
 
