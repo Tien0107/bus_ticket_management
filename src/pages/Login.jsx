@@ -5,7 +5,7 @@ import { useToast } from "../context/ToastContext";
 import { jwtDecode } from "jwt-decode";
 
 const GOOGLE_CLIENT_ID = "335430946794-8mkv3iqd0dvgq208ep9gf6t9hj07lsqc.apps.googleusercontent.com";
-const FACEBOOK_APP_ID = process.env.REACT_APP_FACEBOOK_APP_ID || "802102469446209";
+const FACEBOOK_APP_ID = process.env.REACT_APP_FACEBOOK_APP_ID || "1920728485259212";
 const FACEBOOK_GRAPH_VERSION = process.env.REACT_APP_FACEBOOK_GRAPH_VERSION || "v25.0";
 const isHttpsPage = () => window.location.protocol === "https:";
 
