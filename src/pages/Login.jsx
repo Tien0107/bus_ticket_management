@@ -610,18 +610,7 @@ function Login() {
             </div>
 
             <div className="flex items-center justify-center gap-3">
-              <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl bg-white transition-colors hover:bg-surface-container-low">
-                <div className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center">
-                  {socialLoading === "google" ? (
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-                  ) : (
-                    <img
-                      alt=""
-                      className="h-7 w-7"
-                      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                    />
-                  )}
-                </div>
+              <div className="relative flex h-14 w-14 items-center justify-center rounded-xl bg-white transition-colors hover:bg-surface-container-low">
                 {!googleReady && (
                   <button
                     type="button"
@@ -637,8 +626,13 @@ function Login() {
                 <div
                   ref={googleButtonRef}
                   onClickCapture={() => logGoogleClick("google-official-overlay")}
-                  className={`auth-google-render absolute inset-0 z-20 flex h-full w-full items-center justify-center rounded-xl opacity-0 ${googleReady ? "" : "pointer-events-none"}`}
+                  className={`auth-google-render flex h-full w-full items-center justify-center rounded-xl ${googleReady ? "" : "pointer-events-none opacity-0"}`}
                 />
+                {socialLoading === "google" && (
+                  <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-xl bg-white/80">
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+                  </div>
+                )}
               </div>
 
               <button
