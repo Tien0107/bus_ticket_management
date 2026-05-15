@@ -153,11 +153,11 @@ export default function Booking() {
   const handleProceedToCheckout = async () => {
     try {
       if (bookingData.selectedSeats.length === 0) {
-        addToast("Vui lòng chọn ít nhất 1 ghế chiều đi.");
+        addToast("Vui lòng chọn ít nhất 1 ghế chiều đi.", "error");
         return false;
       }
       if (isRoundTrip && (!returnBookingData || returnBookingData.selectedSeats.length === 0)) {
-        addToast("Vui lòng chọn ít nhất 1 ghế chiều về.");
+        addToast("Vui lòng chọn ít nhất 1 ghế chiều về.", "error");
         return false;
       }
 
@@ -272,7 +272,13 @@ export default function Booking() {
             <BookingSeatStep 
               bookingData={bookingPhase === "outbound" ? bookingData : returnBookingData} 
               setBookingData={bookingPhase === "outbound" ? setBookingData : setReturnBookingData} 
-              onNext={handleProceedToCheckout} 
+              onNext={() => {
+                if (isRoundTrip && bookingPhase === "outbound") {
+                  setBookingPhase("returnSelection");
+                } else {
+                  return handleProceedToCheckout();
+                }
+              }} 
               isRoundTrip={isRoundTrip}
               setIsRoundTrip={setIsRoundTrip}
               bookingPhase={bookingPhase}

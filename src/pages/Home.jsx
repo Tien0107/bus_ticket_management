@@ -334,21 +334,7 @@ const Home = () => {
           <div className="lg:col-span-5">
             <div className="bg-white p-8 rounded-3xl shadow-editorial">
               <div className="space-y-6">
-                {/* Chọn loại vé: Một chiều / Khứ hồi */}
-                <div className="flex bg-surface-container-low p-1 rounded-xl">
-                  <button
-                    onClick={() => setTripType("one_way")}
-                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${tripType === "one_way" ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:bg-surface-container"}`}
-                  >
-                    Một chiều
-                  </button>
-                  <button
-                    onClick={() => setTripType("round_trip")}
-                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${tripType === "round_trip" ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:bg-surface-container"}`}
-                  >
-                    Khứ hồi
-                  </button>
-                </div>
+                {/* Đã bỏ chức năng chọn Khứ hồi */}
 
                 <div className="grid grid-cols-1 gap-4">
                   {/* Điểm đi */}
@@ -377,8 +363,8 @@ const Home = () => {
                   </div>
                 </div>
 
-                {/* Ngày đi và Ngày về */}
-                <div className={`grid ${tripType === "round_trip" ? "grid-cols-2" : "grid-cols-1"} gap-4`}>
+                {/* Ngày đi */}
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">
                       Ngày đi
@@ -396,27 +382,6 @@ const Home = () => {
                       />
                     </div>
                   </div>
-
-                  {tripType === "round_trip" && (
-                    <div>
-                      <label className="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">
-                        Ngày về
-                      </label>
-                      <div className="flex items-center bg-surface-container-low px-4 py-3 rounded-xl">
-                        <span className="material-symbols-outlined text-primary mr-3">
-                          calendar_month
-                        </span>
-                        <input
-                          className="bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-on-surface w-full placeholder:text-outline-variant font-medium text-sm"
-                          placeholder="Chọn ngày về"
-                          type="date"
-                          min={date || undefined}
-                          value={returnDate}
-                          onChange={(e) => setReturnDate(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 <button
