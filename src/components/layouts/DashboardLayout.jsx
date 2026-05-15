@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import ChatWidget from "../chat/ChatWidget";
 
 export default function DashboardLayout() {
   const [user, setUser] = useState(null);
@@ -28,6 +29,11 @@ export default function DashboardLayout() {
       ? `${baseClass} bg-primary text-white`
       : `${baseClass} text-on-surface-variant hover:bg-surface-container-high`;
   };
+
+  const showChatWidget =
+    user?.role === "driver" ||
+    user?.role === "admin" ||
+    (user?.role === "operator" && ["company_admin", "dispatcher"].includes(user?.staffProfileRole));
 
   return (
     <div className="flex min-h-screen bg-surface">
@@ -173,6 +179,7 @@ export default function DashboardLayout() {
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>
+      {showChatWidget && <ChatWidget />}
     </div>
   );
 }
