@@ -4,6 +4,7 @@ import {
   getPayments,
   getRevenue,
   getStripeBalance,
+  getStripeConnectStatus,
   updatePayment,
   withdrawStripeBalance,
 } from "../../api/company";
@@ -46,6 +47,69 @@ const methodLabel = {
   stripe: "Stripe",
 };
 
+const STRIPE_CONNECT_STARTED_KEY = "busgoStripeConnectStarted";
+const USD_TO_VND_RATE = 25000;
+
+const getStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user") || "{}");
+  } catch {
+    return {};
+  }
+};
+
+const getTokenPayload = () => {
+  try {
+    const token = localStorage.getItem("token");
+    const payload = token?.split(".")[1];
+    if (!payload) return {};
+
+    const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedPayload = normalizedPayload.padEnd(
+      normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+      "="
+    );
+
+    return JSON.parse(window.atob(paddedPayload));
+  } catch {
+    return {};
+  }
+};
+
+const getStoredStripeAccountId = () => {
+  const user = getStoredUser();
+  const tokenPayload = getTokenPayload();
+  return String(
+    user.accountStripeId ||
+      user.account_stripe_id ||
+      user.stripeAccountId ||
+      user.stripe_account_id ||
+      tokenPayload.accountStripeId ||
+      tokenPayload.account_stripe_id ||
+      tokenPayload.stripeAccountId ||
+      tokenPayload.stripe_account_id ||
+      ""
+  ).trim();
+};
+
+const hasKnownStripeAccount = () =>
+  Boolean(getStoredStripeAccountId()) || sessionStorage.getItem(STRIPE_CONNECT_STARTED_KEY) === "true";
+
+const rememberStripeAccount = (accountId) => {
+  sessionStorage.setItem(STRIPE_CONNECT_STARTED_KEY, "true");
+
+  if (!accountId) return;
+
+  const user = getStoredUser();
+  localStorage.setItem(
+    "user",
+    JSON.stringify({
+      ...user,
+      accountStripeId: accountId,
+    })
+  );
+};
+
 const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -78,6 +142,27 @@ const formatStripeAmount = ({ amount, currency }) => {
   }).format(numericAmount / 100)} ${code}`;
 };
 
+const getStripeMajorAmount = ({ amount, currency }) => {
+  const code = String(currency || "").toUpperCase();
+  const numericAmount = Number(amount || 0);
+
+  if (code === "VND") return numericAmount;
+  return numericAmount / 100;
+};
+
+const formatVndEquivalent = (item) => {
+  const code = String(item?.currency || "").toUpperCase();
+  if (code === "VND") return "";
+  if (code !== "USD") return "";
+
+  const vndAmount = getStripeMajorAmount(item) * USD_TO_VND_RATE;
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(vndAmount);
+};
+
 export default function Payments() {
   const { addToast } = useToast();
 
@@ -88,6 +173,9 @@ export default function Payments() {
   const [appliedFilters, setAppliedFilters] = useState(filters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [stripeStatus, setStripeStatus] = useState(null);
+  const [stripeStatusError, setStripeStatusError] = useState("");
+  const [stripeAccountReady, setStripeAccountReady] = useState(hasKnownStripeAccount);
   const [updatingCode, setUpdatingCode] = useState("");
   const [stripeLoading, setStripeLoading] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -106,10 +194,12 @@ export default function Payments() {
       };
       Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 
-      const [paymentsRes, revenueRes, balanceRes] = await Promise.allSettled([
+      const canCheckStripe = stripeAccountReady;
+      const [paymentsRes, revenueRes, balanceRes, stripeStatusRes] = await Promise.allSettled([
         getPayments(params),
         getRevenue(),
-        getStripeBalance(),
+        canCheckStripe ? getStripeBalance() : Promise.resolve({ data: { available: [], pending: [] } }),
+        canCheckStripe ? getStripeConnectStatus() : Promise.resolve({ data: null }),
       ]);
 
       if (paymentsRes.status === "fulfilled") {
@@ -127,13 +217,41 @@ export default function Payments() {
             }
           : { available: [], pending: [] }
       );
+
+      if (!canCheckStripe) {
+        setStripeStatus(null);
+        setStripeStatusError("");
+      } else if (
+        stripeStatusRes.status === "fulfilled" &&
+        stripeStatusRes.value.status >= 200 &&
+        stripeStatusRes.value.status < 300
+      ) {
+        setStripeStatus({
+          chargesEnabled: Boolean(stripeStatusRes.value.data?.chargesEnabled),
+          payoutsEnabled: Boolean(stripeStatusRes.value.data?.payoutsEnabled),
+          currentlyDue: Array.isArray(stripeStatusRes.value.data?.currentlyDue)
+            ? stripeStatusRes.value.data.currentlyDue
+            : [],
+        });
+        setStripeStatusError("");
+      } else if (stripeStatusRes.status === "fulfilled") {
+        setStripeStatus(null);
+        setStripeStatusError(
+          stripeStatusRes.value.data?.message || "Không thể tải trạng thái Stripe Connect."
+        );
+      } else {
+        setStripeStatus(null);
+        setStripeStatusError(
+          stripeStatusRes.reason?.response?.data?.message || "Không thể tải trạng thái Stripe Connect."
+        );
+      }
     } catch (err) {
       console.error("Lỗi tải thanh toán:", err);
       setError(err.response?.data?.message || "Không thể tải dữ liệu thanh toán.");
     } finally {
       setLoading(false);
     }
-  }, [appliedFilters]);
+  }, [appliedFilters, stripeAccountReady]);
 
   useEffect(() => {
     fetchPayments();
@@ -184,6 +302,8 @@ export default function Payments() {
       setStripeLoading(true);
       const response = await createStripeAccount();
       const url = response.data?.url;
+      rememberStripeAccount(response.data?.accountStripeId || response.data?.stripeAccountId);
+      setStripeAccountReady(true);
       addToast(response.data?.message || "Đã tạo phiên liên kết Stripe", "success");
       if (url) {
         window.location.assign(url);
@@ -198,8 +318,13 @@ export default function Payments() {
 
   const handleWithdraw = async () => {
     const amount = Number(withdrawAmount);
-    if (!amount || amount <= 0) {
-      addToast("Số tiền rút không hợp lệ", "error");
+    if (!stripeAccountReady) {
+      addToast("Vui lòng liên kết Stripe trước khi rút tiền", "error");
+      return;
+    }
+
+    if (!amount || amount < 500000) {
+      addToast("Số tiền rút tối thiểu là 500.000 VND", "error");
       return;
     }
 
@@ -226,7 +351,7 @@ export default function Payments() {
       actions={
         <div className="flex gap-2">
           <IconButton icon="account_balance_wallet" label="Liên kết Stripe" variant="primary" onClick={handleCreateStripeAccount} disabled={stripeLoading} />
-          <IconButton icon="payments" label="Rút tiền" variant="success" onClick={() => setShowWithdrawModal(true)} disabled={stripeLoading} />
+          <IconButton icon="payments" label="Rút tiền" variant="success" onClick={() => setShowWithdrawModal(true)} disabled={stripeLoading || !stripeAccountReady} />
         </div>
       }
     >
@@ -235,6 +360,14 @@ export default function Payments() {
           <StatCard key={stat.label} {...stat} />
         ))}
       </div>
+
+      <StripeConnectPanel
+        status={stripeStatus}
+        error={stripeStatusError}
+        loading={loading && !stripeStatus && !stripeStatusError}
+        onConnect={handleCreateStripeAccount}
+        stripeLoading={stripeLoading}
+      />
 
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
@@ -365,7 +498,8 @@ export default function Payments() {
           <Field label="Số tiền cần rút">
             <input
               type="number"
-              min="1"
+              min="500000"
+              step="1000"
               value={withdrawAmount}
               onChange={(e) => setWithdrawAmount(e.target.value)}
               className={inputClass}
@@ -375,6 +509,126 @@ export default function Payments() {
         </ModalShell>
       )}
     </CompanyPageShell>
+  );
+}
+
+function StripeConnectPanel({ status, error, loading, onConnect, stripeLoading }) {
+  const currentlyDue = Array.isArray(status?.currentlyDue) ? status.currentlyDue : [];
+  const chargesEnabled = Boolean(status?.chargesEnabled);
+  const payoutsEnabled = Boolean(status?.payoutsEnabled);
+  const ready = chargesEnabled && payoutsEnabled;
+  const needsInfo = Boolean(status) && (!ready || currentlyDue.length > 0);
+
+  const badgeTone = loading ? "slate" : error ? "red" : ready ? "emerald" : needsInfo ? "amber" : "slate";
+  const badgeLabel = loading
+    ? "Đang kiểm tra"
+    : error
+    ? "Không tải được"
+    : ready
+    ? "Đã sẵn sàng"
+    : needsInfo
+    ? "Cần cập nhật"
+    : "Chưa liên kết";
+
+  return (
+    <section className="mb-6 rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex gap-4">
+          <span
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${
+              ready ? "bg-emerald-50 text-emerald-700" : "bg-primary/10 text-primary"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[26px]">account_balance_wallet</span>
+          </span>
+          <div>
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-xl font-extrabold text-on-surface">Stripe Connect</h2>
+              <StatusBadge tone={badgeTone}>{badgeLabel}</StatusBadge>
+            </div>
+            <p className="mt-1 text-sm leading-6 text-on-surface-variant">
+              Kiểm tra khả năng nhận thanh toán và rút tiền của tài khoản Stripe công ty.
+            </p>
+          </div>
+        </div>
+
+        <PrimaryButton icon="account_balance_wallet" onClick={onConnect} disabled={stripeLoading || loading}>
+          {stripeLoading ? "Đang xử lý..." : status ? "Cập nhật Stripe" : "Liên kết Stripe"}
+        </PrimaryButton>
+      </div>
+
+      <div className="mt-5">
+        {loading ? (
+          <div className="flex items-center gap-3 rounded-lg bg-surface-container-low p-4 text-sm font-medium text-on-surface-variant">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+            Đang tải trạng thái Stripe Connect...
+          </div>
+        ) : error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            {error}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <StripeStatusItem
+              icon="credit_card"
+              label="Nhận thanh toán"
+              enabled={chargesEnabled}
+              enabledText="Đã bật"
+              disabledText="Chưa bật"
+            />
+            <StripeStatusItem
+              icon="account_balance"
+              label="Rút tiền"
+              enabled={payoutsEnabled}
+              enabledText="Đã bật"
+              disabledText="Chưa bật"
+            />
+            <div className="rounded-lg bg-surface-container-low p-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
+                <span className="material-symbols-outlined text-[20px] text-amber-600">assignment_late</span>
+                Thông tin cần bổ sung
+              </div>
+              <p className="mt-2 text-2xl font-extrabold text-on-surface">{currentlyDue.length}</p>
+              <p className="mt-1 text-xs font-medium text-on-surface-variant">
+                {currentlyDue.length ? "Stripe đang yêu cầu thêm thông tin." : "Không có yêu cầu bổ sung."}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {!loading && !error && currentlyDue.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {currentlyDue.slice(0, 8).map((item, index) => (
+            <span
+              key={`${item}-${index}`}
+              className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 ring-1 ring-amber-100"
+            >
+              {item}
+            </span>
+          ))}
+          {currentlyDue.length > 8 && (
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+              +{currentlyDue.length - 8}
+            </span>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function StripeStatusItem({ icon, label, enabled, enabledText, disabledText }) {
+  return (
+    <div className="rounded-lg bg-surface-container-low p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
+          <span className="material-symbols-outlined text-[20px] text-primary">{icon}</span>
+          {label}
+        </div>
+        <StatusBadge tone={enabled ? "emerald" : "amber"}>{enabled ? enabledText : disabledText}</StatusBadge>
+      </div>
+    </div>
   );
 }
 
@@ -392,7 +646,14 @@ function BalanceList({ items, emptyLabel }) {
       {items.map((item, index) => (
         <div key={`${item.currency}-${index}`} className="flex items-center justify-between rounded-lg bg-surface-container-low p-4">
           <span className="text-sm font-medium text-on-surface-variant">{String(item.currency || "").toUpperCase()}</span>
-          <span className="font-extrabold text-on-surface">{formatStripeAmount(item)}</span>
+          <span className="text-right">
+            <span className="block font-extrabold text-on-surface">{formatStripeAmount(item)}</span>
+            {formatVndEquivalent(item) && (
+              <span className="mt-1 block text-xs font-semibold text-on-surface-variant">
+                ≈ {formatVndEquivalent(item)}
+              </span>
+            )}
+          </span>
         </div>
       ))}
     </div>

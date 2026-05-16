@@ -101,12 +101,17 @@ export function StatCard({ icon, label, value, tone = "primary" }) {
     slate: "bg-slate-100 text-slate-700",
   }[tone] || "bg-primary/10 text-primary";
 
+  const valueText = value === undefined || value === null ? "" : String(value);
+  const valueClass = valueText.length > 10 ? "text-2xl" : "text-3xl";
+
   return (
     <div className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
+        <div className="min-w-0">
           <p className="text-sm font-medium text-on-surface-variant">{label}</p>
-          <p className="mt-2 text-3xl font-extrabold text-on-surface">{value}</p>
+          <p className={`mt-2 break-words leading-tight ${valueClass} font-extrabold text-on-surface`}>
+            {value}
+          </p>
         </div>
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${toneClass}`}>
           <span className="material-symbols-outlined text-[24px]">{icon}</span>

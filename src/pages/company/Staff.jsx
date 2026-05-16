@@ -33,6 +33,8 @@ const roleTone = {
   company_admin: "amber",
 };
 
+const editableRoles = ["dispatcher", "support", "company_admin"];
+
 const statusTone = {
   active: "emerald",
   inactive: "red",
@@ -99,8 +101,9 @@ export default function Staff() {
   ], [staff]);
 
   const handleOpenRoleModal = (member) => {
+    const role = getRole(member);
     setSelectedStaff(member);
-    setNewRole(getRole(member));
+    setNewRole(editableRoles.includes(role) ? role : "dispatcher");
     setShowRoleModal(true);
   };
 
@@ -255,7 +258,6 @@ export default function Staff() {
           <div className="space-y-4">
             <Field label="Vai trò mới">
               <SelectControl value={newRole} onChange={(e) => setNewRole(e.target.value)}>
-                <option value="staff">Nhân viên</option>
                 <option value="dispatcher">Điều phối</option>
                 <option value="support">Hỗ trợ</option>
                 <option value="company_admin">Quản trị công ty</option>

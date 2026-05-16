@@ -176,6 +176,10 @@ const mergeAuthClaims = (user, source) => {
   if (staffProfileRole) user.staffProfileRole = normalizeStaffProfileRole(staffProfileRole);
   if (source.companyId !== undefined) user.companyId = source.companyId;
   if (source.company_id !== undefined) user.companyId = source.company_id;
+  if (source.accountStripeId !== undefined) user.accountStripeId = source.accountStripeId;
+  if (source.account_stripe_id !== undefined) user.accountStripeId = source.account_stripe_id;
+  if (source.stripeAccountId !== undefined) user.accountStripeId = source.stripeAccountId;
+  if (source.stripe_account_id !== undefined) user.accountStripeId = source.stripe_account_id;
   if (source.email && !user.email) user.email = source.email;
   if (source.phone && !user.phone) user.phone = source.phone;
   if (source.fullName && !user.fullName) user.fullName = source.fullName;
