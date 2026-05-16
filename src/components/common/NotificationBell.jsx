@@ -8,19 +8,30 @@ const accountActions = [
   {
     status: "active",
     label: "Duyệt",
+    icon: "check_circle",
+    description: "Cho phép tài khoản hoạt động",
     className: "border-primary bg-primary text-white hover:bg-primary/90",
   },
   {
     status: "inactive",
     label: "Tạm ngưng",
+    icon: "pause_circle",
+    description: "Tạm khóa tài khoản",
     className: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
   },
   {
     status: "banned",
     label: "Cấm",
+    icon: "block",
+    description: "Chặn tài khoản khỏi hệ thống",
     className: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100",
   },
 ];
+
+const accountTypeLabel = {
+  driver: "Tài xế",
+  staff: "Nhân viên điều hành",
+};
 
 const parseNotificationData = (data) => {
   if (!data || typeof data !== "string") return {};
@@ -130,6 +141,7 @@ export default function NotificationBell({ align = "right" }) {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
+  const [accountDialogNotification, setAccountDialogNotification] = useState(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -212,7 +224,7 @@ export default function NotificationBell({ align = "right" }) {
   };
 
   const handleAccountAction = async (event, notification, status) => {
-    event.stopPropagation();
+    event?.stopPropagation();
 
     const context = getNotificationContext(notification);
     if (!context.isAccountAction) {
@@ -244,6 +256,7 @@ export default function NotificationBell({ align = "right" }) {
         "success"
       );
       setIsOpen(false);
+      setAccountDialogNotification(null);
     } catch (err) {
       console.error("Failed to update account status from notification:", err);
       addToast(err.response?.data?.message || err.message || "Không thể cập nhật trạng thái tài khoản", "error");
@@ -278,12 +291,18 @@ export default function NotificationBell({ align = "right" }) {
   const handleNotificationClick = async (notification) => {
     if (!notification?.id) return;
 
+    const context = getNotificationContext(notification);
     const marked = await markAsRead(notification);
     if (!marked) return;
 
+    if (canManageAccountActions && context.isAccountAction) {
+      setAccountDialogNotification({ ...notification, isRead: true });
+      setIsOpen(false);
+      return;
+    }
+
     setIsOpen(false);
 
-    const context = getNotificationContext(notification);
     if (context.path) {
       navigate(context.path);
     } else if (notification.title?.toLowerCase().includes("vé") || notification.body?.toLowerCase().includes("vé")) {
@@ -292,6 +311,7 @@ export default function NotificationBell({ align = "right" }) {
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const accountDialogContext = accountDialogNotification ? getNotificationContext(accountDialogNotification) : null;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -358,21 +378,9 @@ export default function NotificationBell({ align = "right" }) {
                           {notif.body}
                         </p>
                         {showAccountActions && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {accountActions.map((action) => {
-                              const loading = actionLoading === `${notif.id}-${action.status}`;
-                              return (
-                                <button
-                                  key={action.status}
-                                  type="button"
-                                  onClick={(event) => handleAccountAction(event, notif, action.status)}
-                                  disabled={Boolean(actionLoading)}
-                                  className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${action.className}`}
-                                >
-                                  {loading ? "Đang xử lý..." : action.label}
-                                </button>
-                              );
-                            })}
+                          <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
+                            <span className="material-symbols-outlined text-[14px]">manage_accounts</span>
+                            Bấm để chọn trạng thái
                           </div>
                         )}
                       </div>
@@ -393,6 +401,97 @@ export default function NotificationBell({ align = "right" }) {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {accountDialogNotification && accountDialogContext?.isAccountAction && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4"
+          onMouseDown={() => {
+            if (!actionLoading) setAccountDialogNotification(null);
+          }}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-2xl border border-outline-variant/20 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.24)]"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-outline-variant/20 px-5 py-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-primary">
+                  {accountTypeLabel[accountDialogContext.accountType] || "Tài khoản"}
+                </p>
+                <h3 className="mt-1 text-lg font-bold text-on-surface">Xử lý tài khoản</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAccountDialogNotification(null)}
+                disabled={Boolean(actionLoading)}
+                className="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Đóng"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-4 px-5 py-4">
+              <div className="rounded-xl bg-surface-container-low p-4">
+                <p className="font-bold text-on-surface">{accountDialogNotification.title || "Thông báo"}</p>
+                <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
+                  {accountDialogNotification.body || "Không có nội dung thông báo."}
+                </p>
+                <p className="mt-3 text-xs font-medium text-on-surface-variant">
+                  ID tài khoản: {accountDialogContext.targetUserId}
+                </p>
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-bold text-on-surface">Chọn trạng thái</p>
+                <div className="space-y-2">
+                  {accountActions.map((action) => {
+                    const loading = actionLoading === `${accountDialogNotification.id}-${action.status}`;
+
+                    return (
+                      <button
+                        key={action.status}
+                        type="button"
+                        onClick={(event) => handleAccountAction(event, accountDialogNotification, action.status)}
+                        disabled={Boolean(actionLoading)}
+                        className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${action.className}`}
+                      >
+                        <span className="material-symbols-outlined text-[22px]">{action.icon}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-bold">{loading ? "Đang xử lý..." : action.label}</span>
+                          <span className="block text-xs font-medium opacity-80">{action.description}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 border-t border-outline-variant/20 bg-surface-container-low px-5 py-4 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setAccountDialogNotification(null);
+                  if (accountDialogContext.path) navigate(accountDialogContext.path);
+                }}
+                disabled={Boolean(actionLoading)}
+                className="rounded-xl border border-outline-variant/30 bg-white px-4 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Xem danh sách
+              </button>
+              <button
+                type="button"
+                onClick={() => setAccountDialogNotification(null)}
+                disabled={Boolean(actionLoading)}
+                className="rounded-xl px-4 py-2 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
