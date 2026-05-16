@@ -88,7 +88,7 @@ axiosClient.interceptors.response.use(
       const isHomePage = window.location.pathname === "/" || window.location.pathname === "";
 
       if (!isLogoutRequest && !isLoggingOut && window.location.pathname !== "/login" && !isHomePage) {
-        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", { duration: 4000 });
+        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", { duration: 1000 });
         setTimeout(() => {
           window.location.href = "/login";
         }, 1500);

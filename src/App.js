@@ -62,7 +62,7 @@ function App() {
   return (    
     <ToastProvider>
       <Toast />
-      <Toaster position="top-right" reverseOrder={false} />
+      <Toaster position="top-right" reverseOrder={false} toastOptions={{ duration: 1000 }} />
 
       <BrowserRouter>
         <Routes>

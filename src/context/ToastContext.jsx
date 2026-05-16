@@ -5,7 +5,7 @@ const ToastContext = createContext();
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback((toastInput, type = "success", duration = 4500) => {
+  const addToast = useCallback((toastInput, type = "success", duration = 1000) => {
     const payload =
       typeof toastInput === "object" && toastInput !== null
         ? toastInput
