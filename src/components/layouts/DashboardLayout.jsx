@@ -14,6 +14,18 @@ export default function DashboardLayout() {
   const staffProfileRole = String(user?.staffProfileRole || "").replace(/[\s-]+/g, "_").toLowerCase();
   const isCompanyAdmin = role === "admin" || (role === "operator" && ["company_admin", "operator_admin", "admin"].includes(staffProfileRole));
   const isDispatcher = role === "operator" && ["dispatcher", "operator_dispatcher"].includes(staffProfileRole);
+  const isSupport = role === "operator" && ["support", "company_support", "operator_support"].includes(staffProfileRole);
+  const dashboardHomePath = role === "driver"
+    ? "/driver/dashboard"
+    : isCompanyAdmin
+    ? "/company/dashboard"
+    : isSupport
+    ? "/company-support/tickets"
+    : isDispatcher
+    ? "/operator/dashboard"
+    : role === "super_admin" || role === "superadmin"
+    ? "/super-admin/dashboard"
+    : location.pathname || "/";
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -55,7 +67,17 @@ export default function DashboardLayout() {
         {/* Header */}
         <div className="p-4 border-b border-outline-variant/20">
           <div className="flex items-center justify-between">
-            {sidebarOpen && <h2 className="text-xl font-bold text-primary">Bus Go</h2>}
+            <Link
+              to={dashboardHomePath}
+              className={`flex items-center gap-3 rounded-lg text-primary transition-colors hover:bg-surface-container-high ${
+                sidebarOpen ? "px-2 py-1" : "p-2"
+              }`}
+              aria-label="Về trang quản trị"
+              title="Về trang quản trị"
+            >
+              <span className="material-symbols-outlined text-[26px]">directions_bus</span>
+              {sidebarOpen && <span className="text-xl font-bold">Bus Go</span>}
+            </Link>
             <div className="flex items-center gap-2">
               <NotificationBell align="left" />
               <button
@@ -72,15 +94,9 @@ export default function DashboardLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
-          {/* Back to Home */}
-          <Link to="/" className={getLinkClass("/")}>
-            <span className="material-symbols-outlined">home</span>
-            {sidebarOpen && <span>Trang chủ</span>}
-          </Link>
-
           <div className="my-4">
             <div className={`text-xs font-bold uppercase transition-all ${sidebarOpen ? "px-4 py-2" : "px-2"}`}>
-              {sidebarOpen ? role === "driver" ? "Tài xế" : isCompanyAdmin ? "Công ty" : isDispatcher ? "Điều hành" : "Quản trị" : ""}
+              {sidebarOpen ? role === "driver" ? "Tài xế" : isCompanyAdmin ? "Công ty" : isSupport ? "Hỗ trợ" : isDispatcher ? "Điều hành" : "Quản trị" : ""}
             </div>
           </div>
 
