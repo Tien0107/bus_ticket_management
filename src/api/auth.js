@@ -40,6 +40,11 @@ export const logout = () => {
     });
 };
 
+// lấy danh sách user để chọn người nhận chat
+export const getUsers = (params = {}) => {
+  return axiosClient.get("/auth/user", { params });
+};
+
 // gửi OTP cho quên mật khẩu
 export const sendOtp = (data) => {
   return axiosClient.post("/auth/send-otp", data);
