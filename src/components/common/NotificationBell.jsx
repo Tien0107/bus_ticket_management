@@ -1,12 +1,139 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { getStaff, updateStaff, verifyCompanyAccount } from "../../api/company";
 import { getNotifications, markNotificationRead } from "../../api/notification";
+import { useToast } from "../../context/ToastContext";
+
+const accountActions = [
+  {
+    status: "active",
+    label: "Duyệt",
+    className: "border-primary bg-primary text-white hover:bg-primary/90",
+  },
+  {
+    status: "inactive",
+    label: "Tạm ngưng",
+    className: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
+  },
+  {
+    status: "banned",
+    label: "Cấm",
+    className: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100",
+  },
+];
+
+const parseNotificationData = (data) => {
+  if (!data || typeof data !== "string") return {};
+
+  const trimmed = data.trim();
+  if (!trimmed) return {};
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (typeof parsed === "string") {
+      return parsed.startsWith("/") ? { path: parsed } : { raw: parsed };
+    }
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch (err) {
+    // Plain route strings are supported for old notifications.
+  }
+
+  return trimmed.startsWith("/") ? { path: trimmed } : { raw: trimmed };
+};
+
+const getCurrentUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user") || "null");
+  } catch (err) {
+    return null;
+  }
+};
+
+const normalizeRole = (value) => String(value || "").replace(/[\s-]+/g, "_").toLowerCase();
+
+const isCompanyAdminUser = (user) => {
+  const role = normalizeRole(user?.role);
+  const staffProfileRole = normalizeRole(user?.staffProfileRole);
+  return role === "admin" || (role === "operator" && ["company_admin", "operator_admin", "admin"].includes(staffProfileRole));
+};
+
+const getTargetUserId = (meta) => {
+  const value = meta.targetUserId ?? meta.targetId ?? meta.accountId ?? meta.staffUserId ?? meta.driverUserId ?? meta.userId ?? meta.id;
+  const id = Number(value);
+  return Number.isFinite(id) && id > 0 ? id : null;
+};
+
+const inferAccountType = (meta, notification) => {
+  const text = [
+    meta.type,
+    meta.accountType,
+    meta.targetType,
+    meta.role,
+    meta.path,
+    notification?.title,
+    notification?.body,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (text.includes("driver") || text.includes("tài xế") || text.includes("tai xe")) {
+    return "driver";
+  }
+
+  if (
+    text.includes("staff") ||
+    text.includes("operator") ||
+    text.includes("dispatcher") ||
+    text.includes("support") ||
+    text.includes("điều hành") ||
+    text.includes("dieu hanh") ||
+    text.includes("nhân viên") ||
+    text.includes("nhan vien")
+  ) {
+    return "staff";
+  }
+
+  return "";
+};
+
+const getNotificationContext = (notification) => {
+  const meta = parseNotificationData(notification?.data);
+  const accountType = inferAccountType(meta, notification);
+  const targetUserId = getTargetUserId(meta);
+  const path =
+    typeof meta.path === "string" && meta.path.startsWith("/")
+      ? meta.path
+      : accountType === "driver"
+      ? "/company/drivers"
+      : accountType === "staff"
+      ? "/company/staff"
+      : null;
+
+  return {
+    meta,
+    accountType,
+    targetUserId,
+    path,
+    isAccountAction: Boolean(targetUserId && ["driver", "staff"].includes(accountType)),
+  };
+};
+
+const getStaffMemberId = (member) => {
+  const id = Number(member?.userId ?? member?.id);
+  return Number.isFinite(id) && id > 0 ? id : null;
+};
 
 export default function NotificationBell({ align = "right" }) {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState("");
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const { addToast } = useToast();
+  const canManageAccountActions = isCompanyAdminUser(getCurrentUser());
 
   const fetchNotifications = async () => {
     try {
@@ -21,6 +148,107 @@ export default function NotificationBell({ align = "right" }) {
       setNotifications(list);
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
+    }
+  };
+
+  const markAsRead = async (notification) => {
+    if (!notification?.id) return false;
+    if (notification.isRead) return true;
+
+    setNotifications((current) =>
+      current.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
+    );
+
+    try {
+      const response = await markNotificationRead(notification.id);
+      const updatedNotification = response.data;
+      setNotifications((current) =>
+        current.map((item) => (item.id === notification.id ? { ...item, ...updatedNotification, isRead: true } : item))
+      );
+      return true;
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+      setNotifications((current) =>
+        current.map((item) => (item.id === notification.id ? { ...item, isRead: false } : item))
+      );
+      return false;
+    }
+  };
+
+  const resolveStaffForUpdate = async (meta, targetUserId) => {
+    const directPayload = {
+      fullName: meta.fullName || meta.name || "",
+      email: meta.email || "",
+      phone: meta.phone || "",
+    };
+
+    if (directPayload.fullName && directPayload.email && directPayload.phone) {
+      return { userId: targetUserId, payload: directPayload };
+    }
+
+    const response = await getStaff({ limit: 100 });
+    const staffList = Array.isArray(response.data?.staff) ? response.data.staff : [];
+    const member = staffList.find((item) =>
+      [item?.userId, item?.id]
+        .map((value) => Number(value))
+        .some((value) => Number.isFinite(value) && value === targetUserId)
+    );
+
+    if (!member) {
+      throw new Error("Không tìm thấy nhân viên cần cập nhật.");
+    }
+
+    const payload = {
+      fullName: member.fullName || "",
+      email: member.email || "",
+      phone: member.phone || "",
+    };
+
+    if (!payload.fullName || !payload.email || !payload.phone) {
+      throw new Error("Thiếu thông tin nhân viên để cập nhật trạng thái.");
+    }
+
+    return { userId: getStaffMemberId(member) || targetUserId, payload };
+  };
+
+  const handleAccountAction = async (event, notification, status) => {
+    event.stopPropagation();
+
+    const context = getNotificationContext(notification);
+    if (!context.isAccountAction) {
+      addToast("Thông báo này chưa có đủ dữ liệu tài khoản để xử lý.", "error");
+      return;
+    }
+
+    const loadingKey = `${notification.id}-${status}`;
+
+    try {
+      setActionLoading(loadingKey);
+
+      if (context.accountType === "driver") {
+        await verifyCompanyAccount({ id: context.targetUserId, status });
+      } else {
+        const staff = await resolveStaffForUpdate(context.meta, context.targetUserId);
+        await updateStaff(staff.userId, { ...staff.payload, status });
+      }
+
+      await markAsRead(notification);
+      await fetchNotifications();
+
+      addToast(
+        status === "active"
+          ? "Đã duyệt tài khoản"
+          : status === "inactive"
+          ? "Đã tạm ngưng tài khoản"
+          : "Đã cấm tài khoản",
+        "success"
+      );
+      setIsOpen(false);
+    } catch (err) {
+      console.error("Failed to update account status from notification:", err);
+      addToast(err.response?.data?.message || err.message || "Không thể cập nhật trạng thái tài khoản", "error");
+    } finally {
+      setActionLoading("");
     }
   };
 
@@ -50,31 +278,14 @@ export default function NotificationBell({ align = "right" }) {
   const handleNotificationClick = async (notification) => {
     if (!notification?.id) return;
 
-    if (!notification.isRead) {
-      setNotifications((current) =>
-        current.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
-      );
-
-      try {
-        const response = await markNotificationRead(notification.id);
-        const updatedNotification = response.data;
-        setNotifications((current) =>
-          current.map((item) => (item.id === notification.id ? { ...item, ...updatedNotification, isRead: true } : item))
-        );
-      } catch (err) {
-        console.error("Failed to mark notification as read:", err);
-        setNotifications((current) =>
-          current.map((item) => (item.id === notification.id ? { ...item, isRead: false } : item))
-        );
-        return;
-      }
-    }
+    const marked = await markAsRead(notification);
+    if (!marked) return;
 
     setIsOpen(false);
 
-    // If data contains a URL or route, navigate. Otherwise, if title contains "vé", navigate to tickets.
-    if (notification.data && notification.data.startsWith("/")) {
-      navigate(notification.data);
+    const context = getNotificationContext(notification);
+    if (context.path) {
+      navigate(context.path);
     } else if (notification.title?.toLowerCase().includes("vé") || notification.body?.toLowerCase().includes("vé")) {
       navigate("/profile/tickets");
     }
@@ -117,6 +328,8 @@ export default function NotificationBell({ align = "right" }) {
               <div className="flex flex-col">
                 {notifications.map((notif) => {
                   const isRead = Boolean(notif.isRead);
+                  const context = getNotificationContext(notif);
+                  const showAccountActions = canManageAccountActions && context.isAccountAction;
                   return (
                     <div
                       key={notif.id}
@@ -144,6 +357,24 @@ export default function NotificationBell({ align = "right" }) {
                         <p className={`text-xs line-clamp-2 ${isRead ? "text-on-surface-variant/80" : "text-on-surface-variant font-medium"}`}>
                           {notif.body}
                         </p>
+                        {showAccountActions && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {accountActions.map((action) => {
+                              const loading = actionLoading === `${notif.id}-${action.status}`;
+                              return (
+                                <button
+                                  key={action.status}
+                                  type="button"
+                                  onClick={(event) => handleAccountAction(event, notif, action.status)}
+                                  disabled={Boolean(actionLoading)}
+                                  className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${action.className}`}
+                                >
+                                  {loading ? "Đang xử lý..." : action.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
