@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
+import StripeConnectCallback from "./pages/stripe/StripeConnectCallback";
 
 // Layouts
 import DashboardLayout from "./components/layouts/DashboardLayout";
@@ -69,6 +70,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/company-signup" element={<Navigate to="/register?type=company" replace />} />
           <Route path="/company-support/register" element={<SupportRegister />} />
+          <Route path="/stripe/connect/callback" element={<StripeConnectCallback />} />
           
           {/* Ticket Detail (Standalone Boarding Pass) */}
           <Route path="/profile/tickets/:ticketId" element={<TicketDetail />} />

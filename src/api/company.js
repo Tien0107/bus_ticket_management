@@ -121,12 +121,24 @@ export const createStripeAccount = () => {
   return axiosClient.post("/operator-admin/stripe/account");
 };
 
-// 18. Get Stripe Balance
+// 18. Handle Stripe Connect callback after onboarding
+export const handleStripeConnectCallback = (search = "") => {
+  return axiosClient.get(`/stripe/connect/callback${search}`);
+};
+
+// 19. Get Stripe Connect status
+export const getStripeConnectStatus = () => {
+  return axiosClient.get("/stripe/connect/status", {
+    validateStatus: (status) => status < 600,
+  });
+};
+
+// 20. Get Stripe Balance
 export const getStripeBalance = () => {
   return axiosClient.get("/operator-admin/stripe/balance");
 };
 
-// 19. Withdraw from Stripe Balance
+// 21. Withdraw from Stripe Balance
 export const withdrawStripeBalance = (data) => {
   return axiosClient.post("/operator-admin/stripe/balance/withdraw", data);
 };
