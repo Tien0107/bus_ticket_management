@@ -8,6 +8,7 @@ import {
   recallChatMessage,
   sendChatMessage,
 } from "../../api/chat";
+import { getUsers } from "../../api/auth";
 import { useToast } from "../../context/ToastContext";
 
 const PAGE_SIZE = 10;
@@ -123,6 +124,35 @@ const normalizeMessagesResponse = (data, boxId) => {
   };
 };
 
+const normalizeUser = (user = {}) => ({
+  ...user,
+  id: toNumber(user.id ?? user.userId),
+  fullName: user.fullName || user.username || `Người dùng #${user.id ?? user.userId ?? ""}`,
+  email: user.email || "",
+  phone: user.phone || "",
+  role: user.role || "",
+  status: user.status || "",
+});
+
+const normalizeUsersResponse = (data, viewerId) => {
+  const users = Array.isArray(data?.users)
+    ? data.users
+    : Array.isArray(data?.data?.users)
+    ? data.data.users
+    : Array.isArray(data?.data)
+    ? data.data
+    : Array.isArray(data)
+    ? data
+    : [];
+
+  return {
+    users: users
+      .map(normalizeUser)
+      .filter((user) => user.id && Number(user.id) !== Number(viewerId)),
+    next: data?.next ?? data?.data?.next ?? null,
+  };
+};
+
 const normalizeIncomingMessage = (payload = {}) => {
   const boxId = toNumber(payload.boxId ?? payload.box?.id);
   const body = payload.body ?? payload.message ?? payload.lastMessage;
@@ -206,6 +236,9 @@ export default function ChatWidget() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [composeValue, setComposeValue] = useState("");
   const [receiverId, setReceiverId] = useState("");
+  const [recipientUsers, setRecipientUsers] = useState([]);
+  const [loadingRecipients, setLoadingRecipients] = useState(false);
+  const [recipientSearch, setRecipientSearch] = useState("");
   const [firstMessage, setFirstMessage] = useState("");
   const [socketError, setSocketError] = useState("");
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
@@ -245,6 +278,17 @@ export default function ChatWidget() {
   }, [selectedBox, viewerId]);
 
   const selectedPeerOnline = selectedPeerId ? onlineUserIds.has(Number(selectedPeerId)) : false;
+
+  const filteredRecipientUsers = useMemo(() => {
+    const keyword = recipientSearch.trim().toLowerCase();
+    if (!keyword) return recipientUsers;
+
+    return recipientUsers.filter((user) =>
+      [user.fullName, user.email, user.phone, user.role, user.username]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [recipientSearch, recipientUsers]);
 
   const rememberRecalledMessageId = useCallback(
     (messageId) => {
@@ -296,6 +340,29 @@ export default function ChatWidget() {
     [addToast]
   );
 
+  const loadRecipients = useCallback(async () => {
+    try {
+      setLoadingRecipients(true);
+      const params = {
+        status: "active",
+        limit: 100,
+      };
+
+      if (currentUser?.companyId) {
+        params.companyId = currentUser.companyId;
+      }
+
+      const response = await getUsers(params);
+      const data = normalizeUsersResponse(response.data, viewerId);
+      setRecipientUsers(data.users);
+    } catch (err) {
+      console.error("Lỗi tải danh sách người nhận:", err);
+      addToast(err.response?.data?.message || "Không thể tải danh sách người nhận", "error");
+    } finally {
+      setLoadingRecipients(false);
+    }
+  }, [addToast, currentUser?.companyId, viewerId]);
+
   const loadMessages = useCallback(
     async ({ boxId, reset = true, next = null } = {}) => {
       if (!boxId) return;
@@ -342,6 +409,12 @@ export default function ChatWidget() {
   useEffect(() => {
     loadBoxes({ reset: true });
   }, [loadBoxes]);
+
+  useEffect(() => {
+    if (open && showCreate) {
+      loadRecipients();
+    }
+  }, [loadRecipients, open, showCreate]);
 
   useEffect(() => {
     selectedBoxRef.current = selectedBoxId;
@@ -587,7 +660,7 @@ export default function ChatWidget() {
     const message = firstMessage.trim();
 
     if (!receiver || !message) {
-      addToast("Nhập ID người nhận và tin nhắn đầu tiên", "error");
+      addToast("Chọn người nhận và nhập tin nhắn đầu tiên", "error");
       return;
     }
 
@@ -595,6 +668,7 @@ export default function ChatWidget() {
       await createChatBox({ receiverId: receiver, message });
       setReceiverId("");
       setFirstMessage("");
+      setRecipientSearch("");
       setShowCreate(false);
       await loadBoxes({ reset: true });
       addToast("Đã tạo hội thoại", "success");
@@ -721,12 +795,31 @@ export default function ChatWidget() {
               {showCreate && (
                 <form onSubmit={handleCreateBox} className="mb-4 space-y-3 rounded-xl border border-emerald-100 bg-white p-3">
                   <input
-                    type="number"
+                    type="text"
+                    value={recipientSearch}
+                    onChange={(event) => setRecipientSearch(event.target.value)}
+                    className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    placeholder="Tìm người nhận theo tên, email hoặc số điện thoại"
+                  />
+                  <select
                     value={receiverId}
                     onChange={(event) => setReceiverId(event.target.value)}
-                    className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-                    placeholder="ID người nhận"
-                  />
+                    disabled={loadingRecipients || filteredRecipientUsers.length === 0}
+                    className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm font-medium text-on-surface outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-surface-container-low disabled:text-on-surface-variant"
+                  >
+                    <option value="">
+                      {loadingRecipients
+                        ? "Đang tải người nhận..."
+                        : filteredRecipientUsers.length
+                        ? "Chọn người nhận"
+                        : "Không có người nhận phù hợp"}
+                    </option>
+                    {filteredRecipientUsers.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.fullName} - {user.phone || user.email || user.role || `ID ${user.id}`}
+                      </option>
+                    ))}
+                  </select>
                   <textarea
                     value={firstMessage}
                     onChange={(event) => setFirstMessage(event.target.value)}
