@@ -42,6 +42,21 @@ const statusTone = {
   banned: "red",
 };
 
+const accountStatusNotification = {
+  active: {
+    title: "Tài khoản điều hành đã được duyệt",
+    body: "Công ty đã duyệt tài khoản của bạn. Bạn có thể truy cập hệ thống điều hành.",
+  },
+  inactive: {
+    title: "Tài khoản điều hành đã bị tạm ngưng",
+    body: "Công ty đã tạm ngưng tài khoản của bạn.",
+  },
+  banned: {
+    title: "Tài khoản điều hành đã bị cấm",
+    body: "Công ty đã cấm tài khoản của bạn.",
+  },
+};
+
 export default function Staff() {
   const { addToast } = useToast();
 
@@ -82,8 +97,14 @@ export default function Staff() {
 
   const getStaffId = (member) => member?.userId || member?.id;
   const getRole = (member) => member?.role || member?.staffProfileRole || "staff";
+  const getStaffHomePath = (member) => {
+    const role = getRole(member);
+    if (role === "support") return "/company-support/tickets";
+    if (role === "company_admin") return "/company/dashboard";
+    return "/operator/dashboard";
+  };
 
-  const notifyStaff = async ({ userId, title, body }) => {
+  const notifyStaff = async ({ userId, title, body, data = "/company/dashboard" }) => {
     if (!userId) return;
 
     try {
@@ -91,7 +112,7 @@ export default function Staff() {
         userId,
         title,
         body,
-        data: "/company/dashboard",
+        data,
       });
     } catch (err) {
       console.warn("Không thể tạo thông báo cho nhân viên:", err);
@@ -133,6 +154,7 @@ export default function Staff() {
         userId: staffUserId,
         title: "Vai trò của bạn đã được cập nhật",
         body: `Vai trò mới của bạn là ${roleLabel[newRole] || newRole}.`,
+        data: getStaffHomePath({ ...selectedStaff, role: newRole, staffProfileRole: newRole }),
       });
       addToast("Cập nhật chức vụ thành công", "success");
       setShowRoleModal(false);
@@ -169,10 +191,20 @@ export default function Staff() {
     try {
       const staffUserId = getStaffId(editingStaff);
       await updateStaff(staffUserId, editFormData);
+      const statusChanged = editFormData.status && editFormData.status !== editingStaff?.status;
+      const statusNotification = accountStatusNotification[editFormData.status];
       await notifyStaff({
         userId: staffUserId,
-        title: "Thông tin tài khoản đã được cập nhật",
-        body: "Công ty vừa cập nhật thông tin tài khoản nhân viên của bạn.",
+        title: statusChanged && statusNotification ? statusNotification.title : "Thông tin tài khoản đã được cập nhật",
+        body: statusChanged && statusNotification ? statusNotification.body : "Công ty vừa cập nhật thông tin tài khoản nhân viên của bạn.",
+        data:
+          statusChanged && statusNotification
+            ? JSON.stringify({
+                type: "account_status",
+                status: editFormData.status,
+                path: getStaffHomePath(editingStaff),
+              })
+            : "/company/dashboard",
       });
       addToast("Cập nhật nhân viên thành công", "success");
       setShowEditModal(false);

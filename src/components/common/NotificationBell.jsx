@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getStaff, updateStaff, verifyCompanyAccount } from "../../api/company";
-import { getNotifications, markNotificationRead } from "../../api/notification";
+import { createNotification, getNotifications, markNotificationRead } from "../../api/notification";
 import { useToast } from "../../context/ToastContext";
 
 const accountActions = [
@@ -29,8 +29,47 @@ const accountActions = [
 ];
 
 const accountTypeLabel = {
+  account: "Tài khoản mới",
   driver: "Tài xế",
   staff: "Nhân viên điều hành",
+};
+
+const accountStatusNotification = {
+  driver: {
+    active: {
+      title: "Tài khoản tài xế của bạn đã được duyệt",
+      body: "Công ty đã duyệt tài khoản tài xế của bạn. Bạn có thể truy cập hệ thống.",
+    },
+    inactive: {
+      title: "Tài khoản tài xế của bạn đã bị tạm ngưng",
+      body: "Công ty đã tạm ngưng tài khoản tài xế của bạn. Vui lòng liên hệ quản trị công ty nếu cần hỗ trợ.",
+    },
+    banned: {
+      title: "Tài khoản tài xế của bạn đã bị cấm",
+      body: "Công ty đã cấm tài khoản tài xế của bạn. Vui lòng liên hệ quản trị công ty nếu cần hỗ trợ.",
+    },
+  },
+  operator: {
+    active: {
+      title: "Tài khoản điều hành của bạn đã được duyệt",
+      body: "Công ty đã duyệt tài khoản điều hành của bạn. Bạn có thể truy cập trang điều phối.",
+    },
+    inactive: {
+      title: "Tài khoản điều hành của bạn đã bị tạm ngưng",
+      body: "Công ty đã tạm ngưng tài khoản điều hành của bạn. Vui lòng liên hệ quản trị công ty nếu cần hỗ trợ.",
+    },
+    banned: {
+      title: "Tài khoản điều hành của bạn đã bị cấm",
+      body: "Công ty đã cấm tài khoản điều hành của bạn. Vui lòng liên hệ quản trị công ty nếu cần hỗ trợ.",
+    },
+  },
+};
+
+const getAccountHomePath = (accountType) => (accountType === "driver" ? "/driver/dashboard" : "/operator/dashboard");
+
+const getAccountStatusNotification = (accountType, status) => {
+  const group = accountType === "driver" ? accountStatusNotification.driver : accountStatusNotification.operator;
+  return group[status];
 };
 
 const parseNotificationData = (data) => {
@@ -70,8 +109,62 @@ const isCompanyAdminUser = (user) => {
   return role === "admin" || (role === "operator" && ["company_admin", "operator_admin", "admin"].includes(staffProfileRole));
 };
 
+const isDispatcherUser = (user) => {
+  const role = normalizeRole(user?.role);
+  const staffProfileRole = normalizeRole(user?.staffProfileRole);
+  return role === "operator" && ["dispatcher", "operator_dispatcher"].includes(staffProfileRole);
+};
+
+const isSupportUser = (user) => {
+  const role = normalizeRole(user?.role);
+  const staffProfileRole = normalizeRole(user?.staffProfileRole);
+  return role === "operator" && ["support", "company_support", "operator_support"].includes(staffProfileRole);
+};
+
+const getUserDashboardPath = (user) => {
+  const role = normalizeRole(user?.role);
+  if (role === "driver") return "/driver/dashboard";
+  if (isCompanyAdminUser(user)) return "/company/dashboard";
+  if (isSupportUser(user)) return "/company-support/tickets";
+  if (isDispatcherUser(user)) return "/operator/dashboard";
+  if (role === "super_admin" || role === "superadmin") return "/super-admin/dashboard";
+  return "/";
+};
+
+const resolveNotificationPath = (context, user) => {
+  const path = context?.path;
+  const type = normalizeRole(context?.meta?.type);
+  const userDashboardPath = getUserDashboardPath(user);
+
+  if (type === "account_status") {
+    return userDashboardPath;
+  }
+
+  if (path?.startsWith("/company") && !isCompanyAdminUser(user)) {
+    return userDashboardPath;
+  }
+
+  if (path?.startsWith("/operator") && !isDispatcherUser(user)) {
+    return userDashboardPath;
+  }
+
+  if (path?.startsWith("/driver") && normalizeRole(user?.role) !== "driver") {
+    return userDashboardPath;
+  }
+
+  return path;
+};
+
 const getTargetUserId = (meta) => {
-  const value = meta.targetUserId ?? meta.targetId ?? meta.accountId ?? meta.staffUserId ?? meta.driverUserId ?? meta.userId ?? meta.id;
+  const value =
+    meta.userNewAccountId ??
+    meta.targetUserId ??
+    meta.targetId ??
+    meta.accountId ??
+    meta.staffUserId ??
+    meta.driverUserId ??
+    meta.userId ??
+    meta.id;
   const id = Number(value);
   return Number.isFinite(id) && id > 0 ? id : null;
 };
@@ -112,8 +205,8 @@ const inferAccountType = (meta, notification) => {
 
 const getNotificationContext = (notification) => {
   const meta = parseNotificationData(notification?.data);
-  const accountType = inferAccountType(meta, notification);
   const targetUserId = getTargetUserId(meta);
+  const accountType = inferAccountType(meta, notification) || (targetUserId ? "account" : "");
   const path =
     typeof meta.path === "string" && meta.path.startsWith("/")
       ? meta.path
@@ -128,7 +221,7 @@ const getNotificationContext = (notification) => {
     accountType,
     targetUserId,
     path,
-    isAccountAction: Boolean(targetUserId && ["driver", "staff"].includes(accountType)),
+    isAccountAction: Boolean(targetUserId && ["account", "driver", "staff"].includes(accountType)),
   };
 };
 
@@ -145,7 +238,8 @@ export default function NotificationBell({ align = "right" }) {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const canManageAccountActions = isCompanyAdminUser(getCurrentUser());
+  const currentUser = getCurrentUser();
+  const canManageAccountActions = isCompanyAdminUser(currentUser);
 
   const fetchNotifications = async () => {
     try {
@@ -237,11 +331,25 @@ export default function NotificationBell({ align = "right" }) {
     try {
       setActionLoading(loadingKey);
 
-      if (context.accountType === "driver") {
+      if (context.accountType === "driver" || context.accountType === "account") {
         await verifyCompanyAccount({ id: context.targetUserId, status });
       } else {
         const staff = await resolveStaffForUpdate(context.meta, context.targetUserId);
         await updateStaff(staff.userId, { ...staff.payload, status });
+      }
+
+      const notificationCopy = getAccountStatusNotification(context.accountType, status);
+      if (notificationCopy) {
+        await createNotification({
+          userId: context.targetUserId,
+          title: notificationCopy.title,
+          body: notificationCopy.body,
+          data: JSON.stringify({
+            type: "account_status",
+            status,
+            path: getAccountHomePath(context.accountType),
+          }),
+        });
       }
 
       await markAsRead(notification);
@@ -303,8 +411,9 @@ export default function NotificationBell({ align = "right" }) {
 
     setIsOpen(false);
 
-    if (context.path) {
-      navigate(context.path);
+    const navigationPath = resolveNotificationPath(context, currentUser);
+    if (navigationPath) {
+      navigate(navigationPath);
     } else if (notification.title?.toLowerCase().includes("vé") || notification.body?.toLowerCase().includes("vé")) {
       navigate("/profile/tickets");
     }

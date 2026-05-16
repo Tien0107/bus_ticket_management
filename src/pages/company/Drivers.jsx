@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { getDrivers, verifyCompanyAccount } from "../../api/company";
+import { createNotification } from "../../api/notification";
 import { useToast } from "../../context/ToastContext";
 import {
   CompanyPageShell,
@@ -28,6 +29,21 @@ const statusTone = {
   active: "emerald",
   inactive: "amber",
   banned: "red",
+};
+
+const accountStatusNotification = {
+  active: {
+    title: "Tài khoản tài xế đã được duyệt",
+    body: "Công ty đã duyệt tài khoản tài xế của bạn. Bạn có thể truy cập hệ thống.",
+  },
+  inactive: {
+    title: "Tài khoản tài xế đã bị tạm ngưng",
+    body: "Công ty đã tạm ngưng tài khoản tài xế của bạn.",
+  },
+  banned: {
+    title: "Tài khoản tài xế đã bị cấm",
+    body: "Công ty đã cấm tài khoản tài xế của bạn.",
+  },
 };
 
 export default function Drivers() {
@@ -79,6 +95,26 @@ export default function Drivers() {
 
   const getDriverId = (driver) => driver?.userId || driver?.id;
 
+  const notifyDriverStatus = async (driverId, status) => {
+    const notification = accountStatusNotification[status];
+    if (!driverId || !notification) return;
+
+    try {
+      await createNotification({
+        userId: driverId,
+        title: notification.title,
+        body: notification.body,
+        data: JSON.stringify({
+          type: "account_status",
+          status,
+          path: "/driver/dashboard",
+        }),
+      });
+    } catch (err) {
+      console.warn("Không thể tạo thông báo trạng thái tài xế:", err);
+    }
+  };
+
   const handleOpenStatusModal = (driver = selectedDriver) => {
     setSelectedDriver(driver);
     setStatusForm(driver?.status || "active");
@@ -95,6 +131,7 @@ export default function Drivers() {
     try {
       setStatusLoading(true);
       await verifyCompanyAccount({ id: driverId, status: statusForm });
+      await notifyDriverStatus(driverId, statusForm);
       addToast("Cập nhật trạng thái tài xế thành công", "success");
       setShowStatusModal(false);
       setShowDetailModal(false);

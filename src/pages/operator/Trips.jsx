@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getDrivers, getRoutes, getTrips, getVehicles, updateTrip } from "../../api/operator";
+import { createNotification } from "../../api/notification";
 import { useToast } from "../../context/ToastContext";
 import {
   EmptyState,
@@ -49,6 +50,18 @@ const findRouteByLocations = (source, routes) => {
       String(route.fromLocation || "").toLowerCase() === String(source.fromLocation || "").toLowerCase() &&
       String(route.toLocation || "").toLowerCase() === String(source.toLocation || "").toLowerCase()
   );
+};
+
+const formatTripDate = (value) => {
+  if (!value) return "chưa có ngày";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 };
 
 export default function Trips() {
@@ -169,6 +182,36 @@ export default function Trips() {
 
     try {
       await updateTrip(scheduleId, editingTrip.id, payload);
+      const assignedDriverId = Number(formData.driverId);
+      const previousDriverId = Number(editingTrip.driverId || 0);
+      const driverChanged = assignedDriverId && assignedDriverId !== previousDriverId;
+
+      if (driverChanged) {
+        try {
+          const tripTitle = `${editingTrip.fromLocation || schedule?.fromLocation || "Điểm đi"} → ${
+            editingTrip.toLocation || schedule?.toLocation || "Điểm đến"
+          }`;
+
+          await createNotification({
+            userId: assignedDriverId,
+            title: "Bạn vừa được gán một chuyến",
+            body: `Dispatcher đã gán cho bạn chuyến ${tripTitle} ngày ${formatTripDate(formData.departureDate)}.`,
+            data: JSON.stringify({
+              type: "trip_assigned",
+              tripId: Number(editingTrip.id),
+              scheduleId: Number(scheduleId),
+              path: `/driver/trip/${editingTrip.id}`,
+            }),
+          });
+        } catch (notificationError) {
+          console.warn("Không thể gửi thông báo gán chuyến cho tài xế:", notificationError);
+          addToast({
+            type: "warning",
+            title: "Đã cập nhật chuyến nhưng chưa gửi được thông báo cho tài xế",
+          });
+        }
+      }
+
       addToast({ type: "success", title: "Cập nhật chuyến thành công" });
       closeModal();
       fetchTrips();
