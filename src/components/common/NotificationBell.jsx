@@ -1,27 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { getNotifications } from "../../api/notification";
-
-const LOCAL_STORAGE_KEY = "busgo_read_notifications";
+import { getNotifications, markNotificationRead } from "../../api/notification";
 
 export default function NotificationBell({ align = "right" }) {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [readIds, setReadIds] = useState(new Set());
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
-
-  // Load read IDs from localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (stored) {
-        setReadIds(new Set(JSON.parse(stored)));
-      }
-    } catch (e) {
-      console.error("Error parsing read notifications from localStorage", e);
-    }
-  }, []);
 
   const fetchNotifications = async () => {
     try {
@@ -62,13 +47,27 @@ export default function NotificationBell({ align = "right" }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleNotificationClick = (notification) => {
-    // Mark as read locally
-    if (!readIds.has(notification.id)) {
-      const newReadIds = new Set(readIds);
-      newReadIds.add(notification.id);
-      setReadIds(newReadIds);
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(Array.from(newReadIds)));
+  const handleNotificationClick = async (notification) => {
+    if (!notification?.id) return;
+
+    if (!notification.isRead) {
+      setNotifications((current) =>
+        current.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
+      );
+
+      try {
+        const response = await markNotificationRead(notification.id);
+        const updatedNotification = response.data;
+        setNotifications((current) =>
+          current.map((item) => (item.id === notification.id ? { ...item, ...updatedNotification, isRead: true } : item))
+        );
+      } catch (err) {
+        console.error("Failed to mark notification as read:", err);
+        setNotifications((current) =>
+          current.map((item) => (item.id === notification.id ? { ...item, isRead: false } : item))
+        );
+        return;
+      }
     }
 
     setIsOpen(false);
@@ -81,15 +80,7 @@ export default function NotificationBell({ align = "right" }) {
     }
   };
 
-  const markAllAsRead = () => {
-    const newReadIds = new Set(readIds);
-    notifications.forEach((n) => newReadIds.add(n.id));
-    setReadIds(newReadIds);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(Array.from(newReadIds)));
-  };
-
-  // Calculate unread count (isRead from backend is ignored if it's true, but we mainly rely on local state)
-  const unreadCount = notifications.filter((n) => !n.isRead && !readIds.has(n.id)).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -125,32 +116,32 @@ export default function NotificationBell({ align = "right" }) {
             ) : (
               <div className="flex flex-col">
                 {notifications.map((notif) => {
-                  const isReadLocally = readIds.has(notif.id) || notif.isRead;
+                  const isRead = Boolean(notif.isRead);
                   return (
                     <div
                       key={notif.id}
                       onClick={() => handleNotificationClick(notif)}
                       className={`p-4 border-b border-outline-variant/10 cursor-pointer transition-colors flex gap-3 ${
-                        isReadLocally 
+                        isRead 
                           ? "bg-surface-container-lowest hover:bg-surface-container-lowest/80 opacity-70" 
                           : "bg-primary/5 hover:bg-primary/10"
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isReadLocally ? "bg-surface-container-high text-on-surface-variant" : "bg-primary text-white"}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isRead ? "bg-surface-container-high text-on-surface-variant" : "bg-primary text-white"}`}>
                         <span className="material-symbols-outlined text-[20px]">
                           {notif.title?.toLowerCase().includes("thành công") ? "check_circle" : "notifications"}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start gap-2 mb-1">
-                          <h4 className={`text-sm truncate ${isReadLocally ? "font-medium text-on-surface-variant" : "font-bold text-on-surface"}`}>
+                          <h4 className={`text-sm truncate ${isRead ? "font-medium text-on-surface-variant" : "font-bold text-on-surface"}`}>
                             {notif.title || "Thông báo"}
                           </h4>
-                          {!isReadLocally && (
+                          {!isRead && (
                             <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5"></span>
                           )}
                         </div>
-                        <p className={`text-xs line-clamp-2 ${isReadLocally ? "text-on-surface-variant/80" : "text-on-surface-variant font-medium"}`}>
+                        <p className={`text-xs line-clamp-2 ${isRead ? "text-on-surface-variant/80" : "text-on-surface-variant font-medium"}`}>
                           {notif.body}
                         </p>
                       </div>

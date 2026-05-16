@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getStaff, updateStaff, updateStaffRole } from "../../api/company";
+import { createNotification } from "../../api/notification";
 import { useToast } from "../../context/ToastContext";
 import {
   CompanyPageShell,
@@ -82,6 +83,21 @@ export default function Staff() {
   const getStaffId = (member) => member?.userId || member?.id;
   const getRole = (member) => member?.role || member?.staffProfileRole || "staff";
 
+  const notifyStaff = async ({ userId, title, body }) => {
+    if (!userId) return;
+
+    try {
+      await createNotification({
+        userId,
+        title,
+        body,
+        data: "/company/dashboard",
+      });
+    } catch (err) {
+      console.warn("Không thể tạo thông báo cho nhân viên:", err);
+    }
+  };
+
   const filteredStaff = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     if (!keyword) return staff;
@@ -111,7 +127,13 @@ export default function Staff() {
     if (!selectedStaff) return;
 
     try {
-      await updateStaffRole(getStaffId(selectedStaff), newRole);
+      const staffUserId = getStaffId(selectedStaff);
+      await updateStaffRole(staffUserId, newRole);
+      await notifyStaff({
+        userId: staffUserId,
+        title: "Vai trò của bạn đã được cập nhật",
+        body: `Vai trò mới của bạn là ${roleLabel[newRole] || newRole}.`,
+      });
       addToast("Cập nhật chức vụ thành công", "success");
       setShowRoleModal(false);
       setSelectedStaff(null);
@@ -145,7 +167,13 @@ export default function Staff() {
     }
 
     try {
-      await updateStaff(getStaffId(editingStaff), editFormData);
+      const staffUserId = getStaffId(editingStaff);
+      await updateStaff(staffUserId, editFormData);
+      await notifyStaff({
+        userId: staffUserId,
+        title: "Thông tin tài khoản đã được cập nhật",
+        body: "Công ty vừa cập nhật thông tin tài khoản nhân viên của bạn.",
+      });
       addToast("Cập nhật nhân viên thành công", "success");
       setShowEditModal(false);
       setEditingStaff(null);
