@@ -419,10 +419,10 @@ export default function ChatWidget() {
   }, [loadBoxes]);
 
   useEffect(() => {
-    if (open && showCreate && currentUser?.role !== "customer") {
+    if (open && showCreate) {
       loadRecipients();
     }
-  }, [loadRecipients, open, showCreate, currentUser]);
+  }, [loadRecipients, open, showCreate]);
 
   useEffect(() => {
     selectedBoxRef.current = selectedBoxId;
@@ -829,7 +829,7 @@ export default function ChatWidget() {
             </div>
 
             <div className="flex items-center gap-2">
-              {!selectedBox && currentUser?.role !== "customer" && (
+              {!selectedBox && (
                 <button
                   type="button"
                   onClick={() => setShowCreate((current) => !current)}
