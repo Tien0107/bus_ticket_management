@@ -419,10 +419,10 @@ export default function ChatWidget() {
   }, [loadBoxes]);
 
   useEffect(() => {
-    if (open && showCreate) {
+    if (open && showCreate && currentUser?.role !== "customer") {
       loadRecipients();
     }
-  }, [loadRecipients, open, showCreate]);
+  }, [loadRecipients, open, showCreate, currentUser]);
 
   useEffect(() => {
     selectedBoxRef.current = selectedBoxId;
@@ -464,22 +464,47 @@ export default function ChatWidget() {
         setShowCreate(false);
       } else {
         try {
-          if (recipientUsers.length === 0) {
-            await loadRecipients();
+          // Tự động tạo hộp chat mới trong background cho khách hàng mà không cần hiển thị form soạn tin nhắn thủ công
+          await createChatBox({
+            receiverId: Number(receiverId),
+            message: "Xin chào! Tôi có một số câu hỏi về chuyến xe."
+          });
+
+          // Tải lại danh sách chat
+          await loadBoxes({ reset: true });
+
+          // Sau khi tải lại, tự động tìm và chọn hộp thoại vừa tạo để mở ra
+          const updatedResponse = await getChatBoxes({ limit: 50 });
+          const boxesArray = Array.isArray(updatedResponse.data?.boxes)
+            ? updatedResponse.data.boxes
+            : Array.isArray(updatedResponse.data?.data?.boxes)
+            ? updatedResponse.data.data.boxes
+            : Array.isArray(updatedResponse.data?.data)
+            ? updatedResponse.data.data
+            : Array.isArray(updatedResponse.data)
+            ? updatedResponse.data
+            : [];
+
+          const newBox = boxesArray.find(
+            (box) =>
+              (Number(box.senderId) === Number(viewerId) && Number(box.receiverId) === Number(receiverId)) ||
+              (Number(box.receiverId) === Number(viewerId) && Number(box.senderId) === Number(receiverId))
+          );
+
+          if (newBox) {
+            setSelectedBoxId(newBox.id);
           }
-          setReceiverId(String(receiverId));
-          setShowCreate(true);
-          setRecipientSearch(displayName || "");
-          setFirstMessage("Xin chào! Tôi có một số câu hỏi về chuyến xe.");
+          setShowCreate(false);
         } catch (err) {
-          console.error("Lỗi chuẩn bị chat:", err);
+          console.error("Lỗi tự động tạo chat box:", err);
+          addToast("Không thể tạo cuộc hội thoại: " + (err.response?.data?.message || err.message), "error");
         }
       }
     };
 
     window.addEventListener("chat:open-with-user", handleOpenChatTrigger);
     return () => window.removeEventListener("chat:open-with-user", handleOpenChatTrigger);
-  }, [boxes, viewerId, recipientUsers, loadRecipients]);
+  }, [boxes, viewerId, addToast, loadBoxes]);
 
   useEffect(() => {
     const token = localStorage.getItem("token")?.replace(/^Bearer\s+/i, "");
@@ -804,7 +829,7 @@ export default function ChatWidget() {
             </div>
 
             <div className="flex items-center gap-2">
-              {!selectedBox && (
+              {!selectedBox && currentUser?.role !== "customer" && (
                 <button
                   type="button"
                   onClick={() => setShowCreate((current) => !current)}
