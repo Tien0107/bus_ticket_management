@@ -449,9 +449,25 @@ export default function MyTickets() {
                       <h3 className="font-bold text-lg">Loại hành trình: {t.bookingType === 'round_trip' ? 'Khứ hồi' : 'Một chiều'}</h3>
                       <p className="text-sm text-on-surface-variant"><span className="material-symbols-outlined text-[16px] align-text-bottom mr-1">calendar_month</span>Khởi hành: {t.departureDate ? new Date(t.departureDate).toLocaleString('vi-VN') : 'N/A'}</p>
                       
-                       <p className="text-sm font-bold text-secondary">
-                         Tổng tiền: {(t.totalAmount || t.totalPrice || t.price || t.originalAmount || 0).toLocaleString()}đ
-                       </p>
+                                              {(() => {
+                         const original = t.originalAmount || t.totalPrice || t.price || 0;
+                         const discount = t.discountAmount || 0;
+                         const finalPrice = t.totalAmount && t.totalAmount > 0
+                           ? t.totalAmount
+                           : Math.max(0, original - discount);
+                         return (
+                           <div className="space-y-1">
+                             <p className="text-sm font-bold text-secondary">
+                               Tổng tiền: {finalPrice.toLocaleString()}đ
+                             </p>
+                             {discount > 0 && (
+                               <p className="text-xs font-semibold text-green-600">
+                                 (Đã giảm: -{discount.toLocaleString()}đ)
+                               </p>
+                             )}
+                           </div>
+                         );
+                       })()}
                        
                        {(() => {
                          const rawTime = t.expiredAt || t.createdAt || t.created_at || t.createdDate || t.createAt || t.bookingDate || t.bookingTime || t.orderDate;

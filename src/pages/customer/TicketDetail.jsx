@@ -76,8 +76,13 @@ export default function TicketDetail() {
   // Swagger trả về plateNumber thay vì licensePlate
   const busPlate = ticket.plateNumber || ticket.licensePlate || "Chưa cấp biển";
   
-  // Swagger trả về totalAmount nhưng có thể API thực tế trả về totalPrice
-  const price = (ticket.totalAmount || ticket.totalPrice || ticket.price || ticket.originalAmount || 0).toLocaleString('vi-VN') + 'đ';
+  // Ưu tiên hiển thị tổng thanh toán thực tế sau khi trừ mã giảm giá (voucher)
+  const ticketOriginal = ticket.originalAmount || ticket.totalPrice || ticket.price || 0;
+  const ticketDiscount = ticket.discountAmount || 0;
+  const ticketFinal = ticket.totalAmount && ticket.totalAmount > 0 
+    ? ticket.totalAmount 
+    : Math.max(0, ticketOriginal - ticketDiscount);
+  const price = ticketFinal.toLocaleString('vi-VN') + 'đ';
   
   // Swagger trả về code dùng cho mã Barcode/QR
   const qrCodeData = ticket.code || ticket.qrCode || `BG-${ticketId}`;
@@ -198,6 +203,9 @@ export default function TicketDetail() {
               <div>
                 <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Thanh toán</p>
                 <p className={`text-xl font-extrabold tracking-tight ${isCancelled ? 'text-on-surface-variant line-through' : 'text-secondary'}`}>{price}</p>
+                {ticketDiscount > 0 && (
+                  <p className="text-[10px] font-bold text-green-600 mt-1">Đã áp dụng Voucher: -{ticketDiscount.toLocaleString('vi-VN')}đ</p>
+                )}
               </div>
               {(() => {
                 const st = String(ticket.status || '').toLowerCase();
