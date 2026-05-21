@@ -244,10 +244,8 @@ export default function TicketDetail() {
           {!isCancelled && (
             <button 
               onClick={() => {
-                const targetId = ticket.driverId || ticket.driver?.id || ticket.companyId || 2; 
-                const targetName = ticket.driverId || ticket.driver?.id 
-                  ? (ticket.driverName || "Tài xế chuyến xe")
-                  : (ticket.companyName || "Hỗ trợ nhà xe");
+                const targetId = ticket.companyId || 2; 
+                const targetName = ticket.companyName || "Hỗ trợ nhà xe";
 
                 window.dispatchEvent(new CustomEvent("chat:open-with-user", {
                   detail: { receiverId: targetId, displayName: targetName }
@@ -256,7 +254,7 @@ export default function TicketDetail() {
               className="w-full bg-primary text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity active:scale-[0.98] duration-200 text-sm shadow-md cursor-pointer"
             >
               <span className="material-symbols-outlined">chat</span>
-              {ticket.driverId || ticket.driver?.id ? "Chat với tài xế" : "Chat với nhà xe hỗ trợ"}
+              Chat với nhà xe hỗ trợ
             </button>
           )}
           <button className="w-full bg-secondary-container text-on-secondary-container font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity active:scale-[0.98] duration-200 text-sm">
