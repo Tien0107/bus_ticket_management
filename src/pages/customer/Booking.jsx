@@ -254,6 +254,7 @@ export default function Booking() {
       }
 
       if (bookingData.paymentMethod === "cash") {
+        localStorage.setItem(`busgo_payment_method_${activeOrderId}`, 'CASH');
         try {
           const userStr = localStorage.getItem("user");
           if (userStr) {

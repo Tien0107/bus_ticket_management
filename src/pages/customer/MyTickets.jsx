@@ -198,6 +198,7 @@ export default function MyTickets() {
   const handlePayment = async (id, method, selectedPaymentMethodId = null) => {
     try {
       if (method === "cash") {
+        localStorage.setItem(`busgo_payment_method_${id}`, 'CASH');
         try {
            const res = await createPaymentMethod(id, method);
            try {
@@ -409,12 +410,13 @@ export default function MyTickets() {
             <div className="space-y-6">
               {filteredTickets.map((t, idx) => {
                  let currentStatus = String(t.status || 'pending').toUpperCase();
-               const isCash = String(t.paymentMethod || t.paymentType || '').toUpperCase() === 'CASH';
+                 const localMethod = localStorage.getItem(`busgo_payment_method_${t.bookingId}`) || localStorage.getItem(`busgo_payment_method_${t.id}`);
+                 const isCash = String(t.paymentMethod || t.paymentType || localMethod || '').toUpperCase() === 'CASH';
 
-               // Nếu backend trả về là CASH thì ta coi như đã thanh toán (Tiền mặt)
-               if (isCash && (currentStatus === 'PENDING' || currentStatus === 'RESERVED')) {
-                   currentStatus = 'CASH_PAID';
-               }
+                 // Nếu backend trả về là CASH thì ta coi như đã thanh toán (Tiền mặt)
+                 if (isCash && (currentStatus === 'PENDING' || currentStatus === 'RESERVED')) {
+                     currentStatus = 'CASH_PAID';
+                 }
 
                const isPending = currentStatus === "PENDING" || currentStatus === "RESERVED";
                

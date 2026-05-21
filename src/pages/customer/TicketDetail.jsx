@@ -208,7 +208,12 @@ export default function TicketDetail() {
                 )}
               </div>
               {(() => {
-                const st = String(ticket.status || '').toLowerCase();
+                const localMethod = localStorage.getItem(`busgo_payment_method_${ticket.bookingId}`) || localStorage.getItem(`busgo_payment_method_${ticket.id}`);
+                const isCash = String(ticket.paymentMethod || ticket.paymentType || localMethod || '').toUpperCase() === 'CASH';
+                let st = String(ticket.status || '').toLowerCase();
+                if (isCash && (st === 'pending' || st === 'reserved')) {
+                  st = 'cash_paid';
+                }
                 const cfg = {
                   paid: { label: 'Đã thanh toán', color: 'text-primary', icon: 'verified' },
                   reserved: { label: 'Đã giữ chỗ', color: 'text-secondary', icon: 'schedule' },
@@ -217,6 +222,7 @@ export default function TicketDetail() {
                   expired: { label: 'Hết hạn', color: 'text-on-surface-variant', icon: 'timer_off' },
                   checked_in: { label: 'Đã lên xe', color: 'text-primary', icon: 'directions_bus' },
                   completed: { label: 'Hoàn thành', color: 'text-primary', icon: 'check_circle' },
+                  cash_paid: { label: 'Thanh toán (Tiền mặt)', color: 'text-green-600', icon: 'payments' },
                 }[st] || { label: ticket.status, color: 'text-on-surface-variant', icon: 'info' };
                 return (
                   <div className={`flex items-center gap-2 ${cfg.color}`}>
