@@ -270,6 +270,13 @@ export default function ChatWidget() {
     return typingUsers.some((userId) => Number(userId) !== Number(viewerId));
   }, [selectedBoxId, typingByBox, viewerId]);
 
+  const selectedPeerId = useMemo(() => {
+    if (!selectedBox || !viewerId) return null;
+    return Number(selectedBox.senderId) === Number(viewerId)
+      ? selectedBox.receiverId
+      : selectedBox.senderId;
+  }, [selectedBox, viewerId]);
+
   const isPeerDriver = useMemo(() => {
     if (!selectedBox) return false;
     const nameLower = selectedBox.displayName?.toLowerCase() || "";
@@ -277,13 +284,6 @@ export default function ChatWidget() {
     const peerUser = recipientUsers.find(u => Number(u.id) === Number(selectedPeerId));
     return peerUser?.role === "driver";
   }, [selectedBox, selectedPeerId, recipientUsers]);
-
-  const selectedPeerId = useMemo(() => {
-    if (!selectedBox || !viewerId) return null;
-    return Number(selectedBox.senderId) === Number(viewerId)
-      ? selectedBox.receiverId
-      : selectedBox.senderId;
-  }, [selectedBox, viewerId]);
 
   const selectedPeerOnline = selectedPeerId ? onlineUserIds.has(Number(selectedPeerId)) : false;
 
