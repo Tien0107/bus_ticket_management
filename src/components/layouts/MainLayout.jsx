@@ -2,8 +2,13 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import MainNavbar from "./MainNavbar";
 import MainFooter from "./MainFooter";
+import ChatWidget from "../chat/ChatWidget";
 
 const MainLayout = () => {
+  const user = localStorage.getItem("user");
+  const token = localStorage.getItem("token");
+  const isCustomerLoggedIn = !!(user && token);
+
   return (
     <div className="min-h-screen bg-surface text-on-surface font-body flex flex-col">
       <MainNavbar />
@@ -16,6 +21,7 @@ const MainLayout = () => {
         <Outlet />
       </main>
       <MainFooter />
+      {isCustomerLoggedIn && <ChatWidget />}
     </div>
   );
 };

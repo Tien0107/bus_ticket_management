@@ -270,6 +270,14 @@ export default function ChatWidget() {
     return typingUsers.some((userId) => Number(userId) !== Number(viewerId));
   }, [selectedBoxId, typingByBox, viewerId]);
 
+  const isPeerDriver = useMemo(() => {
+    if (!selectedBox) return false;
+    const nameLower = selectedBox.displayName?.toLowerCase() || "";
+    if (nameLower.includes("tài xế") || nameLower.includes("driver")) return true;
+    const peerUser = recipientUsers.find(u => Number(u.id) === Number(selectedPeerId));
+    return peerUser?.role === "driver";
+  }, [selectedBox, selectedPeerId, recipientUsers]);
+
   const selectedPeerId = useMemo(() => {
     if (!selectedBox || !viewerId) return null;
     return Number(selectedBox.senderId) === Number(viewerId)
@@ -437,6 +445,41 @@ export default function ChatWidget() {
     loadMessages({ boxId: selectedBoxId, reset: true });
     markRead(selectedBoxId);
   }, [loadMessages, markRead, selectedBoxId]);
+
+  useEffect(() => {
+    const handleOpenChatTrigger = async (e) => {
+      const { receiverId, displayName } = e.detail || {};
+      if (!receiverId || !viewerId) return;
+
+      setOpen(true);
+
+      const existingBox = boxes.find(
+        (box) =>
+          (Number(box.senderId) === Number(viewerId) && Number(box.receiverId) === Number(receiverId)) ||
+          (Number(box.receiverId) === Number(viewerId) && Number(box.senderId) === Number(receiverId))
+      );
+
+      if (existingBox) {
+        setSelectedBoxId(existingBox.id);
+        setShowCreate(false);
+      } else {
+        try {
+          if (recipientUsers.length === 0) {
+            await loadRecipients();
+          }
+          setReceiverId(String(receiverId));
+          setShowCreate(true);
+          setRecipientSearch(displayName || "");
+          setFirstMessage("Xin chào! Tôi có một số câu hỏi về chuyến xe.");
+        } catch (err) {
+          console.error("Lỗi chuẩn bị chat:", err);
+        }
+      }
+    };
+
+    window.addEventListener("chat:open-with-user", handleOpenChatTrigger);
+    return () => window.removeEventListener("chat:open-with-user", handleOpenChatTrigger);
+  }, [boxes, viewerId, recipientUsers, loadRecipients]);
 
   useEffect(() => {
     const token = localStorage.getItem("token")?.replace(/^Bearer\s+/i, "");
@@ -898,6 +941,14 @@ export default function ChatWidget() {
           ) : (
             <>
               <div className="min-h-0 flex-1 overflow-y-auto bg-surface-container-low/40 p-4">
+                {isPeerDriver && (
+                  <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800 flex items-start gap-2 shadow-sm">
+                    <span className="material-symbols-outlined text-[16px] shrink-0 mt-0.5 animate-pulse text-amber-600">warning</span>
+                    <span>
+                      <strong>Chú ý:</strong> Tài xế có thể đang vận hành xe. Vui lòng hạn chế nhắn tin hoặc gọi điện trực tiếp nếu không khẩn cấp để đảm bảo an toàn!
+                    </span>
+                  </div>
+                )}
                 {messageNext && (
                   <div className="mb-4 text-center">
                     <button
@@ -963,6 +1014,24 @@ export default function ChatWidget() {
                 )}
               </div>
 
+              {/* Quick Replies */}
+              <div className="flex gap-2 overflow-x-auto px-3 py-2 bg-slate-50 border-t border-outline-variant/10" style={{ scrollbarWidth: "none" }}>
+                {[
+                  "Tôi đã đến điểm đón!",
+                  "Xe chạy tới đâu rồi ạ?",
+                  "Vui lòng đợi tôi 2 phút.",
+                  "Tôi mang nhiều hành lý không?",
+                ].map((reply, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setComposeValue(reply)}
+                    className="shrink-0 rounded-full border border-primary/20 bg-white px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/5 transition-all shadow-sm cursor-pointer"
+                  >
+                    {reply}
+                  </button>
+                ))}
+              </div>
               <form onSubmit={handleSendMessage} className="shrink-0 border-t border-outline-variant/20 bg-white p-3">
                 <div className="flex items-end gap-2">
                   <textarea
