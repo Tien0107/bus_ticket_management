@@ -6,6 +6,7 @@ import {
   getPaymentMethods,
   setDefaultPaymentMethod,
 } from "../../api/customer";
+import { createNotification } from "../../api/notification";
 import { useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import CustomerProfileNav from "../../components/profile/CustomerProfileNav";
@@ -150,6 +151,22 @@ export default function MyTickets() {
     try {
       await cancelTicket(id);
       if (!isAuto) addToast("Hủy vé thành công!", "success");
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const currentUser = JSON.parse(userStr);
+          if (currentUser?.id) {
+            await createNotification({
+              userId: currentUser.id,
+              title: "Hủy vé thành công",
+              body: `Vé xe #${id || ""} đã được hủy thành công. Hy vọng được phục vụ bạn ở hành trình tiếp theo!`,
+              data: JSON.stringify({ path: "/profile/tickets" })
+            });
+          }
+        }
+      } catch (notifErr) {
+        console.warn("Failed to create cancel notification:", notifErr);
+      }
       fetchTickets();
     } catch (err) {
       if (!isAuto) addToast("Hủy vé thất bại: " + (err.response?.data?.message || err.message), "error");
@@ -183,6 +200,22 @@ export default function MyTickets() {
       if (method === "cash") {
         try {
            const res = await createPaymentMethod(id, method);
+           try {
+             const userStr = localStorage.getItem("user");
+             if (userStr) {
+               const currentUser = JSON.parse(userStr);
+               if (currentUser?.id) {
+                 await createNotification({
+                   userId: currentUser.id,
+                   title: "Yêu cầu thanh toán Tiền mặt",
+                   body: `Đã ghi nhận yêu cầu thanh toán Tiền mặt cho vé #${id || ""}. Vui lòng thanh toán trước giờ xuất bến.`,
+                   data: JSON.stringify({ path: "/profile/tickets" })
+                 });
+               }
+             }
+           } catch (notifErr) {
+             console.warn("Failed to create cash notification:", notifErr);
+           }
            addToast(res.data?.message || "Đã ghi nhận yêu cầu thanh toán Tiền mặt! Vui lòng thanh toán tại quầy trước giờ xuất bến.", "success");
            fetchTickets(); // Lấy lại data từ Backend để cập nhật paymentMethod = 'CASH'
         } catch (err) {

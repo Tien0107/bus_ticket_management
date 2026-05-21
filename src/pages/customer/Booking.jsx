@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { createNotification } from "../../api/notification";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   createBooking,
@@ -79,6 +80,22 @@ export default function Booking() {
       return;
     }
     if (paymentIntent?.status === "succeeded") {
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const currentUser = JSON.parse(userStr);
+          if (currentUser?.id) {
+            await createNotification({
+              userId: currentUser.id,
+              title: "Thanh toán thành công!",
+              body: `Vé của bạn cho đơn hàng #${orderId || ""} đã được thanh toán thành công qua thẻ Stripe.`,
+              data: JSON.stringify({ path: "/profile/tickets" })
+            });
+          }
+        }
+      } catch (notifErr) {
+        console.warn("Failed to create Stripe payment notification:", notifErr);
+      }
       addToast("Thanh toán bằng thẻ thành công!");
     } else {
       addToast(`Thanh toán trả về trạng thái: ${paymentIntent?.status || "unknown"}`);
@@ -248,6 +265,22 @@ export default function Booking() {
       }
 
       if (bookingData.paymentMethod === "cash") {
+        try {
+          const userStr = localStorage.getItem("user");
+          if (userStr) {
+            const currentUser = JSON.parse(userStr);
+            if (currentUser?.id) {
+              await createNotification({
+                userId: currentUser.id,
+                title: "Giữ chỗ thành công (Tiền mặt)",
+                body: `Đơn giữ chỗ #${orderIds[0] || ""} đã được ghi nhận. Vui lòng thanh toán tiền mặt tại quầy trước giờ xe xuất bến.`,
+                data: JSON.stringify({ path: "/profile/tickets" })
+              });
+            }
+          }
+        } catch (notifErr) {
+          console.warn("Failed to create checkout notification:", notifErr);
+        }
         addToast(
           paymentRes.data?.message ||
             "Đặt vé thành công! Đã ghi nhận thanh toán tiền mặt. Vui lòng thanh toán tại quầy trước giờ xuất bến.",
