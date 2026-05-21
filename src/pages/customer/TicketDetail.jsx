@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getTicketDetail, cancelTicket } from "../../api/customer";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import { useToast } from "../../context/ToastContext";
+import ChatWidget from "../../components/chat/ChatWidget";
 
 export default function TicketDetail() {
   const { ticketId } = useParams();
@@ -269,6 +270,7 @@ export default function TicketDetail() {
           )}
         </div>
       </main>
+      {!!localStorage.getItem("token") && <ChatWidget />}
     </div>
   );
 }
