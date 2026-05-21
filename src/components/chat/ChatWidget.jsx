@@ -419,10 +419,10 @@ export default function ChatWidget() {
   }, [loadBoxes]);
 
   useEffect(() => {
-    if (open && showCreate) {
+    if (open && showCreate && currentUser?.role !== "customer") {
       loadRecipients();
     }
-  }, [loadRecipients, open, showCreate]);
+  }, [loadRecipients, open, showCreate, currentUser]);
 
   useEffect(() => {
     selectedBoxRef.current = selectedBoxId;
@@ -862,32 +862,45 @@ export default function ChatWidget() {
             <div className="min-h-0 flex-1 overflow-y-auto bg-[#fbfdfc] p-4">
               {showCreate && (
                 <form onSubmit={handleCreateBox} className="mb-4 space-y-3 rounded-xl border border-emerald-100 bg-white p-3">
-                  <input
-                    type="text"
-                    value={recipientSearch}
-                    onChange={(event) => setRecipientSearch(event.target.value)}
-                    className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-                    placeholder="Tìm người nhận theo tên, email hoặc số điện thoại"
-                  />
-                  <select
-                    value={receiverId}
-                    onChange={(event) => setReceiverId(event.target.value)}
-                    disabled={loadingRecipients || filteredRecipientUsers.length === 0}
-                    className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm font-medium text-on-surface outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-surface-container-low disabled:text-on-surface-variant"
-                  >
-                    <option value="">
-                      {loadingRecipients
-                        ? "Đang tải người nhận..."
-                        : filteredRecipientUsers.length
-                        ? "Chọn người nhận"
-                        : "Không có người nhận phù hợp"}
-                    </option>
-                    {filteredRecipientUsers.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.fullName} - {user.phone || user.email || user.role || `ID ${user.id}`}
-                      </option>
-                    ))}
-                  </select>
+                  {currentUser?.role === "customer" ? (
+                    <input
+                      type="number"
+                      required
+                      value={receiverId}
+                      onChange={(event) => setReceiverId(event.target.value)}
+                      className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                      placeholder="Nhập ID hỗ trợ viên (Ví dụ: 3, 4...)"
+                    />
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={recipientSearch}
+                        onChange={(event) => setRecipientSearch(event.target.value)}
+                        className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                        placeholder="Tìm người nhận theo tên, email hoặc số điện thoại"
+                      />
+                      <select
+                        value={receiverId}
+                        onChange={(event) => setReceiverId(event.target.value)}
+                        disabled={loadingRecipients || filteredRecipientUsers.length === 0}
+                        className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm font-medium text-on-surface outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-surface-container-low disabled:text-on-surface-variant"
+                      >
+                        <option value="">
+                          {loadingRecipients
+                            ? "Đang tải người nhận..."
+                            : filteredRecipientUsers.length
+                            ? "Chọn người nhận"
+                            : "Không có người nhận phù hợp"}
+                        </option>
+                        {filteredRecipientUsers.map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.fullName} - {user.phone || user.email || user.role || `ID ${user.id}`}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  )}
                   <textarea
                     value={firstMessage}
                     onChange={(event) => setFirstMessage(event.target.value)}
