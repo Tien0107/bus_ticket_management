@@ -78,10 +78,10 @@ export default function TicketDetail() {
   
   // Ưu tiên hiển thị tổng thanh toán thực tế sau khi trừ mã giảm giá (voucher)
   const ticketOriginal = ticket.originalAmount || ticket.totalPrice || ticket.price || 0;
-  const ticketDiscount = ticket.discountAmount || 0;
   const ticketFinal = ticket.totalAmount && ticket.totalAmount > 0 
     ? ticket.totalAmount 
-    : Math.max(0, ticketOriginal - ticketDiscount);
+    : Math.max(0, ticketOriginal - (ticket.discountAmount || 0));
+  const ticketDiscount = ticket.discountAmount || (ticketOriginal > ticketFinal ? ticketOriginal - ticketFinal : 0);
   const price = ticketFinal.toLocaleString('vi-VN') + 'đ';
   
   // Swagger trả về code dùng cho mã Barcode/QR

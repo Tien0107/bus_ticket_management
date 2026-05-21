@@ -451,10 +451,10 @@ export default function MyTickets() {
                       
                                               {(() => {
                          const original = t.originalAmount || t.totalPrice || t.price || 0;
-                         const discount = t.discountAmount || 0;
                          const finalPrice = t.totalAmount && t.totalAmount > 0
                            ? t.totalAmount
-                           : Math.max(0, original - discount);
+                           : Math.max(0, original - (t.discountAmount || 0));
+                         const discount = t.discountAmount || (original > finalPrice ? original - finalPrice : 0);
                          return (
                            <div className="space-y-1">
                              <p className="text-sm font-bold text-secondary">
