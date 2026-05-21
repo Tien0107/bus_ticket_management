@@ -72,14 +72,30 @@ export default function MyTickets() {
   // Filter State
   const [filterStatus, setFilterStatus] = useState("ALL");
   
+  // Pagination & Scroll States
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
   const navigate = useNavigate();
   const { addToast } = useToast();
 
-  const fetchTickets = async () => {
+  const fetchTickets = async (cursor = null, isLoadMore = false) => {
     try {
-      setLoading(true);
-      const res = await getMyTickets({ limit: 10 });
-      let list = res.data?.tickets || res.data || [];
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      
+      const params = { limit: 10 };
+      if (cursor) {
+        params.next = cursor;
+      }
+      
+      const res = await getMyTickets(params);
+      const raw = res.data || {};
+      let list = raw.tickets || (Array.isArray(raw) ? raw : (raw.data?.tickets || raw.data || []));
+      const next = raw.next || res.data?.next || null;
       
       // Xóa vé ảo (Lọc khỏi danh sách hiển thị)
       const deletedIds = JSON.parse(localStorage.getItem("busgo_deleted_tickets") || "[]");
@@ -87,7 +103,16 @@ export default function MyTickets() {
         list = list.filter(t => !deletedIds.includes(t.id));
       }
       
-      setTickets(list);
+      if (isLoadMore) {
+        setTickets(prev => {
+          const prevIds = new Set(prev.map(item => item.id));
+          const uniqueList = list.filter(item => !prevIds.has(item.id));
+          return [...prev, ...uniqueList];
+        });
+      } else {
+        setTickets(list);
+      }
+      setNextCursor(next);
     } catch (err) {
       console.error(err);
       if (err.response?.status === 401) {
@@ -95,6 +120,7 @@ export default function MyTickets() {
       }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -102,6 +128,23 @@ export default function MyTickets() {
     fetchTickets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (loading || loadingMore || !nextCursor) return;
+      
+      const threshold = 150;
+      const totalHeight = document.documentElement.scrollHeight;
+      const scrollPosition = window.innerHeight + window.scrollY;
+      
+      if (totalHeight - scrollPosition <= threshold) {
+        fetchTickets(nextCursor, true);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [loading, loadingMore, nextCursor]);
 
   const executeCancel = async (id, isAuto = false) => {
     try {
@@ -374,7 +417,7 @@ export default function MyTickets() {
                       <p className="text-sm text-on-surface-variant"><span className="material-symbols-outlined text-[16px] align-text-bottom mr-1">calendar_month</span>Khởi hành: {t.departureDate ? new Date(t.departureDate).toLocaleString('vi-VN') : 'N/A'}</p>
                       
                        <p className="text-sm font-bold text-secondary">
-                         Tổng tiền: {(t.totalPrice || t.totalAmount || t.price || t.originalAmount || 0).toLocaleString()}đ
+                         Tổng tiền: {(t.totalAmount || t.totalPrice || t.price || t.originalAmount || 0).toLocaleString()}đ
                        </p>
                        
                        {(() => {
@@ -501,6 +544,13 @@ export default function MyTickets() {
                  </div>
                )
               })}
+              
+              {loadingMore && (
+                <div className="flex justify-center items-center py-6">
+                  <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin mr-2"></div>
+                  <span className="text-sm text-on-surface-variant font-medium">Đang tải thêm vé...</span>
+                </div>
+              )}
             </div>
           );
         })()}

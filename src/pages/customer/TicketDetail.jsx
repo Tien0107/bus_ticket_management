@@ -77,7 +77,7 @@ export default function TicketDetail() {
   const busPlate = ticket.plateNumber || ticket.licensePlate || "Chưa cấp biển";
   
   // Swagger trả về totalAmount nhưng có thể API thực tế trả về totalPrice
-  const price = (ticket.totalPrice || ticket.totalAmount || ticket.price || ticket.originalAmount || 0).toLocaleString('vi-VN') + 'đ';
+  const price = (ticket.totalAmount || ticket.totalPrice || ticket.price || ticket.originalAmount || 0).toLocaleString('vi-VN') + 'đ';
   
   // Swagger trả về code dùng cho mã Barcode/QR
   const qrCodeData = ticket.code || ticket.qrCode || `BG-${ticketId}`;

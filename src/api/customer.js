@@ -51,8 +51,8 @@ export const updateCustomerContact = (data) => {
   return axiosClient.put("/customer/profile/contact", data);
 };
 
-export const getMyTickets = () => {
-  return axiosClient.get("/customer/ticket");
+export const getMyTickets = (params) => {
+  return axiosClient.get("/customer/ticket", { params });
 };
 
 export const getTicketDetail = (ticketId) => {
