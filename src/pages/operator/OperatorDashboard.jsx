@@ -64,7 +64,7 @@ export default function OperatorDashboard() {
         getStations({ limit: 100 }),
         getTripSchedules({ limit: 100, orderBy: "asc" }),
         getTripPrices({ limit: 100 }),
-        getDrivers({ limit: 100, status: "active" }),
+        getDrivers({ limit: 100 }),
         getVehicles({ limit: 100, status: "active" }),
       ]);
 
@@ -87,14 +87,28 @@ export default function OperatorDashboard() {
     }
   };
 
-  const stats = useMemo(() => [
-    { icon: "route", label: "Tuyến đường", value: data.routes.length, tone: "primary" },
-    { icon: "pin_drop", label: "Trạm", value: data.stations.length, tone: "blue" },
-    { icon: "calendar_month", label: "Lịch biểu", value: data.schedules.length, tone: "amber" },
-    { icon: "local_offer", label: "Bảng giá", value: data.prices.length, tone: "emerald" },
-    { icon: "badge", label: "Tài xế sẵn sàng", value: data.drivers.length, tone: "slate" },
-    { icon: "directions_bus", label: "Xe hoạt động", value: data.vehicles.length, tone: "violet" },
-  ], [data]);
+  const stats = useMemo(() => {
+    const activeDrivers = data.drivers.filter((driver) => driver.status === "active").length;
+    const completedTrips = data.drivers.reduce(
+      (sum, driver) => sum + Number(driver.completedTripCount || 0),
+      0
+    );
+    const cancelledTrips = data.drivers.reduce(
+      (sum, driver) => sum + Number(driver.cancelledTripCount || 0),
+      0
+    );
+
+    return [
+      { icon: "route", label: "Tuyến đường", value: data.routes.length, tone: "primary" },
+      { icon: "pin_drop", label: "Trạm", value: data.stations.length, tone: "blue" },
+      { icon: "calendar_month", label: "Lịch biểu", value: data.schedules.length, tone: "amber" },
+      { icon: "local_offer", label: "Bảng giá", value: data.prices.length, tone: "emerald" },
+      { icon: "badge", label: "Tài xế sẵn sàng", value: activeDrivers, tone: "slate" },
+      { icon: "directions_bus", label: "Xe hoạt động", value: data.vehicles.length, tone: "violet" },
+      { icon: "task_alt", label: "Chuyến hoàn thành", value: completedTrips, tone: "emerald" },
+      { icon: "cancel", label: "Chuyến đã hủy", value: cancelledTrips, tone: "red" },
+    ];
+  }, [data]);
 
   if (loading) {
     return (
@@ -112,7 +126,7 @@ export default function OperatorDashboard() {
     >
       {error && <div className="mb-6"><ErrorState message={error} /></div>}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
           <StatCard key={stat.label} {...stat} />
         ))}

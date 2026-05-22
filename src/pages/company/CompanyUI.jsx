@@ -102,14 +102,17 @@ export function StatCard({ icon, label, value, tone = "primary" }) {
   }[tone] || "bg-primary/10 text-primary";
 
   const valueText = value === undefined || value === null ? "" : String(value);
-  const valueClass = valueText.length > 10 ? "text-2xl" : "text-3xl";
+  const isCurrencyValue = /[₫đ]/i.test(valueText);
+  const valueClass = isCurrencyValue ? "text-[1.65rem]" : valueText.length > 10 ? "text-2xl" : "text-3xl";
 
   return (
     <div className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-on-surface-variant">{label}</p>
-          <p className={`mt-2 break-words leading-tight ${valueClass} font-extrabold text-on-surface`}>
+          <p className="min-h-[2.75rem] text-sm font-medium leading-6 text-on-surface-variant">
+            {label}
+          </p>
+          <p className={`mt-1 leading-tight ${valueClass} font-extrabold text-on-surface`}>
             {value}
           </p>
         </div>

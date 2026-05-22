@@ -48,43 +48,90 @@ export default function DashboardLayout() {
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + "/");
 
   const getLinkClass = (path) => {
-    const baseClass = "px-4 py-3 rounded-lg flex items-center gap-3 font-medium transition-all";
+    const baseClass = `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${
+      sidebarOpen ? "" : "justify-center"
+    }`;
     return isActive(path)
-      ? `${baseClass} bg-primary text-white`
-      : `${baseClass} text-on-surface-variant hover:bg-surface-container-high`;
+      ? `${baseClass} bg-primary text-white shadow-[0_12px_26px_rgba(0,128,43,0.24)]`
+      : `${baseClass} text-on-surface-variant hover:bg-white hover:text-on-surface hover:shadow-sm`;
+  };
+
+  const sectionLabel = role === "driver"
+    ? "Tài xế"
+    : isCompanyAdmin
+    ? "Công ty"
+    : isSupport
+    ? "Hỗ trợ"
+    : isDispatcher
+    ? "Điều hành"
+    : "Quản trị";
+
+  const getInitials = (name = "") => {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "BG";
+    return parts.slice(-2).map((part) => part[0]).join("").toUpperCase();
+  };
+
+  const renderNavLink = (to, icon, label) => {
+    const active = isActive(to);
+
+    return (
+      <Link key={to} to={to} className={getLinkClass(to)} title={label}>
+        <span
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
+            active
+              ? "bg-white/15 text-white"
+              : "bg-white/70 text-on-surface-variant group-hover:bg-primary/10 group-hover:text-primary"
+          }`}
+        >
+          <span className="material-symbols-outlined text-[21px] leading-none">{icon}</span>
+        </span>
+        {sidebarOpen && <span className="truncate">{label}</span>}
+      </Link>
+    );
   };
 
   const showChatWidget = role === "driver" || isCompanyAdmin || isDispatcher;
 
   return (
-    <div className="flex min-h-screen bg-surface">
+    <div className="flex min-h-screen bg-[#f6f8f5]">
       {/* Sidebar */}
       <aside
         className={`${
-          sidebarOpen ? "w-64" : "w-20"
-        } bg-surface-container shadow-lg transition-all duration-300 flex flex-col`}
+          sidebarOpen ? "w-72" : "w-[88px]"
+        } sticky top-0 flex h-screen shrink-0 flex-col border-r border-outline-variant/20 bg-[#eef2ef] shadow-[10px_0_30px_rgba(15,23,42,0.05)] transition-all duration-300`}
       >
         {/* Header */}
-        <div className="p-4 border-b border-outline-variant/20">
+        <div className="border-b border-outline-variant/20 p-4">
           <div className="flex items-center justify-between">
             <Link
               to={dashboardHomePath}
-              className={`flex items-center gap-3 rounded-lg text-primary transition-colors hover:bg-surface-container-high ${
-                sidebarOpen ? "px-2 py-1" : "p-2"
+              className={`flex min-w-0 items-center gap-3 rounded-xl text-primary transition-colors hover:bg-white/70 ${
+                sidebarOpen ? "px-2 py-2" : "p-2"
               }`}
               aria-label="Về trang quản trị"
               title="Về trang quản trị"
             >
-              <span className="material-symbols-outlined text-[26px]">directions_bus</span>
-              {sidebarOpen && <span className="text-xl font-bold">Bus Go</span>}
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <span className="material-symbols-outlined text-[25px]">directions_bus</span>
+              </span>
+              {sidebarOpen && (
+                <span className="min-w-0">
+                  <span className="block truncate text-xl font-extrabold leading-tight">Bus Go</span>
+                  <span className="block truncate text-xs font-bold uppercase text-primary/70">{sectionLabel}</span>
+                </span>
+              )}
             </Link>
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center ${sidebarOpen ? "gap-1.5" : "flex-col gap-2"}`}>
               <NotificationBell align="left" />
               <button
+                type="button"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 hover:bg-surface-container-high rounded-lg transition-all"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-all hover:bg-white hover:text-on-surface"
+                aria-label={sidebarOpen ? "Thu gọn menu" : "Mở rộng menu"}
+                title={sidebarOpen ? "Thu gọn menu" : "Mở rộng menu"}
               >
-                <span className="material-symbols-outlined">
+                <span className="material-symbols-outlined text-[22px]">
                   {sidebarOpen ? "menu_open" : "menu"}
                 </span>
               </button>
@@ -93,118 +140,93 @@ export default function DashboardLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          <div className="my-4">
-            <div className={`text-xs font-bold uppercase transition-all ${sidebarOpen ? "px-4 py-2" : "px-2"}`}>
-              {sidebarOpen ? role === "driver" ? "Tài xế" : isCompanyAdmin ? "Công ty" : isSupport ? "Hỗ trợ" : isDispatcher ? "Điều hành" : "Quản trị" : ""}
+        <nav className="flex-1 space-y-2 overflow-y-auto p-4">
+          <div className="pb-2 pt-3">
+            <div
+              className={`text-xs font-extrabold uppercase tracking-wide text-on-surface-variant transition-all ${
+                sidebarOpen ? "px-3" : "text-center"
+              }`}
+            >
+              {sidebarOpen ? sectionLabel : ""}
             </div>
           </div>
 
           {/* Driver Menu */}
           {role === "driver" && (
             <>
-              <Link to="/driver/dashboard" className={getLinkClass("/driver/dashboard")}>
-                <span className="material-symbols-outlined">dashboard</span>
-                {sidebarOpen && <span>Bảng điều khiển</span>}
-              </Link>
-              <Link to="/driver/profile" className={getLinkClass("/driver/profile")}>
-                <span className="material-symbols-outlined">person</span>
-                {sidebarOpen && <span>Hồ sơ</span>}
-              </Link>
+              {renderNavLink("/driver/dashboard", "dashboard", "Bảng điều khiển")}
+              {renderNavLink("/driver/profile", "person", "Hồ sơ")}
             </>
           )}
 
           {/* Company Menu */}
           {isCompanyAdmin && (
             <>
-              <Link to="/company/dashboard" className={getLinkClass("/company/dashboard")}>
-                <span className="material-symbols-outlined">dashboard</span>
-                {sidebarOpen && <span>Bảng điều khiển</span>}
-              </Link>
-              <Link to="/company/vehicles" className={getLinkClass("/company/vehicles")}>
-                <span className="material-symbols-outlined">directions_bus</span>
-                {sidebarOpen && <span>Phương tiện</span>}
-              </Link>
-              <Link to="/company/drivers" className={getLinkClass("/company/drivers")}>
-                <span className="material-symbols-outlined">people</span>
-                {sidebarOpen && <span>Tài xế</span>}
-              </Link>
-              <Link to="/company/staff" className={getLinkClass("/company/staff")}>
-                <span className="material-symbols-outlined">group</span>
-                {sidebarOpen && <span>Nhân viên</span>}
-              </Link>
-              <Link to="/company/payments" className={getLinkClass("/company/payments")}>
-                <span className="material-symbols-outlined">payments</span>
-                {sidebarOpen && <span>Thanh toán</span>}
-              </Link>
-              <Link to="/company/profile" className={getLinkClass("/company/profile")}>
-                <span className="material-symbols-outlined">person</span>
-                {sidebarOpen && <span>Hồ sơ</span>}
-              </Link>
+              {renderNavLink("/company/dashboard", "dashboard", "Bảng điều khiển")}
+              {renderNavLink("/company/vehicles", "directions_bus", "Phương tiện")}
+              {renderNavLink("/company/drivers", "people", "Tài xế")}
+              {renderNavLink("/company/staff", "group", "Nhân viên")}
+              {renderNavLink("/company/payments", "payments", "Thanh toán")}
+              {renderNavLink("/company/profile", "person", "Hồ sơ")}
             </>
           )}
 
           {/* Operator Menu */}
           {isDispatcher && (
             <>
-              <Link to="/operator/dashboard" className={getLinkClass("/operator/dashboard")}>
-                <span className="material-symbols-outlined">dashboard</span>
-                {sidebarOpen && <span>Bảng điều khiển</span>}
-              </Link>
-              <Link to="/operator/routes" className={getLinkClass("/operator/routes")}>
-                <span className="material-symbols-outlined">route</span>
-                {sidebarOpen && <span>Tuyến đường</span>}
-              </Link>
-              <Link to="/operator/stations" className={getLinkClass("/operator/stations")}>
-                <span className="material-symbols-outlined">location_on</span>
-                {sidebarOpen && <span>Trạm</span>}
-              </Link>
-              <Link to="/operator/prices" className={getLinkClass("/operator/prices")}>
-                <span className="material-symbols-outlined">local_offer</span>
-                {sidebarOpen && <span>Bảng giá</span>}
-              </Link>
-              <Link to="/operator/schedules" className={getLinkClass("/operator/schedules")}>
-                <span className="material-symbols-outlined">schedule</span>
-                {sidebarOpen && <span>Lịch biểu</span>}
-              </Link>
+              {renderNavLink("/operator/dashboard", "dashboard", "Bảng điều khiển")}
+              {renderNavLink("/operator/routes", "route", "Tuyến đường")}
+              {renderNavLink("/operator/stations", "location_on", "Trạm")}
+              {renderNavLink("/operator/prices", "local_offer", "Bảng giá")}
+              {renderNavLink("/operator/schedules", "schedule", "Lịch biểu")}
             </>
           )}
 
           {/* Super Admin Menu */}
           {(role === "super_admin" || role === "superadmin") && (
             <>
-              <Link to="/super-admin/dashboard" className={getLinkClass("/super-admin/dashboard")}>
-                <span className="material-symbols-outlined">dashboard</span>
-                {sidebarOpen && <span>Bảng điều khiển</span>}
-              </Link>
-              <Link to="/super-admin/companies" className={getLinkClass("/super-admin/companies")}>
-                <span className="material-symbols-outlined">business</span>
-                {sidebarOpen && <span>Công ty</span>}
-              </Link>
+              {renderNavLink("/super-admin/dashboard", "dashboard", "Bảng điều khiển")}
+              {renderNavLink("/super-admin/companies", "business", "Công ty")}
             </>
           )}
         </nav>
 
         {/* User Info & Logout */}
-        <div className="p-4 border-t border-outline-variant/20 space-y-2">
-          {sidebarOpen && user && (
-            <div className="mb-3 pb-3 border-b border-outline-variant/20">
-              <p className="text-sm font-semibold text-on-surface truncate">{user.fullName}</p>
-              <p className="text-xs text-on-surface-variant truncate">{user.email}</p>
+        <div className="space-y-3 border-t border-outline-variant/20 p-4">
+          {user && (
+            <div
+              className={`rounded-xl bg-white/70 ring-1 ring-outline-variant/20 ${
+                sidebarOpen ? "flex items-center gap-3 p-3" : "flex justify-center p-2"
+              }`}
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-extrabold text-primary">
+                {getInitials(user.fullName)}
+              </div>
+              {sidebarOpen && (
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-extrabold text-on-surface">{user.fullName}</p>
+                  <p className="truncate text-xs font-medium text-on-surface-variant">{user.email}</p>
+                </div>
+              )}
             </div>
           )}
           <button
+            type="button"
             onClick={handleLogout}
-            className="w-full px-4 py-3 bg-error/10 text-error rounded-lg flex items-center justify-center gap-2 font-medium hover:bg-error/20 transition-all"
+            className={`flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-3 py-3 text-sm font-bold text-red-700 transition-all hover:bg-red-100 ${
+              sidebarOpen ? "" : "px-2"
+            }`}
+            aria-label="Đăng xuất"
+            title="Đăng xuất"
           >
-            <span className="material-symbols-outlined">logout</span>
+            <span className="material-symbols-outlined text-[21px]">logout</span>
             {sidebarOpen && <span>Đăng xuất</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="min-w-0 flex-1 overflow-auto">
         <Outlet />
       </main>
       {showChatWidget && <ChatWidget />}

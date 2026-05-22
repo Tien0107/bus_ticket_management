@@ -192,7 +192,8 @@ function Login() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const googleButtonRef = useRef(null);
-  const [email, setEmail] = useState("");
+  const [loginMethod, setLoginMethod] = useState("email");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -439,7 +440,11 @@ function Login() {
     setLoading(true);
 
     try {
-      const res = await signIn({ email, password });
+      const account = identifier.trim();
+      const payload = loginMethod === "email"
+        ? { email: account, password }
+        : { phone: account, password };
+      const res = await signIn(payload);
       console.log("Login response:", res.data); // Debug
       console.log("User object:", res.data?.user); // Debug user
       await completeLogin(res.data);
@@ -519,7 +524,7 @@ function Login() {
                 Chào mừng trở lại
               </h2>
               <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                Dùng email, Google hoặc Facebook để tiếp tục vào BusGo.
+                Dùng email, số điện thoại, Google hoặc Facebook để tiếp tục vào BusGo.
               </p>
             </div>
 
@@ -532,17 +537,48 @@ function Login() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-bold text-on-surface">Email</label>
+                <div className="mb-3 grid grid-cols-2 rounded-xl bg-surface-container-low p-1">
+                  {[
+                    { id: "email", label: "Email", icon: "mail" },
+                    { id: "phone", label: "Số điện thoại", icon: "call" },
+                  ].map((item) => {
+                    const active = loginMethod === item.id;
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setLoginMethod(item.id);
+                          setIdentifier("");
+                        }}
+                        className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-extrabold transition-all ${
+                          active
+                            ? "bg-white text-primary shadow-sm ring-1 ring-outline-variant/20"
+                            : "text-on-surface-variant hover:text-on-surface"
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <label className="mb-2 block text-sm font-bold text-on-surface">
+                  {loginMethod === "email" ? "Email" : "Số điện thoại"}
+                </label>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">
-                    mail
+                    {loginMethod === "email" ? "mail" : "call"}
                   </span>
                   <input
                     className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-4 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
-                    placeholder="you@example.com"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={loginMethod === "email" ? "you@example.com" : "0901234567"}
+                    type={loginMethod === "email" ? "email" : "tel"}
+                    inputMode={loginMethod === "email" ? "email" : "tel"}
+                    autoComplete={loginMethod === "email" ? "email" : "tel"}
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
                     required
                   />
                 </div>
