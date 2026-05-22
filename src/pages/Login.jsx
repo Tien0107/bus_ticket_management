@@ -678,9 +678,7 @@ function Login() {
 
             <div className="flex items-center justify-center gap-3">
               <div className="relative h-14 w-14 overflow-hidden rounded-xl">
-                <div className={`flex h-14 w-14 items-center justify-center rounded-xl border border-outline-variant/40 bg-white transition-all hover:bg-surface-container-low ${
-                  googleReady ? "opacity-0" : "opacity-100"
-                }`}>
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-outline-variant/40 bg-white transition-colors hover:bg-surface-container-low">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-outline-variant/40 bg-white">
                     <GoogleIcon />
                   </span>
@@ -698,7 +696,7 @@ function Login() {
                   ref={googleButtonRef}
                   onClickCapture={() => logGoogleClick("google-official-overlay")}
                   className={`auth-google-render absolute inset-0 z-10 flex items-center justify-center overflow-hidden rounded-xl transition-opacity ${
-                    googleReady ? "opacity-100" : "pointer-events-none opacity-0"
+                    googleReady ? "opacity-[0.01]" : "pointer-events-none opacity-0"
                   }`}
                 />
                 {socialLoading === "google" && (
