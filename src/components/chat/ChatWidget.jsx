@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { io } from "socket.io-client";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createChatBox,
   getChatBoxes,
@@ -10,216 +9,26 @@ import {
 } from "../../api/chat";
 import { getUsers } from "../../api/auth";
 import { useToast } from "../../context/ToastContext";
-
-const PAGE_SIZE = 10;
-const RECALLED_MESSAGE = "Tin nhắn đã được thu hồi";
-const SOCKET_URL =
-  process.env.REACT_APP_SOCKET_SERVER_URL ||
-  process.env.REACT_APP_SOCKET_URL ||
-  process.env.VITE_SOCKET_URL ||
-  "https://socket-server-b5r4.onrender.com";
-
-const getStoredUser = () => {
-  try {
-    return JSON.parse(localStorage.getItem("user") || "null");
-  } catch {
-    return null;
-  }
-};
-
-const getRecallCacheKey = (userId) => `driverChatRecalledMessages:${userId || "guest"}`;
-
-const readRecalledMessageIds = (userId) => {
-  try {
-    const raw = localStorage.getItem(getRecallCacheKey(userId));
-    const ids = JSON.parse(raw || "[]");
-    return Array.isArray(ids) ? ids.map(String) : [];
-  } catch {
-    return [];
-  }
-};
-
-const toNumber = (value) => {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-};
-
-const isRecalledText = (value) => {
-  const text = String(value || "").trim().toLowerCase();
-  return (
-    text === RECALLED_MESSAGE.toLowerCase() ||
-    text === "tin nhắn đã thu hồi" ||
-    text === "message recalled" ||
-    text === "recalled"
-  );
-};
-
-const isMessageRecalled = (message = {}) =>
-  Boolean(
-    message.recalled ||
-      message.isRecalled ||
-      message.is_recalled ||
-      message.status === "recalled" ||
-      message.messageStatus === "recalled" ||
-      message.deletedAt ||
-      message.recalledAt ||
-      isRecalledText(message.message) ||
-      isRecalledText(message.body)
-  );
-
-const normalizeBox = (box = {}) => ({
-  ...box,
-  id: toNumber(box.id ?? box.boxId),
-  senderId: toNumber(box.senderId),
-  receiverId: toNumber(box.receiverId),
-  lastMessageSenderId: toNumber(box.lastMessageSenderId),
-  unreadReceiverCount: Number(box.unreadReceiverCount || 0),
-  unreadSenderCount: Number(box.unreadSenderCount || 0),
-  displayName: box.displayName || `Hội thoại #${box.id ?? box.boxId ?? ""}`,
-  lastMessage: box.lastMessage || "",
-});
-
-const normalizeBoxesResponse = (data) => {
-  const boxes = Array.isArray(data?.boxes)
-    ? data.boxes
-    : Array.isArray(data?.data?.boxes)
-    ? data.data.boxes
-    : Array.isArray(data?.data)
-    ? data.data
-    : Array.isArray(data)
-    ? data
-    : [];
-
-  return {
-    boxes: boxes.map(normalizeBox).filter((box) => box.id),
-    next: data?.next ?? data?.data?.next ?? null,
-  };
-};
-
-const normalizeMessage = (message = {}, boxId) => ({
-  ...message,
-  id: message.id ?? message.messageId ?? `local-${Date.now()}-${Math.random()}`,
-  boxId: toNumber(message.boxId ?? boxId),
-  message: message.message ?? message.body ?? "",
-  senderId: toNumber(message.senderId),
-  fullName: message.fullName || message.senderName || "Người dùng",
-  createdAt: message.createdAt || new Date().toISOString(),
-  recalled: isMessageRecalled(message),
-});
-
-const normalizeMessagesResponse = (data, boxId) => {
-  const messages = Array.isArray(data?.messages)
-    ? data.messages
-    : Array.isArray(data?.data?.messages)
-    ? data.data.messages
-    : Array.isArray(data?.data)
-    ? data.data
-    : Array.isArray(data)
-    ? data
-    : [];
-
-  return {
-    messages: messages.map((message) => normalizeMessage(message, boxId)).filter((message) => message.message || message.id),
-    next: data?.next ?? data?.data?.next ?? null,
-  };
-};
-
-const normalizeUser = (user = {}) => ({
-  ...user,
-  id: toNumber(user.id ?? user.userId),
-  fullName: user.fullName || user.username || `Người dùng #${user.id ?? user.userId ?? ""}`,
-  email: user.email || "",
-  phone: user.phone || "",
-  role: user.role || "",
-  status: user.status || "",
-});
-
-const normalizeUsersResponse = (data, viewerId) => {
-  const users = Array.isArray(data?.users)
-    ? data.users
-    : Array.isArray(data?.data?.users)
-    ? data.data.users
-    : Array.isArray(data?.data)
-    ? data.data
-    : Array.isArray(data)
-    ? data
-    : [];
-
-  return {
-    users: users
-      .map(normalizeUser)
-      .filter((user) => user.id && Number(user.id) !== Number(viewerId)),
-    next: data?.next ?? data?.data?.next ?? null,
-  };
-};
-
-const normalizeIncomingMessage = (payload = {}) => {
-  const boxId = toNumber(payload.boxId ?? payload.box?.id);
-  const body = payload.body ?? payload.message ?? payload.lastMessage;
-  if (!boxId || !body) return null;
-
-  return normalizeMessage(
-    {
-      id: payload.messageId ?? payload.id,
-      boxId,
-      message: body,
-      senderId: payload.senderId,
-      fullName: payload.fullName || payload.senderName,
-      createdAt: payload.createdAt,
-    },
-    boxId
-  );
-};
-
-const getUnreadForViewer = (box, viewerId) => {
-  if (!viewerId) return Math.max(Number(box.unreadReceiverCount || 0), Number(box.unreadSenderCount || 0));
-  if (Number(box.receiverId) === Number(viewerId)) return Number(box.unreadReceiverCount || 0);
-  if (Number(box.senderId) === Number(viewerId)) return Number(box.unreadSenderCount || 0);
-  return 0;
-};
-
-const zeroUnreadForViewer = (box, viewerId) => {
-  if (Number(box.receiverId) === Number(viewerId)) return { ...box, unreadReceiverCount: 0 };
-  if (Number(box.senderId) === Number(viewerId)) return { ...box, unreadSenderCount: 0 };
-  return box;
-};
-
-const getBoxPreview = (box, viewerId) => {
-  if (!box.lastMessage) return "Chưa có tin nhắn";
-
-  const senderName = Number(box.lastMessageSenderId) === Number(viewerId) ? "Bạn" : box.displayName;
-  return `${senderName}: ${box.lastMessage}`;
-};
-
-const appendUniqueMessages = (current, incoming) => {
-  const items = Array.isArray(incoming) ? incoming : [incoming];
-  const existing = new Set(current.map((message) => String(message.id)));
-  const next = [...current];
-
-  items.forEach((message) => {
-    if (!existing.has(String(message.id))) {
-      next.push(message);
-      existing.add(String(message.id));
-    }
-  });
-
-  return next.sort((left, right) => new Date(left.createdAt) - new Date(right.createdAt));
-};
-
-const sortMessagesOldestFirst = (items = []) =>
-  [...items].sort((left, right) => new Date(left.createdAt) - new Date(right.createdAt));
-
-const getInitials = (name = "") => {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return "BG";
-  return parts.slice(-2).map((part) => part[0]).join("").toUpperCase();
-};
-
-const formatTime = (value) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-};
+import ChatBoxList from "./ChatBoxList";
+import CreateChatForm from "./CreateChatForm";
+import MessageInput from "./MessageInput";
+import MessageList from "./MessageList";
+import {
+  appendUniqueMessages,
+  getRecallCacheKey,
+  getStoredUser,
+  getUnreadForViewer,
+  normalizeBoxesResponse,
+  normalizeMessage,
+  normalizeMessagesResponse,
+  normalizeUsersResponse,
+  PAGE_SIZE,
+  readRecalledMessageIds,
+  RECALLED_MESSAGE,
+  sortMessagesOldestFirst,
+  zeroUnreadForViewer,
+} from "./chatUtils";
+import useChatSocket from "./useChatSocket";
 
 export default function ChatWidget() {
   const { addToast } = useToast();
@@ -242,7 +51,7 @@ export default function ChatWidget() {
   const [firstMessage, setFirstMessage] = useState("");
   const [socketError, setSocketError] = useState("");
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
-  const [typingByBox, setTypingByBox] = useState({});
+  const [typingByBox, setTypingByBox] = useState(() => ({}));
   const [recalledMessageIds, setRecalledMessageIds] = useState(
     () => new Set(readRecalledMessageIds(viewerId))
   );
@@ -406,6 +215,21 @@ export default function ChatWidget() {
     [viewerId]
   );
 
+  useChatSocket({
+    activeBoxRef,
+    loadBoxes,
+    markRead,
+    rememberRecalledMessageId,
+    selectedBoxRef,
+    setBoxes,
+    setMessages,
+    setOnlineUserIds,
+    setSocketError,
+    setTypingByBox,
+    socketRef,
+    viewerId,
+  });
+
   useEffect(() => {
     loadBoxes({ reset: true });
   }, [loadBoxes]);
@@ -437,152 +261,6 @@ export default function ChatWidget() {
     loadMessages({ boxId: selectedBoxId, reset: true });
     markRead(selectedBoxId);
   }, [loadMessages, markRead, selectedBoxId]);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token")?.replace(/^Bearer\s+/i, "");
-    if (!token) {
-      setSocketError("Thiếu token đăng nhập.");
-      return undefined;
-    }
-
-    const socket = io(SOCKET_URL, {
-      transports: ["websocket"],
-      auth: (callback) => callback({ token }),
-    });
-
-    socketRef.current = socket;
-
-    const handleConnect = () => {
-      setSocketError("");
-      if (activeBoxRef.current) socket.emit("chat:join", { boxId: activeBoxRef.current });
-    };
-
-    const handleConnectError = (error) => {
-      setSocketError(error?.message || "Không kết nối được realtime chat.");
-    };
-
-    const handleNewMessage = (payload) => {
-      const message = normalizeIncomingMessage(payload);
-      if (!message) return;
-
-      const activeBoxId = selectedBoxRef.current;
-      const isActiveBox = Number(activeBoxId) === Number(message.boxId);
-
-      if (isActiveBox && Number(message.senderId) !== Number(viewerId)) {
-        setMessages((current) => appendUniqueMessages(current, message));
-        markRead(message.boxId);
-      }
-
-      setBoxes((current) =>
-        current.map((box) => {
-          if (Number(box.id) !== Number(message.boxId)) return box;
-          let nextBox = { ...box, lastMessage: message.message, lastMessageSenderId: message.senderId };
-
-          if (isActiveBox) {
-            nextBox = zeroUnreadForViewer(nextBox, viewerId);
-          } else if (Number(message.senderId) !== Number(viewerId)) {
-            if (Number(box.receiverId) === Number(viewerId)) {
-              nextBox.unreadReceiverCount = Number(nextBox.unreadReceiverCount || 0) + 1;
-            } else if (Number(box.senderId) === Number(viewerId)) {
-              nextBox.unreadSenderCount = Number(nextBox.unreadSenderCount || 0) + 1;
-            }
-          }
-
-          return nextBox;
-        })
-      );
-    };
-
-    const handleTypingStart = (payload = {}) => {
-      const boxId = toNumber(payload.boxId);
-      const userId = toNumber(payload.userId);
-      if (!boxId || !userId) return;
-
-      setTypingByBox((current) => {
-        const users = new Set(current[boxId] || []);
-        users.add(userId);
-        return { ...current, [boxId]: Array.from(users) };
-      });
-    };
-
-    const handleTypingStop = (payload = {}) => {
-      const boxId = toNumber(payload.boxId);
-      const userId = toNumber(payload.userId);
-      if (!boxId || !userId) return;
-
-      setTypingByBox((current) => {
-        const users = new Set(current[boxId] || []);
-        users.delete(userId);
-        return { ...current, [boxId]: Array.from(users) };
-      });
-    };
-
-    const handleUsersOnline = (payload = {}) => {
-      const ids = Array.isArray(payload) ? payload : payload.userIds;
-      if (Array.isArray(ids)) setOnlineUserIds(new Set(ids.map(Number)));
-    };
-
-    const handleUserOnline = (payload = {}) => {
-      const userId = toNumber(payload.userId ?? payload);
-      if (!userId) return;
-      setOnlineUserIds((current) => new Set([...Array.from(current), userId]));
-    };
-
-    const handleUserOffline = (payload = {}) => {
-      const userId = toNumber(payload.userId ?? payload);
-      if (!userId) return;
-      setOnlineUserIds((current) => {
-        const next = new Set(current);
-        next.delete(userId);
-        return next;
-      });
-    };
-
-    const handleRecall = (payload = {}) => {
-      const boxId = toNumber(payload.boxId);
-      const messageId = payload.messageId ?? payload.id;
-      if (!boxId || !messageId) return;
-
-      setMessages((current) =>
-        current.map((message) =>
-          String(message.id) === String(messageId)
-            ? { ...message, message: payload.body || RECALLED_MESSAGE, recalled: true }
-            : message
-        )
-      );
-      rememberRecalledMessageId(messageId);
-      setBoxes((current) =>
-        current.map((box) =>
-          Number(box.id) === Number(boxId)
-            ? {
-                ...box,
-                lastMessage: payload.body || RECALLED_MESSAGE,
-                lastMessageSenderId: toNumber(payload.senderId) || box.lastMessageSenderId,
-              }
-            : box
-        )
-      );
-    };
-
-    socket.on("connect", handleConnect);
-    socket.on("connect_error", handleConnectError);
-    socket.on("unauthorized", handleConnectError);
-    socket.on("error", handleConnectError);
-    socket.on("message:new", handleNewMessage);
-    socket.on("chat:new", () => loadBoxes({ reset: true }));
-    socket.on("chat:typing:start", handleTypingStart);
-    socket.on("chat:typing:stop", handleTypingStop);
-    socket.on("message:recalled", handleRecall);
-    socket.on("users:online", handleUsersOnline);
-    socket.on("user:online", handleUserOnline);
-    socket.on("user:offline", handleUserOffline);
-
-    return () => {
-      if (activeBoxRef.current) socket.emit("chat:leave", { boxId: activeBoxRef.current });
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, [loadBoxes, markRead, rememberRecalledMessageId, viewerId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -793,196 +471,48 @@ export default function ChatWidget() {
           {!selectedBox ? (
             <div className="min-h-0 flex-1 overflow-y-auto bg-[#fbfdfc] p-4">
               {showCreate && (
-                <form onSubmit={handleCreateBox} className="mb-4 space-y-3 rounded-xl border border-emerald-100 bg-white p-3">
-                  <input
-                    type="text"
-                    value={recipientSearch}
-                    onChange={(event) => setRecipientSearch(event.target.value)}
-                    className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-                    placeholder="Tìm người nhận theo tên, email hoặc số điện thoại"
-                  />
-                  <select
-                    value={receiverId}
-                    onChange={(event) => setReceiverId(event.target.value)}
-                    disabled={loadingRecipients || filteredRecipientUsers.length === 0}
-                    className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm font-medium text-on-surface outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-surface-container-low disabled:text-on-surface-variant"
-                  >
-                    <option value="">
-                      {loadingRecipients
-                        ? "Đang tải người nhận..."
-                        : filteredRecipientUsers.length
-                        ? "Chọn người nhận"
-                        : "Không có người nhận phù hợp"}
-                    </option>
-                    {filteredRecipientUsers.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.fullName} - {user.phone || user.email || user.role || `ID ${user.id}`}
-                      </option>
-                    ))}
-                  </select>
-                  <textarea
-                    value={firstMessage}
-                    onChange={(event) => setFirstMessage(event.target.value)}
-                    className="min-h-20 w-full resize-none rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-                    placeholder="Tin nhắn đầu tiên"
-                  />
-                  <button
-                    type="submit"
-                    className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white hover:bg-primary/90"
-                  >
-                    Tạo hội thoại
-                  </button>
-                </form>
+                <CreateChatForm
+                  filteredRecipientUsers={filteredRecipientUsers}
+                  firstMessage={firstMessage}
+                  loadingRecipients={loadingRecipients}
+                  onFirstMessageChange={(event) => setFirstMessage(event.target.value)}
+                  onReceiverChange={(event) => setReceiverId(event.target.value)}
+                  onRecipientSearchChange={(event) => setRecipientSearch(event.target.value)}
+                  onSubmit={handleCreateBox}
+                  receiverId={receiverId}
+                  recipientSearch={recipientSearch}
+                />
               )}
 
-              {loadingBoxes ? (
-                <div className="flex h-full items-center justify-center text-sm text-on-surface-variant">
-                  Đang tải hội thoại...
-                </div>
-              ) : boxes.length ? (
-                <div className="space-y-3">
-                  {boxes.map((box) => {
-                    const unread = getUnreadForViewer(box, viewerId);
-                    const boxPeerId = Number(box.senderId) === Number(viewerId) ? box.receiverId : box.senderId;
-                    const online = boxPeerId && onlineUserIds.has(Number(boxPeerId));
-
-                    return (
-                      <button
-                        key={box.id}
-                        type="button"
-                        onClick={() => setSelectedBoxId(box.id)}
-                        className="w-full rounded-xl bg-white p-3 text-left shadow-sm ring-1 ring-slate-100 transition-all hover:-translate-y-0.5 hover:shadow-md"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary text-lg font-extrabold text-white">
-                            {getInitials(box.displayName)}
-                            {online && <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-400" />}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="truncate text-base font-bold text-on-surface">{box.displayName}</p>
-                              {unread > 0 && (
-                                <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-white">
-                                  {unread}
-                                </span>
-                              )}
-                            </div>
-                            <p className="mt-1 truncate text-sm font-semibold text-slate-500">
-                              {getBoxPreview(box, viewerId)}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                  {boxNext && (
-                    <button
-                      type="button"
-                      onClick={() => loadBoxes({ reset: false, next: boxNext })}
-                      className="w-full rounded-xl border border-emerald-100 bg-white px-4 py-3 text-sm font-bold text-on-surface hover:bg-emerald-50"
-                    >
-                      Tải thêm
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="flex h-full items-center justify-center text-center">
-                  <div>
-                    <span className="material-symbols-outlined text-5xl text-outline">forum</span>
-                    <p className="mt-3 font-bold text-on-surface">Chưa có hội thoại</p>
-                    <p className="mt-1 text-sm text-on-surface-variant">Bấm dấu cộng để tạo hội thoại.</p>
-                  </div>
-                </div>
-              )}
+              <ChatBoxList
+                boxes={boxes}
+                boxNext={boxNext}
+                loadingBoxes={loadingBoxes}
+                onLoadMore={() => loadBoxes({ reset: false, next: boxNext })}
+                onSelectBox={setSelectedBoxId}
+                onlineUserIds={onlineUserIds}
+                viewerId={viewerId}
+              />
             </div>
           ) : (
             <>
-              <div className="min-h-0 flex-1 overflow-y-auto bg-surface-container-low/40 p-4">
-                {messageNext && (
-                  <div className="mb-4 text-center">
-                    <button
-                      type="button"
-                      onClick={() => loadMessages({ boxId: selectedBoxId, reset: false, next: messageNext })}
-                      className="rounded-full border border-outline-variant/40 bg-white px-4 py-2 text-sm font-bold text-on-surface hover:bg-surface-container-low"
-                    >
-                      Tải tin cũ hơn
-                    </button>
-                  </div>
-                )}
+              <MessageList
+                loadingMessages={loadingMessages}
+                messageNext={messageNext}
+                messages={messages}
+                messagesEndRef={messagesEndRef}
+                onLoadOlder={() => loadMessages({ boxId: selectedBoxId, reset: false, next: messageNext })}
+                onRecallMessage={handleRecallMessage}
+                peerTyping={peerTyping}
+                viewerId={viewerId}
+              />
 
-                {loadingMessages ? (
-                  <div className="flex h-full items-center justify-center text-sm text-on-surface-variant">
-                    Đang tải tin nhắn...
-                  </div>
-                ) : messages.length ? (
-                  <div className="flex min-h-full flex-col justify-end space-y-3">
-                    {messages.map((message) => {
-                      const mine = Number(message.senderId) === Number(viewerId);
-                      const recalled = isMessageRecalled(message);
-                      return (
-                        <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                          <div className={`max-w-[82%] rounded-2xl px-4 py-3 shadow-sm ${
-                            mine ? "bg-primary text-white" : "bg-white text-on-surface"
-                          }`}>
-                            {!mine && <p className="mb-1 text-xs font-bold text-primary">{message.fullName}</p>}
-                            <p className={`whitespace-pre-wrap break-words text-sm ${recalled ? "italic opacity-75" : ""}`}>
-                              {recalled ? RECALLED_MESSAGE : message.message}
-                            </p>
-                            <div className={`mt-2 flex items-center gap-2 text-[11px] ${mine ? "text-white/75" : "text-on-surface-variant"}`}>
-                              <span>{formatTime(message.createdAt)}</span>
-                              {mine && !recalled && !String(message.id).startsWith("tmp-") && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRecallMessage(message)}
-                                  className="font-bold underline-offset-2 hover:underline"
-                                >
-                                  Thu hồi
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {peerTyping && (
-                      <div className="flex justify-start">
-                        <div className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-on-surface-variant shadow-sm">
-                          Đang nhập...
-                        </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-center">
-                    <div>
-                      <span className="material-symbols-outlined text-5xl text-outline">chat_bubble</span>
-                      <p className="mt-2 font-bold text-on-surface">Chưa có tin nhắn</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <form onSubmit={handleSendMessage} className="shrink-0 border-t border-outline-variant/20 bg-white p-3">
-                <div className="flex items-end gap-2">
-                  <textarea
-                    value={composeValue}
-                    onChange={handleComposeChange}
-                    onBlur={stopTyping}
-                    className="min-h-10 flex-1 resize-none rounded-lg border border-outline-variant/40 px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-                    placeholder="Nhập tin nhắn..."
-                    rows={1}
-                  />
-                  <button
-                    type="submit"
-                    disabled={!composeValue.trim()}
-                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-                    aria-label="Gửi tin nhắn"
-                  >
-                    <span className="material-symbols-outlined text-[21px]">send</span>
-                  </button>
-                </div>
-              </form>
+              <MessageInput
+                composeValue={composeValue}
+                onChange={handleComposeChange}
+                onStopTyping={stopTyping}
+                onSubmit={handleSendMessage}
+              />
             </>
           )}
         </section>
