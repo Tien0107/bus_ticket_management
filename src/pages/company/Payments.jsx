@@ -49,6 +49,7 @@ const methodLabel = {
 
 const STRIPE_CONNECT_STARTED_KEY = "busgoStripeConnectStarted";
 const USD_TO_VND_RATE = 25000;
+const WITHDRAW_AMOUNT_SUGGESTIONS = [500000, 1000000, 2000000, 5000000];
 
 const getStoredUser = () => {
   try {
@@ -505,6 +506,27 @@ export default function Payments() {
               className={inputClass}
               placeholder="500000"
             />
+            <div className="mt-3 flex flex-wrap gap-2">
+              {WITHDRAW_AMOUNT_SUGGESTIONS.map((amount) => {
+                const active = Number(withdrawAmount) === amount;
+
+                return (
+                  <button
+                    key={amount}
+                    type="button"
+                    onClick={() => setWithdrawAmount(String(amount))}
+                    disabled={stripeLoading}
+                    className={`rounded-lg border px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                      active
+                        ? "border-primary bg-primary text-white"
+                        : "border-outline-variant/50 bg-white text-on-surface hover:border-primary hover:bg-primary/5 hover:text-primary"
+                    }`}
+                  >
+                    {formatCurrency(amount)}
+                  </button>
+                );
+              })}
+            </div>
           </Field>
         </ModalShell>
       )}
@@ -529,6 +551,13 @@ function StripeConnectPanel({ status, error, loading, onConnect, stripeLoading }
     : needsInfo
     ? "Cần cập nhật"
     : "Chưa liên kết";
+  const actionLabel = stripeLoading
+    ? "Đang xử lý..."
+    : ready
+    ? "Đã liên kết Stripe"
+    : status
+    ? "Hoàn tất Stripe"
+    : "Liên kết Stripe";
 
   return (
     <section className="mb-6 rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
@@ -552,9 +581,20 @@ function StripeConnectPanel({ status, error, loading, onConnect, stripeLoading }
           </div>
         </div>
 
-        <PrimaryButton icon="account_balance_wallet" onClick={onConnect} disabled={stripeLoading || loading}>
-          {stripeLoading ? "Đang xử lý..." : status ? "Cập nhật Stripe" : "Liên kết Stripe"}
-        </PrimaryButton>
+        {ready ? (
+          <button
+            type="button"
+            disabled
+            className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50/60 px-4 py-3 text-sm font-bold text-emerald-700/70 shadow-none"
+          >
+            <span className="material-symbols-outlined text-[20px]">check_circle</span>
+            {actionLabel}
+          </button>
+        ) : (
+          <PrimaryButton icon="account_balance_wallet" onClick={onConnect} disabled={stripeLoading || loading}>
+            {actionLabel}
+          </PrimaryButton>
+        )}
       </div>
 
       <div className="mt-5">

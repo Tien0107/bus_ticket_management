@@ -8,7 +8,6 @@ export default function CompanyRegisterForm() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [form, setForm] = useState({
-    username: "",
     fullName: "",
     email: "",
     phone: "",
@@ -73,8 +72,6 @@ export default function CompanyRegisterForm() {
   };
 
   const validate = () => {
-    if (!form.username.trim()) return "Tên đăng nhập bắt buộc";
-    if (form.username.length < 3) return "Tên đăng nhập tối thiểu 3 ký tự";
     if (!form.fullName.trim()) return "Họ tên bắt buộc";
     if (!form.email.trim()) return "Email bắt buộc";
     if (!form.email.includes("@")) return "Email không hợp lệ";
@@ -99,7 +96,6 @@ export default function CompanyRegisterForm() {
     }
 
     const payload = {
-      username: form.username,
       fullName: form.fullName,
       contactInfo: {
         email: form.email,
@@ -140,19 +136,6 @@ export default function CompanyRegisterForm() {
       <div>
         <h4 className="text-lg font-bold text-on-surface mb-4">Thông tin tài khoản</h4>
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-bold text-on-surface mb-2">Tên đăng nhập *</label>
-            <input
-              type="text"
-              name="username"
-              value={form.username}
-              onChange={handleChange}
-              className="w-full px-4 py-3 bg-surface-container-low border-0 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-              placeholder="company_admin"
-              required
-            />
-          </div>
-
           <div>
             <label className="block text-sm font-bold text-on-surface mb-2">Họ tên *</label>
             <input
