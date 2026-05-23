@@ -48,9 +48,10 @@ export default function DashboardLayout() {
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + "/");
 
   const getLinkClass = (path) => {
-    const baseClass = `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${
-      sidebarOpen ? "" : "justify-center"
-    }`;
+    const baseClass = sidebarOpen
+      ? "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all"
+      : "group mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-sm font-bold transition-all";
+
     return isActive(path)
       ? `${baseClass} bg-primary text-white shadow-[0_12px_26px_rgba(0,128,43,0.24)]`
       : `${baseClass} text-on-surface-variant hover:bg-white hover:text-on-surface hover:shadow-sm`;
@@ -82,7 +83,7 @@ export default function DashboardLayout() {
             active
               ? "bg-white/15 text-white"
               : "bg-white/70 text-on-surface-variant group-hover:bg-primary/10 group-hover:text-primary"
-          }`}
+          } ${sidebarOpen ? "" : "h-10 w-10"}`}
         >
           <span className="material-symbols-outlined text-[21px] leading-none">{icon}</span>
         </span>
@@ -102,54 +103,71 @@ export default function DashboardLayout() {
         } sticky top-0 flex h-screen shrink-0 flex-col border-r border-outline-variant/20 bg-[#eef2ef] shadow-[10px_0_30px_rgba(15,23,42,0.05)] transition-all duration-300`}
       >
         {/* Header */}
-        <div className="border-b border-outline-variant/20 p-4">
-          <div className="flex items-center justify-between">
-            <Link
-              to={dashboardHomePath}
-              className={`flex min-w-0 items-center gap-3 rounded-xl text-primary transition-colors hover:bg-white/70 ${
-                sidebarOpen ? "px-2 py-2" : "p-2"
-              }`}
-              aria-label="Về trang quản trị"
-              title="Về trang quản trị"
-            >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                <span className="material-symbols-outlined text-[25px]">directions_bus</span>
-              </span>
-              {sidebarOpen && (
+        <div className={`${sidebarOpen ? "p-4" : "px-3 py-4"} border-b border-outline-variant/20`}>
+          {sidebarOpen ? (
+            <div className="flex items-center justify-between">
+              <Link
+                to={dashboardHomePath}
+                className="flex min-w-0 items-center gap-3 rounded-xl px-2 py-2 text-primary transition-colors hover:bg-white/70"
+                aria-label="Về trang quản trị"
+                title="Về trang quản trị"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <span className="material-symbols-outlined text-[25px]">directions_bus</span>
+                </span>
                 <span className="min-w-0">
                   <span className="block truncate text-xl font-extrabold leading-tight">Bus Go</span>
                   <span className="block truncate text-xs font-bold uppercase text-primary/70">{sectionLabel}</span>
                 </span>
-              )}
-            </Link>
-            <div className={`flex items-center ${sidebarOpen ? "gap-1.5" : "flex-col gap-2"}`}>
-              <NotificationBell align="left" />
+              </Link>
+              <div className="flex items-center gap-1.5">
+                <NotificationBell align="left" />
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(false)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-all hover:bg-white hover:text-on-surface"
+                  aria-label="Thu gọn menu"
+                  title="Thu gọn menu"
+                >
+                  <span className="material-symbols-outlined text-[22px]">menu_open</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3">
+              <Link
+                to={dashboardHomePath}
+                className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors hover:bg-white/80"
+                aria-label="Về trang quản trị"
+                title="Về trang quản trị"
+              >
+                <span className="material-symbols-outlined text-[29px]">directions_bus</span>
+              </Link>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/60 text-on-surface-variant">
+                <NotificationBell align="left" />
+              </div>
               <button
                 type="button"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-all hover:bg-white hover:text-on-surface"
-                aria-label={sidebarOpen ? "Thu gọn menu" : "Mở rộng menu"}
-                title={sidebarOpen ? "Thu gọn menu" : "Mở rộng menu"}
+                onClick={() => setSidebarOpen(true)}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/60 text-on-surface-variant transition-all hover:bg-white hover:text-on-surface"
+                aria-label="Mở rộng menu"
+                title="Mở rộng menu"
               >
-                <span className="material-symbols-outlined text-[22px]">
-                  {sidebarOpen ? "menu_open" : "menu"}
-                </span>
+                <span className="material-symbols-outlined text-[24px]">menu</span>
               </button>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-2 overflow-y-auto p-4">
-          <div className="pb-2 pt-3">
-            <div
-              className={`text-xs font-extrabold uppercase tracking-wide text-on-surface-variant transition-all ${
-                sidebarOpen ? "px-3" : "text-center"
-              }`}
-            >
-              {sidebarOpen ? sectionLabel : ""}
+        <nav className={`flex-1 space-y-3 overflow-y-auto ${sidebarOpen ? "p-4" : "px-3 py-5"}`}>
+          {sidebarOpen && (
+            <div className="pb-2 pt-3">
+              <div className="px-3 text-xs font-extrabold uppercase tracking-wide text-on-surface-variant transition-all">
+                {sectionLabel}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Driver Menu */}
           {role === "driver" && (
