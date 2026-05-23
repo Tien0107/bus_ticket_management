@@ -81,7 +81,6 @@ export default function CompanyDashboard() {
         revenue: revenueRes.status === "fulfilled" ? Number(revenueRes.value.data?.total || 0) : 0,
       });
     } catch (err) {
-      console.error("Lỗi tải dashboard:", err);
       const message = err.response?.data?.message || "Không thể tải dữ liệu tổng quan.";
       setError(message);
       addToast(message, "error");

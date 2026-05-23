@@ -71,8 +71,8 @@ export default function Vehicles() {
       const response = await getCompanyInfo();
       const company = response.data?.company || response.data;
       if (company?.id) setCompanyId(company.id);
-    } catch (err) {
-      console.warn("Không thể tải companyId:", err);
+    } catch {
+      // Giữ companyId đã lưu local nếu API hồ sơ công ty không tải được.
     }
   };
 
@@ -82,8 +82,7 @@ export default function Vehicles() {
       const response = await getVehicles({ limit: 100 });
       setVehicles(Array.isArray(response.data?.vehicles) ? response.data.vehicles : []);
       setError("");
-    } catch (err) {
-      console.error("Lỗi tải vehicles:", err);
+    } catch {
       setError("Không thể tải danh sách xe.");
     } finally {
       setLoading(false);
@@ -169,8 +168,8 @@ export default function Vehicles() {
               vehicleId,
               seatCount: String(payload.totalSeats),
             });
-          } catch (seatErr) {
-            console.warn("Tạo ghế thất bại sau khi tạo xe:", seatErr);
+          } catch {
+            // Xe vẫn đã được tạo, ghế có thể cấu hình lại sau.
           }
         }
 
@@ -180,7 +179,6 @@ export default function Vehicles() {
       handleCloseModal();
       fetchVehicles();
     } catch (err) {
-      console.error("Lỗi lưu xe:", err);
       addToast(err.response?.data?.message || "Lỗi lưu xe", "error");
     }
   };
@@ -193,7 +191,6 @@ export default function Vehicles() {
       addToast("Xóa ghế xe thành công", "success");
       fetchVehicles();
     } catch (err) {
-      console.error("Lỗi xóa ghế xe:", err);
       addToast(err.response?.data?.message || "Lỗi xóa ghế xe", "error");
     }
   };

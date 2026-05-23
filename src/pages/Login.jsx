@@ -1,482 +1,55 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { signIn, verifyAuthFacebookToken, verifyAuthGoogleToken } from "../api/auth";
-import { useNavigate, Link } from "react-router-dom";
+import { useCallback, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { signIn } from "../api/auth";
 import { useToast } from "../context/ToastContext";
-import { jwtDecode } from "jwt-decode";
-
-const GOOGLE_CLIENT_ID = "335430946794-8mkv3iqd0dvgq208ep9gf6t9hj07lsqc.apps.googleusercontent.com";
-const FACEBOOK_APP_ID = process.env.REACT_APP_FACEBOOK_APP_ID || "1920728485259212";
-const FACEBOOK_GRAPH_VERSION = process.env.REACT_APP_FACEBOOK_GRAPH_VERSION || "v25.0";
-const isHttpsPage = () => window.location.protocol === "https:";
-
-const loadScript = (src, id) => {
-  return new Promise((resolve, reject) => {
-    const existingScript = document.getElementById(id);
-
-    if (existingScript) {
-      if (existingScript.dataset.loaded === "true") {
-        resolve(existingScript);
-      } else {
-        existingScript.addEventListener("load", () => resolve(existingScript), { once: true });
-        existingScript.addEventListener("error", reject, { once: true });
-      }
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = id;
-    script.src = src;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      script.dataset.loaded = "true";
-      resolve(script);
-    };
-    script.onerror = reject;
-    document.body.appendChild(script);
-  });
-};
-
-const getRedirectUrl = (user) => {
-  const role = normalizeRole(user?.role);
-  const staffRole = normalizeStaffProfileRole(user?.staffProfileRole);
-  const companyAdminRoles = new Set(["company_admin", "operator_admin", "admin"]);
-  const dispatcherRoles = new Set(["dispatcher", "operator_dispatcher"]);
-  const supportRoles = new Set(["support", "company_support", "operator_support"]);
-
-  if (role === "driver") {
-    return "/driver/dashboard";
-  }
-
-  if (role === "operator") {
-    if (companyAdminRoles.has(staffRole)) {
-      return "/company/dashboard";
-    }
-
-    if (supportRoles.has(staffRole)) {
-      return "/company-support/tickets";
-    }
-
-    if (dispatcherRoles.has(staffRole)) {
-      return "/operator/dashboard";
-    }
-
-    return "/company/dashboard";
-  }
-
-  if (role === "admin") {
-    return staffRole === "support" ? "/company-support/tickets" : "/company/dashboard";
-  }
-
-  if (role === "super_admin" || role === "superadmin") {
-    return "/super-admin/dashboard";
-  }
-
-  return "/";
-};
-
-const firstValue = (...values) => values.find((value) => value !== undefined && value !== null && value !== "");
-
-const getField = (source, keys) => {
-  if (!source || typeof source !== "object") return undefined;
-
-  for (const key of keys) {
-    if (source[key] !== undefined && source[key] !== null && source[key] !== "") {
-      return source[key];
-    }
-  }
-
-  const entries = Object.entries(source);
-  for (const key of keys) {
-    const matchedEntry = entries.find(([entryKey, entryValue]) => (
-      entryKey.toLowerCase() === key.toLowerCase()
-      && entryValue !== undefined
-      && entryValue !== null
-      && entryValue !== ""
-    ));
-
-    if (matchedEntry) {
-      return matchedEntry[1];
-    }
-  }
-
-  return undefined;
-};
-
-const toAuthString = (value) => {
-  if (value && typeof value === "object") {
-    return toAuthString(firstValue(value.name, value.code, value.value, value.role));
-  }
-
-  return value === undefined || value === null ? "" : String(value).trim();
-};
-
-const normalizeRole = (value) => toAuthString(value).replace(/[\s-]+/g, "_").toLowerCase();
-
-const normalizeStaffProfileRole = (value) => {
-  const normalized = normalizeRole(value);
-
-  const aliases = {
-    admin: "company_admin",
-    companyadmin: "company_admin",
-    company_admin: "company_admin",
-    operator_admin: "company_admin",
-    operatoradmin: "company_admin",
-    dispatcher: "dispatcher",
-    operator_dispatcher: "dispatcher",
-    operatordispatcher: "dispatcher",
-    support: "support",
-    company_support: "support",
-    operator_support: "support",
-    company_admin_support: "support",
-  };
-
-  return aliases[normalized] || normalized;
-};
-
-const GoogleIcon = () => (
-  <svg aria-hidden="true" focusable="false" viewBox="0 0 48 48" className="h-7 w-7">
-    <path
-      fill="#FFC107"
-      d="M43.611 20.083H42V20H24v8h11.303C33.652 32.657 29.223 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
-    />
-    <path
-      fill="#FF3D00"
-      d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
-    />
-    <path
-      fill="#4CAF50"
-      d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.284-7.946l-6.522 5.026C9.505 39.556 16.227 44 24 44z"
-    />
-    <path
-      fill="#1976D2"
-      d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
-    />
-  </svg>
-);
-
-const getRoleValue = (source) =>
-  firstValue(
-    getField(source, ["role", "userRole", "accountRole"]),
-    getField(source?.user, ["role", "userRole", "accountRole"]),
-    getField(source?.data, ["role", "userRole", "accountRole"]),
-    getField(source?.account, ["role", "userRole", "accountRole"])
-  );
-
-const getStaffProfileRoleValue = (source) =>
-  firstValue(
-    getField(source, [
-      "staffProfileRole",
-      "staff_profile_role",
-      "staffRole",
-      "profileRole",
-      "roleProfile",
-      "operatorRole",
-      "operatorProfileRole",
-    ]),
-    getField(source?.staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.operatorProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.operator_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.user, ["staffProfileRole", "staff_profile_role", "staffRole", "profileRole", "roleProfile"]),
-    getField(source?.user?.staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.user?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.data, ["staffProfileRole", "staff_profile_role", "staffRole", "profileRole", "roleProfile"]),
-    getField(source?.data?.user, ["staffProfileRole", "staff_profile_role", "staffRole", "profileRole", "roleProfile"]),
-    getField(source?.data?.user?.staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.data?.user?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"])
-  );
-
-const mergeAuthClaims = (user, source) => {
-  if (!source || typeof source !== "object") return user;
-
-  const role = getRoleValue(source);
-  const staffProfileRole = getStaffProfileRoleValue(source);
-
-  if (role) user.role = normalizeRole(role);
-  if (staffProfileRole) user.staffProfileRole = normalizeStaffProfileRole(staffProfileRole);
-  if (source.companyId !== undefined) user.companyId = source.companyId;
-  if (source.company_id !== undefined) user.companyId = source.company_id;
-  if (source.accountStripeId !== undefined) user.accountStripeId = source.accountStripeId;
-  if (source.account_stripe_id !== undefined) user.accountStripeId = source.account_stripe_id;
-  if (source.stripeAccountId !== undefined) user.accountStripeId = source.stripeAccountId;
-  if (source.stripe_account_id !== undefined) user.accountStripeId = source.stripe_account_id;
-  if (source.email && !user.email) user.email = source.email;
-  if (source.phone && !user.phone) user.phone = source.phone;
-  if (source.fullName && !user.fullName) user.fullName = source.fullName;
-  if (source.full_name && !user.fullName) user.fullName = source.full_name;
-
-  return user;
-};
+import LoginForm from "./login/LoginForm";
+import SocialLoginButtons from "./login/SocialLoginButtons";
+import { buildAuthenticatedUser, getRedirectUrl } from "./login/authUtils";
 
 function Login() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const googleButtonRef = useRef(null);
   const [loginMethod, setLoginMethod] = useState("email");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState("");
-  const [googleReady, setGoogleReady] = useState(false);
-  const [googleRenderKey, setGoogleRenderKey] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
 
-  const logGoogleClick = useCallback((source) => {
-    console.log("Google login clicked:", {
-      source,
-      googleReady,
-      hasGoogleSdk: !!window.google?.accounts?.id,
-      currentOrigin: window.location.origin,
-      clientId: GOOGLE_CLIENT_ID,
-    });
-  }, [googleReady]);
+  const completeLogin = useCallback(
+    async (data, successMessage = "Đăng nhập thành công") => {
+      const { token, user } = buildAuthenticatedUser(data);
 
-  const handleGoogleButtonFallback = useCallback(() => {
-    logGoogleClick("custom-google-button-loading");
-    setGoogleRenderKey((key) => key + 1);
-    addToast("Google Login đang tải, thử lại sau vài giây", "info");
-  }, [addToast, logGoogleClick]);
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
 
-  useEffect(() => {
-    console.log("Facebook App ID:", FACEBOOK_APP_ID);
-  }, []);
+      addToast(successMessage, "success");
 
-  const completeLogin = useCallback(async (data, successMessage = "Đăng nhập thành công") => {
-    const token = firstValue(data?.token, data?.accessToken, data?.data?.token, data?.data?.accessToken);
-    const userPayload = firstValue(data?.user, data?.data?.user, data?.profile, data?.data?.profile);
-    let user = userPayload && typeof userPayload === "object" ? { ...userPayload } : {};
+      const redirectUrl = getRedirectUrl(user);
+      setTimeout(() => {
+        navigate(redirectUrl);
+      }, 500);
+    },
+    [addToast, navigate]
+  );
 
-    if (!token) {
-      throw new Error("Backend không trả về token. Kiểm tra API.");
-    }
-
-    if (!user || typeof user !== "object") {
-      user = {};
-    }
-
-    try {
-      const decoded = jwtDecode(token);
-      [
-        decoded,
-        decoded?.user,
-        decoded?.data,
-        decoded?.data?.user,
-        decoded?.staffProfile,
-        decoded?.staff_profile,
-      ].forEach((source) => {
-        user = mergeAuthClaims(user, source);
-      });
-      user = mergeAuthClaims(user, decoded);
-    } catch (decodeError) {
-      console.warn("Không thể decode token:", decodeError);
-    }
-
-    [
-      user,
-      data,
-      data?.user,
-      data?.data,
-      data?.data?.user,
-      data?.profile,
-      data?.data?.profile,
-    ].forEach((source) => {
-      user = mergeAuthClaims(user, source);
-    });
-
-    if (!user.role) {
-      user.role = "customer";
-    }
-
-    if (normalizeRole(user.role) === "operator" && !user.staffProfileRole) {
-      throw new Error("Backend chưa trả staffProfileRole cho tài khoản operator.");
-    }
-
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
-
-    addToast(successMessage, "success");
-
-    const redirectUrl = getRedirectUrl(user);
-    setTimeout(() => {
-      navigate(redirectUrl);
-    }, 500);
-  }, [addToast, navigate]);
-
-  const handleGoogleCredential = useCallback(async (response) => {
-    console.log("Google credential callback:", {
-      hasCredential: !!response?.credential,
-      selectBy: response?.select_by,
-      clientId: response?.clientId,
-    });
-
-    if (!response?.credential) {
-      setError("Không nhận được Google ID token.");
-      addToast("Đăng nhập Google thất bại", "error");
-      return;
-    }
-
+  const handleLoginMethodChange = (method) => {
+    setLoginMethod(method);
+    setIdentifier("");
     setError("");
-    setSocialLoading("google");
-
-    try {
-      const res = await verifyAuthGoogleToken({ idToken: response.credential });
-      await completeLogin(res.data, "Đăng nhập Google thành công");
-    } catch (err) {
-      console.error("Google login error:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Đăng nhập Google thất bại";
-      setError(errorMsg);
-      addToast("Đăng nhập Google thất bại", "error");
-    } finally {
-      setSocialLoading("");
-    }
-  }, [addToast, completeLogin]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const initGoogleLogin = async () => {
-      try {
-        console.log("Google SDK init start:", {
-          origin: window.location.origin,
-          clientId: GOOGLE_CLIENT_ID,
-        });
-        setGoogleReady(false);
-        await loadScript("https://accounts.google.com/gsi/client?hl=vi", "google-identity-services");
-
-        if (!mounted || !window.google?.accounts?.id || !googleButtonRef.current) {
-          console.warn("Google SDK init skipped:", {
-            mounted,
-            hasGoogleSdk: !!window.google?.accounts?.id,
-            hasButtonRef: !!googleButtonRef.current,
-          });
-          return;
-        }
-
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleGoogleCredential,
-          ux_mode: "popup",
-        });
-
-        googleButtonRef.current.innerHTML = "";
-        window.google.accounts.id.renderButton(googleButtonRef.current, {
-          type: "icon",
-          theme: "outline",
-          size: "large",
-          shape: "circle",
-          locale: "vi",
-        });
-
-        setGoogleReady(true);
-        console.log("Google SDK render ready");
-      } catch (err) {
-        console.error("Google SDK load error:", err);
-        setGoogleReady(false);
-      }
-    };
-
-    initGoogleLogin();
-
-    return () => {
-      mounted = false;
-    };
-  }, [handleGoogleCredential, googleRenderKey]);
-
-  const loadFacebookSdk = useCallback(() => {
-    return new Promise((resolve, reject) => {
-      if (!FACEBOOK_APP_ID) {
-        reject(new Error("Chưa cấu hình Facebook App ID."));
-        return;
-      }
-
-      if (window.FB) {
-        window.FB.init({
-          appId: FACEBOOK_APP_ID,
-          cookie: true,
-          xfbml: false,
-          version: FACEBOOK_GRAPH_VERSION,
-        });
-        resolve(window.FB);
-        return;
-      }
-
-      window.fbAsyncInit = () => {
-        window.FB.init({
-          appId: FACEBOOK_APP_ID,
-          cookie: true,
-          xfbml: false,
-          version: FACEBOOK_GRAPH_VERSION,
-        });
-        resolve(window.FB);
-      };
-
-      loadScript("https://connect.facebook.net/vi_VN/sdk.js", "facebook-jssdk").catch(reject);
-    });
-  }, []);
-
-  const handleFacebookLogin = async () => {
-    setError("");
-
-    if (!isHttpsPage()) {
-      const errorMsg = "Facebook Login cần chạy trên HTTPS. Hãy mở trang bằng https://localhost:3000/login.";
-      setError(errorMsg);
-      addToast("Facebook Login cần HTTPS", "error");
-      return;
-    }
-
-    setSocialLoading("facebook");
-
-    try {
-      const FB = await loadFacebookSdk();
-      const loginResponse = await new Promise((resolve) => {
-        FB.login(resolve, { scope: "public_profile,email", return_scopes: true });
-      });
-
-      console.log("Facebook login response:", loginResponse);
-
-      if (loginResponse.status !== "connected" || !loginResponse.authResponse?.accessToken) {
-        throw new Error(
-          loginResponse.status === "unknown"
-            ? "Facebook chưa xác thực được domain hiện tại. Kiểm tra App Domains, Allowed Domains for JavaScript SDK và Valid OAuth Redirect URIs trên Meta."
-            : "Bạn đã hủy hoặc chưa cấp quyền đăng nhập Facebook."
-        );
-      }
-
-      const { accessToken, signedRequest } = loginResponse.authResponse;
-      const res = await verifyAuthFacebookToken({
-        accessToken,
-        idToken: loginResponse.authResponse.idToken || signedRequest || "",
-      });
-
-      await completeLogin(res.data, "Đăng nhập Facebook thành công");
-    } catch (err) {
-      console.error("Facebook login error:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Đăng nhập Facebook thất bại";
-      setError(errorMsg);
-      addToast("Đăng nhập Facebook thất bại", "error");
-    } finally {
-      setSocialLoading("");
-    }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
     try {
       const account = identifier.trim();
-      const payload = loginMethod === "email"
-        ? { email: account, password }
-        : { phone: account, password };
+      const payload = loginMethod === "email" ? { email: account, password } : { phone: account, password };
       const res = await signIn(payload);
-      console.log("Login response:", res.data); // Debug
-      console.log("User object:", res.data?.user); // Debug user
       await completeLogin(res.data);
     } catch (err) {
-      console.error("Login error:", err); // Debug
       const errorMsg = err.response?.data?.message || err.message || "Đăng nhập thất bại";
       setError(errorMsg);
       addToast("Đăng nhập thất bại", "error");
@@ -562,171 +135,20 @@ function Login() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <div className="mb-3 grid grid-cols-2 rounded-xl bg-surface-container-low p-1">
-                  {[
-                    { id: "email", label: "Email", icon: "mail" },
-                    { id: "phone", label: "Số điện thoại", icon: "call" },
-                  ].map((item) => {
-                    const active = loginMethod === item.id;
+            <LoginForm
+              loginMethod={loginMethod}
+              onLoginMethodChange={handleLoginMethodChange}
+              identifier={identifier}
+              onIdentifierChange={setIdentifier}
+              password={password}
+              onPasswordChange={setPassword}
+              showPassword={showPassword}
+              onTogglePassword={() => setShowPassword((current) => !current)}
+              loading={loading}
+              onSubmit={handleSubmit}
+            />
 
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setLoginMethod(item.id);
-                          setIdentifier("");
-                        }}
-                        className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-extrabold transition-all ${
-                          active
-                            ? "bg-white text-primary shadow-sm ring-1 ring-outline-variant/20"
-                            : "text-on-surface-variant hover:text-on-surface"
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <label className="mb-2 block text-sm font-bold text-on-surface">
-                  {loginMethod === "email" ? "Email" : "Số điện thoại"}
-                </label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">
-                    {loginMethod === "email" ? "mail" : "call"}
-                  </span>
-                  <input
-                    className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-4 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
-                    placeholder={loginMethod === "email" ? "you@example.com" : "0901234567"}
-                    type={loginMethod === "email" ? "email" : "tel"}
-                    inputMode={loginMethod === "email" ? "email" : "tel"}
-                    autoComplete={loginMethod === "email" ? "email" : "tel"}
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="text-sm font-bold text-on-surface">Mật khẩu</label>
-                  <Link to="/forgot-password" className="text-sm font-bold text-primary hover:underline">
-                    Quên mật khẩu?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">
-                    lock
-                  </span>
-                  <input
-                    className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-12 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
-                    placeholder="Nhập mật khẩu"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-outline transition-colors hover:bg-surface-container-low hover:text-primary"
-                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                  >
-                    <span className="material-symbols-outlined text-xl">
-                      {showPassword ? "visibility_off" : "visibility"}
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-container-low px-4 py-3">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-outline text-primary focus:ring-primary"
-                />
-                <span className="text-sm font-medium text-on-surface-variant">Ghi nhớ đăng nhập</span>
-              </label>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-extrabold text-white shadow-[0_12px_24px_rgba(0,110,28,0.18)] transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? (
-                  <>
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Đang đăng nhập...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[20px]">login</span>
-                    Đăng nhập
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="my-7 flex items-center gap-4">
-              <div className="h-px flex-1 bg-outline-variant/40" />
-              <span className="text-xs font-bold uppercase tracking-wide text-outline">hoặc tiếp tục với</span>
-              <div className="h-px flex-1 bg-outline-variant/40" />
-            </div>
-
-            <div className="flex items-center justify-center gap-3">
-              <div className="relative h-14 w-14 overflow-hidden rounded-xl">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-outline-variant/40 bg-white transition-colors hover:bg-surface-container-low">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-outline-variant/40 bg-white">
-                    <GoogleIcon />
-                  </span>
-                </div>
-                {!googleReady && (
-                  <button
-                    type="button"
-                    onClick={handleGoogleButtonFallback}
-                    className="absolute inset-0 z-20 rounded-xl"
-                    aria-label="Đăng nhập bằng Google"
-                    title="Google"
-                  />
-                )}
-                <div
-                  ref={googleButtonRef}
-                  onClickCapture={() => logGoogleClick("google-official-overlay")}
-                  className={`auth-google-render absolute inset-0 z-10 flex items-center justify-center overflow-hidden rounded-xl transition-opacity ${
-                    googleReady ? "opacity-[0.01]" : "pointer-events-none opacity-0"
-                  }`}
-                />
-                {socialLoading === "google" && (
-                  <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-xl bg-white/80">
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={handleFacebookLogin}
-                disabled={loading || socialLoading === "facebook"}
-                className="flex h-14 w-14 items-center justify-center rounded-xl border border-outline-variant/40 bg-white text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label="Đăng nhập bằng Facebook"
-                title="Facebook"
-              >
-                {socialLoading === "facebook" ? (
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-                ) : (
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1877F2] text-xl font-extrabold text-white">f</span>
-                )}
-              </button>
-            </div>
-
-            {!FACEBOOK_APP_ID && (
-              <p className="mt-3 text-xs text-on-surface-variant">
-                Facebook cần cấu hình <span className="font-semibold">REACT_APP_FACEBOOK_APP_ID</span> để hoạt động.
-              </p>
-            )}
+            <SocialLoginButtons disabled={loading} onLoginSuccess={completeLogin} setError={setError} />
 
             <p className="mt-8 text-center text-sm text-on-surface-variant">
               Chưa có tài khoản?{" "}

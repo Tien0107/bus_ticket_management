@@ -177,8 +177,7 @@ const DriverDashboard = () => {
 
       setTrips(tripsData.map(normalizeTrip));
       setError(null);
-    } catch (err) {
-      console.error("Lỗi khi lấy danh sách chuyến:", err);
+    } catch {
       setError("Không thể tải danh sách chuyến");
     } finally {
       setLoading(false);

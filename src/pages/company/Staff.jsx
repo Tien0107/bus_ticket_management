@@ -86,8 +86,7 @@ export default function Staff() {
       const response = await getStaff({ limit: 100 });
       setStaff(Array.isArray(response.data?.staff) ? response.data.staff : []);
       setError("");
-    } catch (err) {
-      console.error("Lỗi tải danh sách nhân viên:", err);
+    } catch {
       setStaff([]);
       setError("Không thể tải danh sách nhân viên.");
     } finally {
@@ -114,8 +113,8 @@ export default function Staff() {
         body,
         data,
       });
-    } catch (err) {
-      console.warn("Không thể tạo thông báo cho nhân viên:", err);
+    } catch {
+      // Không chặn thao tác chính nếu tạo thông báo thất bại.
     }
   };
 
@@ -161,7 +160,6 @@ export default function Staff() {
       setSelectedStaff(null);
       fetchStaff();
     } catch (err) {
-      console.error("Lỗi cập nhật chức vụ:", err);
       addToast(err.response?.data?.message || "Cập nhật chức vụ thất bại", "error");
     }
   };
@@ -211,7 +209,6 @@ export default function Staff() {
       setEditingStaff(null);
       fetchStaff();
     } catch (err) {
-      console.error("Lỗi cập nhật nhân viên:", err);
       addToast(err.response?.data?.message || "Cập nhật thông tin thất bại", "error");
     }
   };

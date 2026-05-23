@@ -74,8 +74,7 @@ export default function Drivers() {
       const response = await getDrivers(params);
       setDrivers(Array.isArray(response.data?.drivers) ? response.data.drivers : []);
       setError("");
-    } catch (err) {
-      console.error("Lỗi tải danh sách tài xế:", err);
+    } catch {
       setError("Không thể tải danh sách tài xế.");
     } finally {
       setLoading(false);
@@ -110,8 +109,8 @@ export default function Drivers() {
           path: "/driver/dashboard",
         }),
       });
-    } catch (err) {
-      console.warn("Không thể tạo thông báo trạng thái tài xế:", err);
+    } catch {
+      // Không chặn thao tác chính nếu tạo thông báo thất bại.
     }
   };
 
@@ -138,7 +137,6 @@ export default function Drivers() {
       setSelectedDriver(null);
       fetchDrivers();
     } catch (err) {
-      console.error("Lỗi cập nhật trạng thái tài xế:", err);
       addToast(err.response?.data?.message || "Cập nhật trạng thái tài xế thất bại", "error");
     } finally {
       setStatusLoading(false);

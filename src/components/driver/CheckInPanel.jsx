@@ -42,8 +42,7 @@ const CheckInPanel = ({ tripId, passengers = [], onCheckInSuccess, isOpen, onClo
         setSelectedPassenger(null);
         setSearchTerm("");
       }
-    } catch (err) {
-      console.error("Lỗi check-in:", err);
+    } catch {
       addToast("Check-in thất bại", "error");
     } finally {
       setLoading(false);

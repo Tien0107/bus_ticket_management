@@ -252,8 +252,8 @@ export default function NotificationBell({ align = "right" }) {
       list.sort((a, b) => b.id - a.id);
       
       setNotifications(list);
-    } catch (err) {
-      console.error("Failed to fetch notifications:", err);
+    } catch {
+      setNotifications([]);
     }
   };
 
@@ -272,8 +272,7 @@ export default function NotificationBell({ align = "right" }) {
         current.map((item) => (item.id === notification.id ? { ...item, ...updatedNotification, isRead: true } : item))
       );
       return true;
-    } catch (err) {
-      console.error("Failed to mark notification as read:", err);
+    } catch {
       setNotifications((current) =>
         current.map((item) => (item.id === notification.id ? { ...item, isRead: false } : item))
       );
@@ -366,7 +365,6 @@ export default function NotificationBell({ align = "right" }) {
       setIsOpen(false);
       setAccountDialogNotification(null);
     } catch (err) {
-      console.error("Failed to update account status from notification:", err);
       addToast(err.response?.data?.message || err.message || "Không thể cập nhật trạng thái tài khoản", "error");
     } finally {
       setActionLoading("");

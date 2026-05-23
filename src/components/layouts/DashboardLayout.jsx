@@ -37,8 +37,8 @@ export default function DashboardLayout() {
   const handleLogout = async () => {
     try {
       await logout();
-    } catch (err) {
-      console.error("Lỗi khi gọi API logout:", err);
+    } catch {
+      // Vẫn đăng xuất local nếu API logout thất bại.
     }
     localStorage.removeItem("token");
     localStorage.removeItem("user");

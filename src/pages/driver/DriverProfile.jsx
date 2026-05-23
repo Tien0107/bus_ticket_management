@@ -56,8 +56,7 @@ const DriverProfile = () => {
       setUser(formData);
       setIsEditing(false);
       addToast("Cập nhật hồ sơ thành công", "success");
-    } catch (err) {
-      console.error("Lỗi cập nhật:", err);
+    } catch {
       addToast("Cập nhật hồ sơ thất bại", "error");
     } finally {
       setLoading(false);

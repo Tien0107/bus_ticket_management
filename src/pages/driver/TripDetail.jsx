@@ -186,13 +186,9 @@ export default function TripDetail() {
         ? passengersRes.data
         : [];
 
-      console.log("📥 Raw passenger data from API:", rawPassengers);
-
       const rawRoute = routeRes.data?.route || routeRes.data?.stops || routeRes.data || [];
 
       const normalizedPassengers = normalizePassengers(rawPassengers);
-
-      console.log("✨ Final normalized passengers:", normalizedPassengers);
 
       if (apply) {
         setTrip(normalizeTrip(tripData));
@@ -202,8 +198,7 @@ export default function TripDetail() {
       }
 
       return normalizedPassengers;
-    } catch (err) {
-      console.error("Lỗi tải chi tiết chuyến:", err);
+    } catch {
       if (apply) setError("Không thể tải chi tiết chuyến");
       return [];
     } finally {
@@ -221,8 +216,7 @@ export default function TripDetail() {
       await updateTrip(tripId, { status: "running" });
       setTrip((current) => ({ ...current, status: "running" }));
       addToast("Bắt đầu chuyến thành công", "success");
-    } catch (err) {
-      console.error("Lỗi bắt đầu chuyến:", err);
+    } catch {
       addToast("Bắt đầu chuyến thất bại", "error");
     } finally {
       setUpdating(false);
@@ -235,8 +229,7 @@ export default function TripDetail() {
       await updateTrip(tripId, { status: "completed" });
       setTrip((current) => ({ ...current, status: "completed" }));
       addToast("Hoàn thành chuyến thành công", "success");
-    } catch (err) {
-      console.error("Lỗi hoàn thành chuyến:", err);
+    } catch {
       addToast("Hoàn thành chuyến thất bại", "error");
     } finally {
       setUpdating(false);
@@ -273,8 +266,6 @@ export default function TripDetail() {
 
     if (refreshedPassenger?.status === "checked_in") {
       await fetchTripDetails({ silent: true });
-    } else {
-      console.warn("Passenger API chưa trả trạng thái checked_in sau khi PUT check-in thành công.");
     }
 
     return true;

@@ -98,8 +98,7 @@ export default function CompanyProfile() {
       const companyData = normalizeCompany(response.data?.company || response.data);
       setProfile(companyData);
       setFormData(companyData);
-    } catch (err) {
-      console.error("Lỗi tải hồ sơ công ty:", err);
+    } catch {
       addToast("Không thể tải hồ sơ công ty", "error");
     } finally {
       setLoading(false);
@@ -146,7 +145,6 @@ export default function CompanyProfile() {
       setFormData((current) => ({ ...current, logoUrl: uploadedUrl }));
       addToast("Upload logo thành công. Bấm lưu để cập nhật hồ sơ.", "success");
     } catch (err) {
-      console.error("Lỗi upload logo công ty:", err);
       addToast(err.message || "Upload logo thất bại", "error");
     } finally {
       setUploadingLogo(false);
@@ -170,7 +168,6 @@ export default function CompanyProfile() {
       setIsEditing(false);
       addToast("Cập nhật hồ sơ công ty thành công", "success");
     } catch (err) {
-      console.error("Lỗi cập nhật công ty:", err);
       addToast(err.response?.data?.message || "Cập nhật hồ sơ công ty thất bại", "error");
     } finally {
       setSaving(false);

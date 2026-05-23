@@ -30,15 +30,7 @@ axiosClient.interceptors.request.use((config) => {
 
   if (token && !isPublicEndpoint) {
     config.headers.Authorization = `Bearer ${token}`;
-  } else if (!isPublicEndpoint) {
-    console.warn("⚠️ Không tìm thấy token trong localStorage");
   }
-
-  console.log("📤 Request:", {
-    method: config.method,
-    url: config.url,
-    hasToken: !!token
-  });
 
   return config;
 });
@@ -59,25 +51,6 @@ axiosClient.interceptors.response.use(
       url: error.response?.config?.url,
       data
     };
-
-    console.error("❌ API Error:", {
-      status,
-      url: error.response?.config?.url,
-      message: error.message,
-      errorData: data
-    });
-
-    if (data?.message) {
-      console.error("📝 Server message:", data.message);
-    }
-
-    if (data?.error) {
-      console.error("📝 Server error:", data.error);
-    }
-
-    if (data?.details) {
-      console.error("📝 Server details:", data.details);
-    }
 
     // Unauthorized
     if (status === 401) {

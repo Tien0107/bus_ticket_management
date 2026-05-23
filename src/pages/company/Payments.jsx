@@ -247,7 +247,6 @@ export default function Payments() {
         );
       }
     } catch (err) {
-      console.error("Lỗi tải thanh toán:", err);
       setError(err.response?.data?.message || "Không thể tải dữ liệu thanh toán.");
     } finally {
       setLoading(false);
@@ -291,7 +290,6 @@ export default function Payments() {
       addToast("Cập nhật thanh toán thành công", "success");
       fetchPayments();
     } catch (err) {
-      console.error("Lỗi cập nhật thanh toán:", err);
       addToast(err.response?.data?.message || "Cập nhật thanh toán thất bại", "error");
     } finally {
       setUpdatingCode("");
@@ -310,7 +308,6 @@ export default function Payments() {
         window.location.assign(url);
       }
     } catch (err) {
-      console.error("Lỗi tạo tài khoản Stripe:", err);
       addToast(err.response?.data?.message || "Không thể tạo tài khoản Stripe", "error");
     } finally {
       setStripeLoading(false);
@@ -337,7 +334,6 @@ export default function Payments() {
       setWithdrawAmount("");
       fetchPayments();
     } catch (err) {
-      console.error("Lỗi rút tiền Stripe:", err);
       addToast(err.response?.data?.message || "Rút tiền thất bại", "error");
     } finally {
       setStripeLoading(false);

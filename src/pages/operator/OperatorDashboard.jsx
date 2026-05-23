@@ -49,8 +49,8 @@ export default function OperatorDashboard() {
     try {
       const stored = localStorage.getItem("user");
       setUser(stored ? JSON.parse(stored) : null);
-    } catch (err) {
-      console.error("Lỗi đọc thông tin người dùng:", err);
+    } catch {
+      setUser(null);
     }
     fetchDashboardData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,7 +78,6 @@ export default function OperatorDashboard() {
       });
       setError("");
     } catch (err) {
-      console.error("Lỗi tải tổng quan điều hành:", err);
       const message = err.response?.data?.message || "Không thể tải dữ liệu tổng quan.";
       setError(message);
       addToast({ type: "error", title: "Không tải được tổng quan", message });
