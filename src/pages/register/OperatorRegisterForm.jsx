@@ -34,7 +34,7 @@ export default function OperatorRegisterForm() {
     const fetchCompanies = async () => {
       try {
         setLoadingCompanies(true);
-        const res = await axiosClient.get("/public/company", { params: { limit: 100 } });
+        const res = await axiosClient.get("/public/company", { params: { limit: 10 } });
         const list = res.data?.companies || res.data || [];
         setCompanies(Array.isArray(list) ? list : []);
       } catch (err) {

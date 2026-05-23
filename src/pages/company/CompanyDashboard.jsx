@@ -63,9 +63,9 @@ export default function CompanyDashboard() {
       setError("");
 
       const [vehiclesRes, driversRes, staffRes, companyRes, revenueRes] = await Promise.allSettled([
-        getVehicles({ limit: 100 }),
-        getDrivers({ limit: 100 }),
-        getStaff({ limit: 100 }),
+        getVehicles({ limit: 10 }),
+        getDrivers({ limit: 10 }),
+        getStaff({ limit: 10 }),
         getCompanyInfo(),
         getRevenue(),
       ]);

@@ -60,12 +60,12 @@ export default function OperatorDashboard() {
     try {
       setLoading(true);
       const [routesRes, stationsRes, schedulesRes, pricesRes, driversRes, vehiclesRes] = await Promise.allSettled([
-        getRoutes({ limit: 100 }),
-        getStations({ limit: 100 }),
-        getTripSchedules({ limit: 100, orderBy: "asc" }),
-        getTripPrices({ limit: 100 }),
-        getDrivers({ limit: 100 }),
-        getVehicles({ limit: 100, status: "active" }),
+        getRoutes({ limit: 10 }),
+        getStations({ limit: 10 }),
+        getTripSchedules({ limit: 10, orderBy: "asc" }),
+        getTripPrices({ limit: 10 }),
+        getDrivers({ limit: 10 }),
+        getVehicles({ limit: 10, status: "active" }),
       ]);
 
       setData({

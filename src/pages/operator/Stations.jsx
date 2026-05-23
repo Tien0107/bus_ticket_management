@@ -34,7 +34,7 @@ export default function Stations() {
   const fetchStations = async () => {
     try {
       setLoading(true);
-      const response = await getStations({ limit: 100 });
+      const response = await getStations({ limit: 10 });
       setStations(Array.isArray(response.data?.stations) ? response.data.stations : []);
       setError("");
     } catch (err) {

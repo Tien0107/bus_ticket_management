@@ -79,7 +79,7 @@ export default function Vehicles() {
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-      const response = await getVehicles({ limit: 100 });
+      const response = await getVehicles({ limit: 10 });
       setVehicles(Array.isArray(response.data?.vehicles) ? response.data.vehicles : []);
       setError("");
     } catch {

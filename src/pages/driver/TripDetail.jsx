@@ -171,7 +171,7 @@ export default function TripDetail() {
 
       const [tripData, passengersRes, routeRes] = await Promise.all([
         tripPromise,
-        getTripPassengers(tripId, { limit: 100 }),
+        getTripPassengers(tripId, { limit: 10 }),
         getTripRoute(tripId),
       ]);
 

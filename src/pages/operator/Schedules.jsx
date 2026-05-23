@@ -65,8 +65,8 @@ export default function Schedules() {
     try {
       setLoading(true);
       const [schedulesRes, routesRes] = await Promise.all([
-        getTripSchedules({ limit: 100, orderBy: "asc" }),
-        getRoutes({ limit: 100 }),
+        getTripSchedules({ limit: 10, orderBy: "asc" }),
+        getRoutes({ limit: 10 }),
       ]);
       setSchedules(Array.isArray(schedulesRes.data?.trip) ? schedulesRes.data.trip : []);
       setRoutes(Array.isArray(routesRes.data?.routes) ? routesRes.data.routes : []);

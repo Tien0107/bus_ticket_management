@@ -68,9 +68,9 @@ export default function StoppingPoints() {
     try {
       setLoading(true);
       const [stationsRes, schedulesRes, routesRes] = await Promise.all([
-        getStations({ limit: 100 }),
-        getTripSchedules({ limit: 100, orderBy: "asc" }),
-        getRoutes({ limit: 100 }),
+        getStations({ limit: 10 }),
+        getTripSchedules({ limit: 10, orderBy: "asc" }),
+        getRoutes({ limit: 10 }),
       ]);
 
       const stationList = Array.isArray(stationsRes.data?.stations) ? stationsRes.data.stations : [];

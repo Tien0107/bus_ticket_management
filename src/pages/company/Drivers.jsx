@@ -67,7 +67,7 @@ export default function Drivers() {
       const params = {
         status: filterStatus !== "all" ? filterStatus : undefined,
         phone: keyword || undefined,
-        limit: 100,
+        limit: 10,
       };
       Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 

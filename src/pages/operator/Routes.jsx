@@ -34,7 +34,7 @@ export default function Routes() {
   const fetchRoutes = async () => {
     try {
       setLoading(true);
-      const response = await getRoutes({ limit: 100 });
+      const response = await getRoutes({ limit: 10 });
       setRoutes(Array.isArray(response.data?.routes) ? response.data.routes : []);
       setError("");
     } catch (err) {

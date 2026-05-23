@@ -83,7 +83,7 @@ export default function Staff() {
   const fetchStaff = async () => {
     try {
       setLoading(true);
-      const response = await getStaff({ limit: 100 });
+      const response = await getStaff({ limit: 10 });
       setStaff(Array.isArray(response.data?.staff) ? response.data.staff : []);
       setError("");
     } catch {

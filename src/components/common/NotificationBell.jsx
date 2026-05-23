@@ -291,7 +291,7 @@ export default function NotificationBell({ align = "right" }) {
       return { userId: targetUserId, payload: directPayload };
     }
 
-    const response = await getStaff({ limit: 100 });
+    const response = await getStaff({ limit: 10 });
     const staffList = Array.isArray(response.data?.staff) ? response.data.staff : [];
     const member = staffList.find((item) =>
       [item?.userId, item?.id]

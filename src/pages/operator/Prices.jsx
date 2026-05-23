@@ -60,8 +60,8 @@ export default function Prices() {
   const fetchBaseData = async () => {
     try {
       const [routesRes, stationsRes] = await Promise.all([
-        getRoutes({ limit: 100 }),
-        getStations({ limit: 100 }),
+        getRoutes({ limit: 10 }),
+        getStations({ limit: 10 }),
       ]);
       setRoutes(Array.isArray(routesRes.data?.routes) ? routesRes.data.routes : []);
       setStations(Array.isArray(stationsRes.data?.stations) ? stationsRes.data.stations : []);
@@ -76,7 +76,7 @@ export default function Prices() {
       setLoading(true);
       const params = {
         routeId: appliedRouteId !== "all" ? Number(appliedRouteId) : undefined,
-        limit: 100,
+        limit: 10,
       };
       Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 

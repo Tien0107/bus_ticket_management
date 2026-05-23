@@ -192,9 +192,9 @@ export default function Trips() {
   const fetchOptions = async () => {
     try {
       const [driversRes, vehiclesRes, routesRes] = await Promise.all([
-        getDrivers({ limit: 100, status: "active" }),
-        getVehicles({ limit: 100, status: "active" }),
-        getRoutes({ limit: 100 }),
+        getDrivers({ limit: 10, status: "active" }),
+        getVehicles({ limit: 10, status: "active" }),
+        getRoutes({ limit: 10 }),
       ]);
       setDrivers(Array.isArray(driversRes.data?.drivers) ? driversRes.data.drivers : []);
       setVehicles(Array.isArray(vehiclesRes.data?.vehicles) ? vehiclesRes.data.vehicles : []);
@@ -209,7 +209,7 @@ export default function Trips() {
     try {
       setLoading(true);
       const params = {
-        limit: 100,
+        limit: 10,
         orderBy: "asc",
         status: filterStatus !== "all" ? filterStatus : undefined,
         date: filterDate || undefined,

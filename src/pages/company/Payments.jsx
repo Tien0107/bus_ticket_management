@@ -191,7 +191,7 @@ export default function Payments() {
         transactionCode: appliedFilters.transactionCode.trim() || undefined,
         status: appliedFilters.status !== "all" ? appliedFilters.status : undefined,
         method: appliedFilters.method !== "all" ? appliedFilters.method : undefined,
-        limit: 100,
+        limit: 10,
       };
       Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 
