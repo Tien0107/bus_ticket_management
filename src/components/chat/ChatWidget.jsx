@@ -152,16 +152,7 @@ export default function ChatWidget() {
   const loadRecipients = useCallback(async () => {
     try {
       setLoadingRecipients(true);
-      const params = {
-        status: "active",
-        limit: 100,
-      };
-
-      if (currentUser?.companyId) {
-        params.companyId = currentUser.companyId;
-      }
-
-      const response = await getUsers(params);
+      const response = await getUsers();
       const data = normalizeUsersResponse(response.data, viewerId);
       setRecipientUsers(data.users);
     } catch (err) {
@@ -170,7 +161,7 @@ export default function ChatWidget() {
     } finally {
       setLoadingRecipients(false);
     }
-  }, [addToast, currentUser?.companyId, viewerId]);
+  }, [addToast, viewerId]);
 
   const loadMessages = useCallback(
     async ({ boxId, reset = true, next = null } = {}) => {
