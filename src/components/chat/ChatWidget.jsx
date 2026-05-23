@@ -21,6 +21,7 @@ import {
   normalizeBoxesResponse,
   normalizeMessage,
   normalizeMessagesResponse,
+  normalizeSearchValue,
   normalizeUsersResponse,
   PAGE_SIZE,
   readRecalledMessageIds,
@@ -89,15 +90,20 @@ export default function ChatWidget() {
   const selectedPeerOnline = selectedPeerId ? onlineUserIds.has(Number(selectedPeerId)) : false;
 
   const filteredRecipientUsers = useMemo(() => {
-    const keyword = recipientSearch.trim().toLowerCase();
+    const keyword = normalizeSearchValue(recipientSearch.trim());
     if (!keyword) return recipientUsers;
 
     return recipientUsers.filter((user) =>
-      [user.fullName, user.email, user.phone, user.role, user.username]
+      [user.fullName, user.email, user.phone, user.role, user.username, user.id]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(keyword))
+        .some((value) => normalizeSearchValue(value).includes(keyword))
     );
   }, [recipientSearch, recipientUsers]);
+
+  const selectedRecipient = useMemo(
+    () => recipientUsers.find((user) => String(user.id) === String(receiverId)) || null,
+    [receiverId, recipientUsers]
+  );
 
   const rememberRecalledMessageId = useCallback(
     (messageId) => {
@@ -467,11 +473,12 @@ export default function ChatWidget() {
                   firstMessage={firstMessage}
                   loadingRecipients={loadingRecipients}
                   onFirstMessageChange={(event) => setFirstMessage(event.target.value)}
-                  onReceiverChange={(event) => setReceiverId(event.target.value)}
+                  onReceiverChange={setReceiverId}
                   onRecipientSearchChange={(event) => setRecipientSearch(event.target.value)}
                   onSubmit={handleCreateBox}
                   receiverId={receiverId}
                   recipientSearch={recipientSearch}
+                  selectedRecipient={selectedRecipient}
                 />
               )}
 

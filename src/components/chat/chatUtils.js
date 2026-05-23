@@ -113,14 +113,39 @@ export const normalizeMessagesResponse = (data, boxId) => {
   };
 };
 
+export const normalizeSearchValue = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase();
+
 const normalizeUser = (user = {}) => ({
   ...user,
-  id: toNumber(user.id ?? user.userId),
-  fullName: user.fullName || user.username || `Người dùng #${user.id ?? user.userId ?? ""}`,
-  email: user.email || "",
-  phone: user.phone || "",
-  role: user.role || "",
+  id: toNumber(user.id ?? user.userId ?? user.user_id ?? user.accountId ?? user.account_id ?? user.user?.id),
+  fullName:
+    user.fullName ||
+    user.full_name ||
+    user.name ||
+    user.username ||
+    user.user?.fullName ||
+    user.user?.full_name ||
+    user.user?.name ||
+    `Người dùng #${user.id ?? user.userId ?? user.user_id ?? ""}`,
+  email: user.email || user.user?.email || "",
+  phone:
+    user.phone ||
+    user.phoneNumber ||
+    user.phone_number ||
+    user.mobile ||
+    user.user?.phone ||
+    user.user?.phoneNumber ||
+    user.user?.phone_number ||
+    "",
+  role: user.role || user.staffProfileRole || user.staff_profile_role || user.user?.role || "",
   status: user.status || "",
+  username: user.username || user.user?.username || "",
 });
 
 export const normalizeUsersResponse = (data, viewerId) => {
@@ -128,6 +153,14 @@ export const normalizeUsersResponse = (data, viewerId) => {
     ? data.users
     : Array.isArray(data?.data?.users)
     ? data.data.users
+    : Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray(data?.data?.items)
+    ? data.data.items
+    : Array.isArray(data?.accounts)
+    ? data.accounts
+    : Array.isArray(data?.data?.accounts)
+    ? data.data.accounts
     : Array.isArray(data?.data)
     ? data.data
     : Array.isArray(data)
