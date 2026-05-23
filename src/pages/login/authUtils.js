@@ -93,16 +93,30 @@ const getStaffProfileRoleValue = (source) =>
     getField(source?.data?.user?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"])
   );
 
+const getCompanyIdValue = (source) =>
+  firstValue(
+    getField(source, ["companyId", "company_id", "driverCompanyId", "driver_company_id", "operatorCompanyId", "operator_company_id"]),
+    getField(source?.user, ["companyId", "company_id", "driverCompanyId", "driver_company_id", "operatorCompanyId", "operator_company_id"]),
+    getField(source?.data, ["companyId", "company_id", "driverCompanyId", "driver_company_id", "operatorCompanyId", "operator_company_id"]),
+    getField(source?.data?.user, ["companyId", "company_id", "driverCompanyId", "driver_company_id", "operatorCompanyId", "operator_company_id"]),
+    getField(source?.driverProfile, ["companyId", "company_id", "driverCompanyId", "driver_company_id"]),
+    getField(source?.driver_profile, ["companyId", "company_id", "driverCompanyId", "driver_company_id"]),
+    getField(source?.operatorProfile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"]),
+    getField(source?.operator_profile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"]),
+    getField(source?.staffProfile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"]),
+    getField(source?.staff_profile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"])
+  );
+
 export const mergeAuthClaims = (user, source) => {
   if (!source || typeof source !== "object") return user;
 
   const role = getRoleValue(source);
   const staffProfileRole = getStaffProfileRoleValue(source);
+  const companyId = getCompanyIdValue(source);
 
   if (role) user.role = normalizeRole(role);
   if (staffProfileRole) user.staffProfileRole = normalizeStaffProfileRole(staffProfileRole);
-  if (source.companyId !== undefined) user.companyId = source.companyId;
-  if (source.company_id !== undefined) user.companyId = source.company_id;
+  if (companyId !== undefined) user.companyId = companyId;
   if (source.accountStripeId !== undefined) user.accountStripeId = source.accountStripeId;
   if (source.account_stripe_id !== undefined) user.accountStripeId = source.account_stripe_id;
   if (source.stripeAccountId !== undefined) user.accountStripeId = source.stripeAccountId;

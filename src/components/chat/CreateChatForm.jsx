@@ -10,6 +10,8 @@ export default function CreateChatForm({
   recipientSearch,
   selectedRecipient,
 }) {
+  const hasSearchKeyword = recipientSearch.trim().length > 0;
+
   return (
     <form onSubmit={onSubmit} className="mb-4 space-y-3 rounded-xl border border-emerald-100 bg-white p-3">
       <input
@@ -69,7 +71,7 @@ export default function CreateChatForm({
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-outline-variant/50 px-3 py-6 text-center text-sm font-medium text-on-surface-variant">
-              Không có người nhận phù hợp
+              {hasSearchKeyword ? "Không tìm thấy người nhận theo từ khóa" : "Chưa có người nhận có thể chat"}
             </div>
           )}
         </div>

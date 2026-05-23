@@ -245,7 +245,7 @@ export default function DashboardLayout() {
 
       {/* Main Content */}
       <main className="min-w-0 flex-1 overflow-auto">
-        <Outlet />
+{/*  */}        <Outlet />
       </main>
       {showChatWidget && <ChatWidget />}
     </div>

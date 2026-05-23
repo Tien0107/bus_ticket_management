@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
+import axiosClient from "../../api/axiosClient";
 
 const ProfileField = ({ label, value, icon }) => (
   <div className="rounded-lg border border-outline-variant/30 bg-white p-4">
@@ -26,6 +27,71 @@ const TextInput = ({ label, name, value, onChange, type = "text", disabled = fal
   </label>
 );
 
+const getFirstValue = (...values) =>
+  values.find((value) => value !== undefined && value !== null && value !== "");
+
+const getCompanyId = (data = {}) =>
+  getFirstValue(
+    data.companyId,
+    data.company_id,
+    data.driverCompanyId,
+    data.driver_company_id,
+    data.operatorCompanyId,
+    data.operator_company_id,
+    data.company?.id,
+    data.company?._id,
+    data.driverProfile?.companyId,
+    data.driverProfile?.company_id,
+    data.driverProfile?.driverCompanyId,
+    data.driverProfile?.driver_company_id,
+    data.driverProfile?.company?.id,
+    data.driver_profile?.companyId,
+    data.driver_profile?.company_id,
+    data.driver_profile?.driverCompanyId,
+    data.driver_profile?.driver_company_id,
+    data.driver_profile?.company?.id
+  );
+
+const getCompanyName = (data = {}) =>
+  getFirstValue(
+    data.companyName,
+    data.company_name,
+    data.company?.name,
+    data.company?.company_name,
+    data.driverProfile?.companyName,
+    data.driverProfile?.company_name,
+    data.driverProfile?.company?.name,
+    data.driverProfile?.company?.company_name,
+    data.driver_profile?.companyName,
+    data.driver_profile?.company_name,
+    data.driver_profile?.company?.name,
+    data.driver_profile?.company?.company_name
+  );
+
+const normalizeDriverProfile = (data = {}) => {
+  const companyId = getCompanyId(data);
+  const companyName = getCompanyName(data);
+
+  return {
+    ...data,
+    companyId,
+    companyName: companyName || (companyId ? `Công ty #${companyId}` : ""),
+  };
+};
+
+const normalizeUsersResponse = (data) => {
+  if (Array.isArray(data?.users)) return data.users;
+  if (Array.isArray(data?.data?.users)) return data.data.users;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data)) return data;
+  return [];
+};
+
+const matchesCurrentDriver = (candidate = {}, current = {}) =>
+  String(candidate.id || "") === String(current.id || "") ||
+  (candidate.phone && current.phone && String(candidate.phone) === String(current.phone)) ||
+  (candidate.email && current.email && String(candidate.email).toLowerCase() === String(current.email).toLowerCase());
+
 const DriverProfile = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -34,15 +100,102 @@ const DriverProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
+  const [loadingCompany, setLoadingCompany] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) {
-      const userData = JSON.parse(stored);
-      setUser(userData);
-      setFormData(userData);
+      try {
+        const userData = normalizeDriverProfile(JSON.parse(stored));
+        setUser(userData);
+        setFormData(userData);
+      } catch {
+        localStorage.removeItem("user");
+      }
     }
   }, []);
+
+  useEffect(() => {
+    const companyId = getCompanyId(formData);
+    const companyName = getCompanyName(formData);
+    const hasResolvedCompanyName = companyName && !String(companyName).startsWith("Công ty #");
+
+    if (hasResolvedCompanyName) return;
+
+    const updateStoredProfile = (nextProfile) => {
+      setFormData(nextProfile);
+      setUser(nextProfile);
+      localStorage.setItem("user", JSON.stringify(nextProfile));
+    };
+
+    const resolveCompanyName = async (targetCompanyId, baseProfile) => {
+      if (!targetCompanyId) return false;
+
+      try {
+        const response = await axiosClient.get("/public/company", { params: { limit: 100 } });
+        const companies = Array.isArray(response.data?.companies)
+          ? response.data.companies
+          : Array.isArray(response.data)
+          ? response.data
+          : [];
+        const matchedCompany = companies.find((company) => String(company.id) === String(targetCompanyId));
+
+        if (!matchedCompany?.name) return false;
+
+        updateStoredProfile({ ...baseProfile, companyId: targetCompanyId, companyName: matchedCompany.name });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const resolveCurrentDriverProfile = async () => {
+      const queries = [
+        formData.phone ? { role: "driver", phone: formData.phone, limit: 10 } : null,
+        formData.email ? { role: "driver", email: formData.email, limit: 10 } : null,
+      ].filter(Boolean);
+
+      for (const params of queries) {
+        try {
+          const response = await axiosClient.get("/auth/user", { params });
+          const driver = normalizeUsersResponse(response.data).find((item) => matchesCurrentDriver(item, formData));
+          const normalizedDriver = normalizeDriverProfile({ ...formData, ...driver });
+
+          if (getCompanyName(normalizedDriver) && !String(getCompanyName(normalizedDriver)).startsWith("Công ty #")) {
+            updateStoredProfile(normalizedDriver);
+            return true;
+          }
+
+          const resolvedCompanyId = getCompanyId(normalizedDriver);
+          if (resolvedCompanyId) {
+            updateStoredProfile(normalizedDriver);
+            return resolveCompanyName(resolvedCompanyId, normalizedDriver);
+          }
+        } catch {
+          // Thử query tiếp theo nếu backend không cho phép lọc theo email/SĐT.
+        }
+      }
+
+      return false;
+    };
+
+    const resolveCompany = async () => {
+      try {
+        setLoadingCompany(true);
+
+        if (companyId) {
+          await resolveCompanyName(companyId, formData);
+          return;
+        }
+
+        await resolveCurrentDriverProfile();
+      } finally {
+        setLoadingCompany(false);
+      }
+    };
+
+    resolveCompany();
+  }, [formData]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -152,7 +305,13 @@ const DriverProfile = () => {
                   <TextInput label="Biển số xe" name="vehicleNumber" value={formData.vehicleNumber} onChange={handleChange} />
                   <TextInput label="Loại xe" name="vehicleType" value={formData.vehicleType} onChange={handleChange} />
                 </div>
-                <TextInput label="Công ty" name="companyName" value={formData.companyName} onChange={handleChange} />
+                <TextInput
+                  label="Công ty"
+                  name="companyName"
+                  value={loadingCompany ? "Đang tải công ty..." : formData.companyName}
+                  onChange={handleChange}
+                  disabled
+                />
 
                 <div className="flex flex-col-reverse gap-3 border-t border-outline-variant/20 pt-5 sm:flex-row sm:justify-end">
                   <button
@@ -193,7 +352,11 @@ const DriverProfile = () => {
                 <ProfileField icon="license" label="Số bằng lái" value={formData.licenseNumber} />
                 <ProfileField icon="directions_bus" label="Biển số xe" value={formData.vehicleNumber} />
                 <ProfileField icon="airline_seat_recline_normal" label="Loại xe" value={formData.vehicleType} />
-                <ProfileField icon="business" label="Công ty" value={formData.companyName} />
+                <ProfileField
+                  icon="business"
+                  label="Công ty"
+                  value={loadingCompany ? "Đang tải công ty..." : formData.companyName}
+                />
                 <ProfileField icon="verified_user" label="Trạng thái" value={user.status === "inactive" ? "Tạm ngưng" : "Đang hoạt động"} />
               </div>
             )}

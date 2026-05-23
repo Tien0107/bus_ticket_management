@@ -15,9 +15,12 @@ import MessageInput from "./MessageInput";
 import MessageList from "./MessageList";
 import {
   appendUniqueMessages,
+  filterChatRecipientsForViewer,
+  getChatRecipientQueries,
   getRecallCacheKey,
   getStoredUser,
   getUnreadForViewer,
+  mergeUniqueUsers,
   normalizeBoxesResponse,
   normalizeMessage,
   normalizeMessagesResponse,
@@ -94,7 +97,7 @@ export default function ChatWidget() {
     if (!keyword) return recipientUsers;
 
     return recipientUsers.filter((user) =>
-      [user.fullName, user.email, user.phone, user.role, user.username, user.id]
+      [user.fullName, user.email, user.phone, user.role, user.staffProfileRole, user.username, user.id]
         .filter(Boolean)
         .some((value) => normalizeSearchValue(value).includes(keyword))
     );
@@ -158,16 +161,32 @@ export default function ChatWidget() {
   const loadRecipients = useCallback(async () => {
     try {
       setLoadingRecipients(true);
-      const response = await getUsers();
-      const data = normalizeUsersResponse(response.data, viewerId);
-      setRecipientUsers(data.users);
+      const recipientQueries = getChatRecipientQueries(currentUser);
+      const responses = await Promise.allSettled(
+        recipientQueries.map((params) => getUsers(params))
+      );
+      const successfulResponses = responses.filter((result) => result.status === "fulfilled");
+
+      if (!successfulResponses.length) {
+        throw responses.find((result) => result.status === "rejected")?.reason;
+      }
+
+      const users = mergeUniqueUsers(
+        successfulResponses.flatMap((result) => normalizeUsersResponse(result.value.data, viewerId).users)
+      );
+      const chatRecipients = filterChatRecipientsForViewer(users, currentUser);
+
+      setRecipientUsers(chatRecipients);
+      setReceiverId((currentReceiverId) =>
+        chatRecipients.some((user) => String(user.id) === String(currentReceiverId)) ? currentReceiverId : ""
+      );
     } catch (err) {
       console.error("Lỗi tải danh sách người nhận:", err);
       addToast(err.response?.data?.message || "Không thể tải danh sách người nhận", "error");
     } finally {
       setLoadingRecipients(false);
     }
-  }, [addToast, viewerId]);
+  }, [addToast, currentUser, viewerId]);
 
   const loadMessages = useCallback(
     async ({ boxId, reset = true, next = null } = {}) => {

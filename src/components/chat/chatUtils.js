@@ -121,32 +121,343 @@ export const normalizeSearchValue = (value) =>
     .replace(/Đ/g, "D")
     .toLowerCase();
 
-const normalizeUser = (user = {}) => ({
-  ...user,
-  id: toNumber(user.id ?? user.userId ?? user.user_id ?? user.accountId ?? user.account_id ?? user.user?.id),
-  fullName:
-    user.fullName ||
-    user.full_name ||
-    user.name ||
-    user.username ||
-    user.user?.fullName ||
-    user.user?.full_name ||
-    user.user?.name ||
-    `Người dùng #${user.id ?? user.userId ?? user.user_id ?? ""}`,
-  email: user.email || user.user?.email || "",
-  phone:
-    user.phone ||
-    user.phoneNumber ||
-    user.phone_number ||
-    user.mobile ||
-    user.user?.phone ||
-    user.user?.phoneNumber ||
-    user.user?.phone_number ||
-    "",
-  role: user.role || user.staffProfileRole || user.staff_profile_role || user.user?.role || "",
-  status: user.status || "",
-  username: user.username || user.user?.username || "",
-});
+const firstValue = (...values) =>
+  values.find((value) => value !== undefined && value !== null && value !== "");
+
+const getField = (source, keys) => {
+  if (!source || typeof source !== "object") return undefined;
+
+  for (const key of keys) {
+    if (source[key] !== undefined && source[key] !== null && source[key] !== "") {
+      return source[key];
+    }
+  }
+
+  const entries = Object.entries(source);
+  for (const key of keys) {
+    const matchedEntry = entries.find(
+      ([entryKey, entryValue]) =>
+        entryKey.toLowerCase() === key.toLowerCase() &&
+        entryValue !== undefined &&
+        entryValue !== null &&
+        entryValue !== ""
+    );
+
+    if (matchedEntry) return matchedEntry[1];
+  }
+
+  return undefined;
+};
+
+const toRoleString = (value) => {
+  if (value && typeof value === "object") {
+    return toRoleString(firstValue(value.name, value.code, value.value, value.role));
+  }
+
+  return value === undefined || value === null ? "" : String(value).trim();
+};
+
+export const normalizeRoleValue = (value) =>
+  toRoleString(value).replace(/[\s-]+/g, "_").toLowerCase();
+
+const normalizeStaffProfileRole = (value) => {
+  const normalized = normalizeRoleValue(value);
+  const aliases = {
+    admin: "company_admin",
+    companyadmin: "company_admin",
+    company_admin: "company_admin",
+    operator_admin: "company_admin",
+    operatoradmin: "company_admin",
+    dispatcher: "dispatcher",
+    operator_dispatcher: "dispatcher",
+    operatordispatcher: "dispatcher",
+    support: "support",
+    company_support: "support",
+    operator_support: "support",
+  };
+
+  return aliases[normalized] || normalized;
+};
+
+const getCompanyIdFromProfile = (profile = {}) =>
+  firstValue(
+    getField(profile, [
+      "companyId",
+      "company_id",
+      "companyID",
+      "driverCompanyId",
+      "driver_company_id",
+      "operatorCompanyId",
+      "operator_company_id",
+    ]),
+    getField(getField(profile, ["company"]), ["id", "_id", "companyId"])
+  );
+
+const getUserCompanyId = (user = {}) => {
+  const account = getField(user, ["user", "account"]);
+  const staffProfile = firstValue(
+    getField(user, ["staffProfile", "staff_profile", "staffprofile"]),
+    getField(account, ["staffProfile", "staff_profile", "staffprofile"])
+  );
+  const operatorProfile = firstValue(
+    getField(user, ["operatorProfile", "operator_profile", "operatorprofile"]),
+    getField(account, ["operatorProfile", "operator_profile", "operatorprofile"])
+  );
+  const driverProfile = firstValue(
+    getField(user, ["driverProfile", "driver_profile", "driverprofile"]),
+    getField(account, ["driverProfile", "driver_profile", "driverprofile"])
+  );
+
+  return toNumber(
+    firstValue(
+      getCompanyIdFromProfile(user),
+      getCompanyIdFromProfile(account),
+      getCompanyIdFromProfile(staffProfile),
+      getCompanyIdFromProfile(operatorProfile),
+      getCompanyIdFromProfile(driverProfile)
+    )
+  );
+};
+
+export const normalizeUser = (user = {}) => {
+  const account = getField(user, ["user", "account"]);
+  const staffProfile = firstValue(
+    getField(user, ["staffProfile", "staff_profile", "staffprofile"]),
+    getField(account, ["staffProfile", "staff_profile", "staffprofile"])
+  );
+  const operatorProfile = firstValue(
+    getField(user, ["operatorProfile", "operator_profile", "operatorprofile"]),
+    getField(account, ["operatorProfile", "operator_profile", "operatorprofile"])
+  );
+  const id = toNumber(
+    firstValue(
+      getField(user, ["id", "userId", "user_id", "accountId", "account_id"]),
+      getField(account, ["id", "userId", "user_id", "accountId", "account_id"])
+    )
+  );
+  const role = normalizeRoleValue(
+    firstValue(
+      getField(user, ["role", "userRole", "user_role", "accountRole", "account_role"]),
+      getField(account, ["role", "userRole", "user_role", "accountRole", "account_role"])
+    )
+  );
+  const staffProfileRole = normalizeStaffProfileRole(
+    firstValue(
+      getField(user, [
+        "staffProfileRole",
+        "staff_profile_role",
+        "staffprofileRole",
+        "staffprofilerole",
+        "staffRole",
+        "profileRole",
+        "roleProfile",
+        "operatorRole",
+        "operatorProfileRole",
+      ]),
+      getField(staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffprofilerole", "staffRole"]),
+      getField(operatorProfile, ["role", "staffProfileRole", "staff_profile_role", "staffprofilerole", "staffRole"]),
+      getField(account, ["staffProfileRole", "staff_profile_role", "staffprofilerole", "staffRole"]),
+      getField(getField(account, ["staffProfile", "staff_profile", "staffprofile"]), [
+        "role",
+        "staffProfileRole",
+        "staff_profile_role",
+        "staffprofilerole",
+        "staffRole",
+      ])
+    )
+  );
+
+  return {
+    ...user,
+    id,
+    fullName:
+      firstValue(
+        getField(user, ["fullName", "full_name", "name", "username"]),
+        getField(account, ["fullName", "full_name", "name", "username"])
+      ) || `Người dùng #${id || getField(user, ["id", "userId", "user_id"]) || ""}`,
+    email: firstValue(getField(user, ["email"]), getField(account, ["email"])) || "",
+    phone:
+      firstValue(
+        getField(user, ["phone", "phoneNumber", "phone_number", "mobile"]),
+        getField(account, ["phone", "phoneNumber", "phone_number", "mobile"])
+      ) || "",
+    role: role || staffProfileRole,
+    staffProfileRole,
+    companyId: getUserCompanyId(user),
+    status: firstValue(getField(user, ["status"]), getField(account, ["status"])) || "",
+    username: firstValue(getField(user, ["username"]), getField(account, ["username"])) || "",
+  };
+};
+
+const COMPANY_ADMIN_STAFF_ROLES = new Set(["company_admin", "operator_admin", "admin"]);
+const DISPATCHER_STAFF_ROLES = new Set(["dispatcher", "operator_dispatcher"]);
+const SUPPORT_STAFF_ROLES = new Set(["support", "company_support", "operator_support"]);
+const OPERATOR_CHAT_ROLES = new Set([
+  "operator",
+  "dispatcher",
+  "operator_dispatcher",
+  "company_admin",
+  "operator_admin",
+  "admin",
+  "support",
+  "company_support",
+  "operator_support",
+]);
+
+const isSameCompanyOrUnknown = (viewer, recipient) => {
+  if (!viewer?.companyId || !recipient?.companyId) return true;
+  return Number(viewer.companyId) === Number(recipient.companyId);
+};
+
+const isSuperAdminChatUser = (user = {}) => {
+  const role = normalizeRoleValue(user.role);
+  return role === "super_admin" || role === "superadmin";
+};
+
+const isCompanyAdminChatUser = (user = {}) => {
+  const role = normalizeRoleValue(user.role);
+  const staffRole = normalizeStaffProfileRole(user.staffProfileRole);
+
+  return (
+    role === "admin" ||
+    role === "company_admin" ||
+    COMPANY_ADMIN_STAFF_ROLES.has(role) ||
+    (role === "operator" && COMPANY_ADMIN_STAFF_ROLES.has(staffRole)) ||
+    (!role && COMPANY_ADMIN_STAFF_ROLES.has(staffRole))
+  );
+};
+
+const isOperatorChatUser = (user = {}) => {
+  const role = normalizeRoleValue(user.role);
+  const staffRole = normalizeStaffProfileRole(user.staffProfileRole);
+
+  return (
+    OPERATOR_CHAT_ROLES.has(role) ||
+    COMPANY_ADMIN_STAFF_ROLES.has(staffRole) ||
+    DISPATCHER_STAFF_ROLES.has(staffRole) ||
+    SUPPORT_STAFF_ROLES.has(staffRole)
+  );
+};
+
+const isDriverChatUser = (user = {}) => normalizeRoleValue(user.role) === "driver";
+const isCustomerChatUser = (user = {}) => normalizeRoleValue(user.role) === "customer";
+
+const hasRoleMetadata = (users = []) =>
+  users.some((user) => normalizeRoleValue(user.role) || normalizeStaffProfileRole(user.staffProfileRole));
+
+const keepBackendScopedRecipientsWhenRoleMissing = (users, filteredUsers) => {
+  if (filteredUsers.length || hasRoleMetadata(users)) return filteredUsers;
+  return users;
+};
+
+const getOperatorRecipients = (users, viewer, useCompanyFilter = false) => {
+  const operators = users.filter(isOperatorChatUser);
+  if (!useCompanyFilter) return operators;
+
+  return operators.filter((user) => isSameCompanyOrUnknown(viewer, user));
+};
+
+const uniqueQueryParams = (queries) => {
+  const seen = new Set();
+
+  return queries.filter((query) => {
+    const normalizedEntries = Object.entries(query)
+      .filter(([, value]) => value !== undefined && value !== null && value !== "")
+      .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
+    const key = JSON.stringify(normalizedEntries);
+
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+export const getChatRecipientQueries = (currentUser = {}) => {
+  const viewer = normalizeUser(currentUser || {});
+  const base = { status: "active", limit: PAGE_SIZE };
+  const byRole = (role) => ({ ...base, role });
+  const withCompanyFallback = (query) =>
+    viewer.companyId ? [{ ...query, companyId: viewer.companyId }, query] : [query];
+  const withCompanyOnly = (query) =>
+    viewer.companyId ? [{ ...query, companyId: viewer.companyId }] : [query];
+
+  if (isCustomerChatUser(viewer)) {
+    return [byRole("operator")];
+  }
+
+  if (isDriverChatUser(viewer)) {
+    return uniqueQueryParams(withCompanyOnly(byRole("operator")));
+  }
+
+  if (isCompanyAdminChatUser(viewer)) {
+    return uniqueQueryParams([
+      ...withCompanyOnly(byRole("operator")),
+      ...withCompanyOnly(byRole("driver")),
+      byRole("super_admin"),
+    ]);
+  }
+
+  if (isOperatorChatUser(viewer)) {
+    return uniqueQueryParams([
+      ...withCompanyFallback(byRole("driver")),
+      ...withCompanyFallback(byRole("operator")),
+      byRole("customer"),
+    ]);
+  }
+
+  return [base];
+};
+
+export const mergeUniqueUsers = (users = []) => {
+  const seen = new Set();
+
+  return users.filter((user) => {
+    const key = String(user.id);
+    if (!user.id || seen.has(key)) return false;
+
+    seen.add(key);
+    return true;
+  });
+};
+
+export const filterChatRecipientsForViewer = (users = [], currentUser = {}) => {
+  const viewer = normalizeUser(currentUser || {});
+
+  if (isDriverChatUser(viewer)) {
+    const filteredUsers = getOperatorRecipients(users, viewer, true);
+    return keepBackendScopedRecipientsWhenRoleMissing(users, filteredUsers);
+  }
+
+  if (isCustomerChatUser(viewer)) {
+    const filteredUsers = getOperatorRecipients(users, viewer, false);
+    return keepBackendScopedRecipientsWhenRoleMissing(users, filteredUsers);
+  }
+
+  if (isCompanyAdminChatUser(viewer)) {
+    const filteredUsers = users.filter(
+      (user) =>
+        isSuperAdminChatUser(user) ||
+        ((isDriverChatUser(user) || isOperatorChatUser(user)) && isSameCompanyOrUnknown(viewer, user))
+    );
+    return keepBackendScopedRecipientsWhenRoleMissing(users, filteredUsers);
+  }
+
+  if (isOperatorChatUser(viewer)) {
+    const filteredUsers = users.filter(
+      (user) =>
+        isCustomerChatUser(user) ||
+        ((isDriverChatUser(user) || isCompanyAdminChatUser(user) || isOperatorChatUser(user)) &&
+          isSameCompanyOrUnknown(viewer, user))
+    );
+    return keepBackendScopedRecipientsWhenRoleMissing(users, filteredUsers);
+  }
+
+  if (isSuperAdminChatUser(viewer)) {
+    return users;
+  }
+
+  return users;
+};
 
 export const normalizeUsersResponse = (data, viewerId) => {
   const users = Array.isArray(data?.users)
