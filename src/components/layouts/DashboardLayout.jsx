@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, Link, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { logout } from "../../api/auth";
 import NotificationBell from "../common/NotificationBell";
 import ChatWidget from "../chat/ChatWidget";
 
 export default function DashboardLayout() {
+  const token = localStorage.getItem("token");
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      setUser(JSON.parse(stored));
+    }
+  }, []);
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
 
   const role = String(user?.role || "").replace(/[\s-]+/g, "_").toLowerCase();
   const staffProfileRole = String(user?.staffProfileRole || "").replace(/[\s-]+/g, "_").toLowerCase();
@@ -26,13 +38,6 @@ export default function DashboardLayout() {
     : role === "super_admin" || role === "superadmin"
     ? "/super-admin/dashboard"
     : location.pathname || "/";
-
-  useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      setUser(JSON.parse(stored));
-    }
-  }, []);
 
   const handleLogout = async () => {
     try {

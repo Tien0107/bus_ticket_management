@@ -1,5 +1,5 @@
 import React from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, Navigate } from "react-router-dom";
 import MainNavbar from "./MainNavbar";
 import MainFooter from "./MainFooter";
 import ChatWidget from "../chat/ChatWidget";
@@ -8,6 +8,10 @@ const MainLayout = () => {
   const user = localStorage.getItem("user");
   const token = localStorage.getItem("token");
   const isCustomerLoggedIn = !!(user && token);
+
+  if (!isCustomerLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-body flex flex-col">

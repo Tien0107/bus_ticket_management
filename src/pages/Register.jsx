@@ -4,6 +4,7 @@ import CustomerRegisterForm from "./register/CustomerRegisterForm";
 import DriverRegisterForm from "./register/DriverRegisterForm";
 import CompanyRegisterForm from "./register/CompanyRegisterForm";
 import OperatorRegisterForm from "./register/OperatorRegisterForm";
+import SupportRegisterForm from "./register/SupportRegisterForm";
 
 const registerOptions = [
   {
@@ -30,6 +31,12 @@ const registerOptions = [
     title: "Điều hành viên",
     description: "Quản lý tuyến, trạm và lịch",
   },
+  {
+    id: "support",
+    icon: "headset_mic",
+    title: "Nhân viên hỗ trợ",
+    description: "Hỗ trợ khách hàng, giải đáp",
+  },
 ];
 
 const registerForms = {
@@ -37,6 +44,7 @@ const registerForms = {
   driver: <DriverRegisterForm />,
   company: <CompanyRegisterForm />,
   operator: <OperatorRegisterForm />,
+  support: <SupportRegisterForm />,
 };
 
 function Register() {
@@ -131,7 +139,7 @@ function Register() {
                   Điền thông tin bên dưới để bắt đầu sử dụng BusGo với vai trò {selectedRegisterOption.title.toLowerCase()}.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-2 lg:hidden">
+              <div className="flex flex-wrap gap-2 lg:hidden">
                 {registerOptions.map((option) => (
                   <button
                     key={option.id}
