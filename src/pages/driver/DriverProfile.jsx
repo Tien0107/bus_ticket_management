@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
 import axiosClient from "../../api/axiosClient";
 
@@ -68,6 +67,8 @@ const getCompanyName = (data = {}) =>
     data.driver_profile?.company?.company_name
   );
 
+const getDisplayName = (data = {}) => getFirstValue(data.fullName, data.username, data.email, data.phone);
+
 const normalizeDriverProfile = (data = {}) => {
   const companyId = getCompanyId(data);
   const companyName = getCompanyName(data);
@@ -93,7 +94,6 @@ const matchesCurrentDriver = (candidate = {}, current = {}) =>
   (candidate.email && current.email && String(candidate.email).toLowerCase() === String(current.email).toLowerCase());
 
 const DriverProfile = () => {
-  const navigate = useNavigate();
   const { addToast } = useToast();
 
   const [user, setUser] = useState(null);
@@ -216,13 +216,6 @@ const DriverProfile = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    addToast("Đã đăng xuất", "success");
-    navigate("/login");
-  };
-
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-surface p-6">
@@ -245,22 +238,14 @@ const DriverProfile = () => {
   return (
     <div className="min-h-screen bg-surface px-5 py-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mb-6">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">Hồ sơ tài xế</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-on-surface lg:text-4xl">
               Thông tin cá nhân
             </h1>
-            <p className="mt-2 text-on-surface-variant">Quản lý thông tin liên hệ, bằng lái và phương tiện đang phụ trách.</p>
+            <p className="mt-2 text-on-surface-variant">Quản lý thông tin liên hệ và trạng thái tài khoản tài xế.</p>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition-colors hover:bg-red-100"
-          >
-            <span className="material-symbols-outlined text-[20px]">logout</span>
-            Đăng xuất
-          </button>
         </div>
 
         <section className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
@@ -297,13 +282,9 @@ const DriverProfile = () => {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <TextInput label="Họ và tên" name="fullName" value={formData.fullName} onChange={handleChange} />
-                  <TextInput label="Tên đăng nhập" name="username" value={formData.username} onChange={handleChange} />
+                  <TextInput label="Tên đăng nhập" name="loginName" value={getDisplayName(formData)} onChange={handleChange} disabled />
                   <TextInput label="Email" name="email" type="email" value={formData.email} onChange={handleChange} disabled />
                   <TextInput label="Số điện thoại" name="phone" value={formData.phone} onChange={handleChange} />
-                  <TextInput label="Số CCCD/Passport" name="idNumber" value={formData.idNumber} onChange={handleChange} />
-                  <TextInput label="Số bằng lái" name="licenseNumber" value={formData.licenseNumber} onChange={handleChange} />
-                  <TextInput label="Biển số xe" name="vehicleNumber" value={formData.vehicleNumber} onChange={handleChange} />
-                  <TextInput label="Loại xe" name="vehicleType" value={formData.vehicleType} onChange={handleChange} />
                 </div>
                 <TextInput
                   label="Công ty"
@@ -346,12 +327,8 @@ const DriverProfile = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <ProfileField icon="badge" label="Tên đăng nhập" value={formData.username} />
+                <ProfileField icon="badge" label="Tên đăng nhập" value={getDisplayName(formData)} />
                 <ProfileField icon="call" label="Số điện thoại" value={formData.phone} />
-                <ProfileField icon="credit_card" label="Số CCCD/Passport" value={formData.idNumber} />
-                <ProfileField icon="license" label="Số bằng lái" value={formData.licenseNumber} />
-                <ProfileField icon="directions_bus" label="Biển số xe" value={formData.vehicleNumber} />
-                <ProfileField icon="airline_seat_recline_normal" label="Loại xe" value={formData.vehicleType} />
                 <ProfileField
                   icon="business"
                   label="Công ty"

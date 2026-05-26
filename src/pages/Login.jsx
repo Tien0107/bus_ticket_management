@@ -41,6 +41,8 @@ function Login() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (loading) return;
+
     setError("");
     setLoading(true);
 
@@ -53,7 +55,6 @@ function Login() {
       const errorMsg = err.response?.data?.message || err.message || "Đăng nhập thất bại";
       setError(errorMsg);
       addToast("Đăng nhập thất bại", "error");
-    } finally {
       setLoading(false);
     }
   };

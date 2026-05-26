@@ -169,11 +169,17 @@ const normalizeStaffProfileRole = (value) => {
     operator_admin: "company_admin",
     operatoradmin: "company_admin",
     dispatcher: "dispatcher",
+    dispacher: "dispatcher",
     operator_dispatcher: "dispatcher",
     operatordispatcher: "dispatcher",
+    operator_dispacher: "dispatcher",
+    operatordispacher: "dispatcher",
     support: "support",
+    suport: "support",
     company_support: "support",
+    company_suport: "support",
     operator_support: "support",
+    operator_suport: "support",
   };
 
   return aliases[normalized] || normalized;
@@ -281,7 +287,7 @@ export const normalizeUser = (user = {}) => {
         getField(user, ["phone", "phoneNumber", "phone_number", "mobile"]),
         getField(account, ["phone", "phoneNumber", "phone_number", "mobile"])
       ) || "",
-    role: role || staffProfileRole,
+    role,
     staffProfileRole,
     companyId: getUserCompanyId(user),
     status: firstValue(getField(user, ["status"]), getField(account, ["status"])) || "",
@@ -289,16 +295,17 @@ export const normalizeUser = (user = {}) => {
   };
 };
 
-const COMPANY_ADMIN_STAFF_ROLES = new Set(["company_admin", "operator_admin", "admin"]);
+const COMPANY_ADMIN_STAFF_ROLES = new Set(["company_admin"]);
 const DISPATCHER_STAFF_ROLES = new Set(["dispatcher", "operator_dispatcher"]);
 const SUPPORT_STAFF_ROLES = new Set(["support", "company_support", "operator_support"]);
+const COMPANY_ADMIN_OPERATOR_RECIPIENT_STAFF_ROLES = new Set([
+  ...DISPATCHER_STAFF_ROLES,
+  ...SUPPORT_STAFF_ROLES,
+]);
 const OPERATOR_CHAT_ROLES = new Set([
   "operator",
   "dispatcher",
   "operator_dispatcher",
-  "company_admin",
-  "operator_admin",
-  "admin",
   "support",
   "company_support",
   "operator_support",
@@ -309,9 +316,16 @@ const isSameCompanyOrUnknown = (viewer, recipient) => {
   return Number(viewer.companyId) === Number(recipient.companyId);
 };
 
+const isSameCompanyStrict = (viewer, recipient) =>
+  Boolean(
+    viewer?.companyId &&
+      recipient?.companyId &&
+      Number(viewer.companyId) === Number(recipient.companyId)
+  );
+
 const isSuperAdminChatUser = (user = {}) => {
   const role = normalizeRoleValue(user.role);
-  return role === "super_admin" || role === "superadmin";
+  return role === "super_admin";
 };
 
 const isCompanyAdminChatUser = (user = {}) => {
@@ -319,9 +333,6 @@ const isCompanyAdminChatUser = (user = {}) => {
   const staffRole = normalizeStaffProfileRole(user.staffProfileRole);
 
   return (
-    role === "admin" ||
-    role === "company_admin" ||
-    COMPANY_ADMIN_STAFF_ROLES.has(role) ||
     (role === "operator" && COMPANY_ADMIN_STAFF_ROLES.has(staffRole)) ||
     (!role && COMPANY_ADMIN_STAFF_ROLES.has(staffRole))
   );
@@ -337,6 +348,13 @@ const isOperatorChatUser = (user = {}) => {
     DISPATCHER_STAFF_ROLES.has(staffRole) ||
     SUPPORT_STAFF_ROLES.has(staffRole)
   );
+};
+
+const isCompanyAdminOperatorRecipient = (user = {}) => {
+  const role = normalizeRoleValue(user.role);
+  const staffRole = normalizeStaffProfileRole(user.staffProfileRole);
+
+  return (role === "operator" || !role) && COMPANY_ADMIN_OPERATOR_RECIPIENT_STAFF_ROLES.has(staffRole);
 };
 
 const isDriverChatUser = (user = {}) => normalizeRoleValue(user.role) === "driver";
@@ -376,6 +394,7 @@ export const getChatRecipientQueries = (currentUser = {}) => {
   const viewer = normalizeUser(currentUser || {});
   const base = { status: "active", limit: PAGE_SIZE };
   const byRole = (role) => ({ ...base, role });
+  const byRoleAnyStatus = (role) => ({ limit: PAGE_SIZE, role });
   const withCompanyFallback = (query) =>
     viewer.companyId ? [{ ...query, companyId: viewer.companyId }, query] : [query];
   const withCompanyOnly = (query) =>
@@ -391,9 +410,12 @@ export const getChatRecipientQueries = (currentUser = {}) => {
 
   if (isCompanyAdminChatUser(viewer)) {
     return uniqueQueryParams([
-      ...withCompanyOnly(byRole("operator")),
-      ...withCompanyOnly(byRole("driver")),
+      ...withCompanyFallback(byRole("operator")),
+      ...withCompanyFallback(byRole("driver")),
       byRole("super_admin"),
+      byRoleAnyStatus("super_admin"),
+      base,
+      { limit: PAGE_SIZE },
     ]);
   }
 
@@ -429,7 +451,7 @@ export const filterChatRecipientsForViewer = (users = [], currentUser = {}) => {
   }
 
   if (isCustomerChatUser(viewer)) {
-    const filteredUsers = getOperatorRecipients(users, viewer, false);
+    const filteredUsers = users.filter(isCompanyAdminChatUser);
     return keepBackendScopedRecipientsWhenRoleMissing(users, filteredUsers);
   }
 
@@ -437,7 +459,8 @@ export const filterChatRecipientsForViewer = (users = [], currentUser = {}) => {
     const filteredUsers = users.filter(
       (user) =>
         isSuperAdminChatUser(user) ||
-        ((isDriverChatUser(user) || isOperatorChatUser(user)) && isSameCompanyOrUnknown(viewer, user))
+        ((isDriverChatUser(user) || isCompanyAdminOperatorRecipient(user)) &&
+          isSameCompanyStrict(viewer, user))
     );
     return keepBackendScopedRecipientsWhenRoleMissing(users, filteredUsers);
   }

@@ -62,7 +62,37 @@ function App() {
   return (    
     <ToastProvider>
       <Toast />
-      <Toaster position="top-right" reverseOrder={false} toastOptions={{ duration: 1000 }} />
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        gutter={10}
+        toastOptions={{
+          duration: 1000,
+          style: {
+            border: "1px solid rgba(226, 232, 240, 0.95)",
+            borderRadius: "10px",
+            boxShadow: "0 18px 48px rgba(15, 23, 42, 0.14)",
+            color: "#0f172a",
+            fontSize: "14px",
+            fontWeight: 700,
+            padding: "12px 14px",
+          },
+          success: {
+            duration: 1000,
+            iconTheme: {
+              primary: "#059669",
+              secondary: "#ecfdf5",
+            },
+          },
+          error: {
+            duration: 1000,
+            iconTheme: {
+              primary: "#dc2626",
+              secondary: "#fef2f2",
+            },
+          },
+        }}
+      />
 
       <BrowserRouter>
         <Routes>

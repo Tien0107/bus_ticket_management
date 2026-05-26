@@ -18,7 +18,7 @@ export default function LoginForm({
   onSubmit,
 }) {
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form onSubmit={onSubmit} className="space-y-5" aria-busy={loading}>
       <div>
         <div className="mb-3 grid grid-cols-2 rounded-xl bg-surface-container-low p-1">
           {loginMethodOptions.map((item) => {
@@ -29,11 +29,12 @@ export default function LoginForm({
                 key={item.id}
                 type="button"
                 onClick={() => onLoginMethodChange(item.id)}
+                disabled={loading}
                 className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-extrabold transition-all ${
                   active
                     ? "bg-white text-primary shadow-sm ring-1 ring-outline-variant/20"
                     : "text-on-surface-variant hover:text-on-surface"
-                }`}
+                } disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
                 {item.label}
@@ -56,6 +57,7 @@ export default function LoginForm({
             autoComplete={loginMethod === "email" ? "email" : "tel"}
             value={identifier}
             onChange={(event) => onIdentifierChange(event.target.value)}
+            disabled={loading}
             required
           />
         </div>
@@ -78,12 +80,14 @@ export default function LoginForm({
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(event) => onPasswordChange(event.target.value)}
+            disabled={loading}
             required
           />
           <button
             type="button"
             onClick={onTogglePassword}
-            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-outline transition-colors hover:bg-surface-container-low hover:text-primary"
+            disabled={loading}
+            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-outline transition-colors hover:bg-surface-container-low hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
           >
             <span className="material-symbols-outlined text-xl">
@@ -94,13 +98,18 @@ export default function LoginForm({
       </div>
 
       <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-container-low px-4 py-3">
-        <input type="checkbox" className="h-4 w-4 rounded border-outline text-primary focus:ring-primary" />
+        <input
+          type="checkbox"
+          disabled={loading}
+          className="h-4 w-4 rounded border-outline text-primary focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+        />
         <span className="text-sm font-medium text-on-surface-variant">Ghi nhớ đăng nhập</span>
       </label>
 
       <button
         type="submit"
         disabled={loading}
+        aria-disabled={loading}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-extrabold text-white shadow-[0_12px_24px_rgba(0,110,28,0.18)] transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? (

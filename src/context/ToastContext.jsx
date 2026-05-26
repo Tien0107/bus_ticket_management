@@ -2,26 +2,49 @@ import React, { createContext, useContext, useState, useCallback } from "react";
 
 const ToastContext = createContext();
 
+const TOAST_DURATIONS = {
+  success: 1000,
+  info: 1000,
+  warning: 1000,
+  error: 1000,
+};
+
+const normalizeToastType = (type = "info") => {
+  const normalized = String(type || "info").toLowerCase();
+  if (["success", "error", "warning", "info"].includes(normalized)) return normalized;
+  return "info";
+};
+
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback((toastInput, type = "success", duration = 1000) => {
+  const addToast = useCallback((toastInput, type = "success", duration) => {
     const payload =
       typeof toastInput === "object" && toastInput !== null
         ? toastInput
         : { message: toastInput, type, duration };
 
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const toastDuration = payload.duration ?? duration;
+    const toastType = normalizeToastType(payload.type || type);
+    const toastDuration = payload.duration ?? duration ?? TOAST_DURATIONS[toastType];
     const toast = {
       id,
-      type: payload.type || type,
+      type: toastType,
       title: payload.title || "",
       message: payload.message || "",
       duration: toastDuration,
     };
 
-    setToasts((prev) => [...prev, toast].slice(-5));
+    setToasts((prev) => {
+      const withoutDuplicate = prev.filter(
+        (item) =>
+          item.type !== toast.type ||
+          item.title !== toast.title ||
+          item.message !== toast.message
+      );
+
+      return [...withoutDuplicate, toast].slice(-4);
+    });
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));

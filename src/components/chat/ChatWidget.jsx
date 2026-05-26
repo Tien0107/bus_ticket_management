@@ -30,9 +30,12 @@ import {
   readRecalledMessageIds,
   RECALLED_MESSAGE,
   sortMessagesOldestFirst,
+  toNumber,
   zeroUnreadForViewer,
 } from "./chatUtils";
 import useChatSocket from "./useChatSocket";
+
+const MAX_RECIPIENT_QUERY_PAGES = 8;
 
 export default function ChatWidget() {
   const { addToast } = useToast();
@@ -162,8 +165,38 @@ export default function ChatWidget() {
     try {
       setLoadingRecipients(true);
       const recipientQueries = getChatRecipientQueries(currentUser);
+
+      const loadRecipientQueryPages = async (params) => {
+        const scopedCompanyId = toNumber(params?.companyId);
+        const loadedUsers = [];
+        const seenNext = new Set();
+        let next = params?.next ?? null;
+
+        for (let page = 0; page < MAX_RECIPIENT_QUERY_PAGES; page += 1) {
+          const response = await getUsers({ ...params, ...(next ? { next } : {}) });
+          const data = normalizeUsersResponse(response.data, viewerId);
+
+          loadedUsers.push(
+            ...data.users.map((user) => ({
+              ...user,
+              companyId: user.companyId ?? scopedCompanyId,
+            }))
+          );
+
+          if (!data.next) break;
+
+          const nextKey = String(data.next);
+          if (seenNext.has(nextKey)) break;
+
+          seenNext.add(nextKey);
+          next = data.next;
+        }
+
+        return loadedUsers;
+      };
+
       const responses = await Promise.allSettled(
-        recipientQueries.map((params) => getUsers(params))
+        recipientQueries.map((params) => loadRecipientQueryPages(params))
       );
       const successfulResponses = responses.filter((result) => result.status === "fulfilled");
 
@@ -172,7 +205,10 @@ export default function ChatWidget() {
       }
 
       const users = mergeUniqueUsers(
-        successfulResponses.flatMap((result) => normalizeUsersResponse(result.value.data, viewerId).users)
+        responses.flatMap((result) => {
+          if (result.status !== "fulfilled") return [];
+          return result.value;
+        })
       );
       const chatRecipients = filterChatRecipientsForViewer(users, currentUser);
 

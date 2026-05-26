@@ -81,11 +81,14 @@ export default function SocialLoginButtons({ disabled = false, onLoginSuccess, s
   }, [handleGoogleCredential, googleRenderKey]);
 
   const handleGoogleButtonFallback = useCallback(() => {
+    if (disabled || socialLoading) return;
     setGoogleRenderKey((key) => key + 1);
     addToast("Google Login đang tải, thử lại sau vài giây", "info");
-  }, [addToast]);
+  }, [addToast, disabled, socialLoading]);
 
   const handleFacebookLogin = async () => {
+    if (disabled || socialLoading) return;
+
     setError("");
 
     if (!isHttpsPage()) {
@@ -146,6 +149,7 @@ export default function SocialLoginButtons({ disabled = false, onLoginSuccess, s
             <button
               type="button"
               onClick={handleGoogleButtonFallback}
+              disabled={disabled || Boolean(socialLoading)}
               className="absolute inset-0 z-20 rounded-xl"
               aria-label="Đăng nhập bằng Google"
               title="Google"
@@ -154,7 +158,7 @@ export default function SocialLoginButtons({ disabled = false, onLoginSuccess, s
           <div
             ref={googleButtonRef}
             className={`auth-google-render absolute inset-0 z-10 flex items-center justify-center overflow-hidden rounded-xl transition-opacity ${
-              googleReady ? "opacity-[0.01]" : "pointer-events-none opacity-0"
+              googleReady && !disabled && !socialLoading ? "opacity-[0.01]" : "pointer-events-none opacity-0"
             }`}
           />
           {socialLoading === "google" && (
