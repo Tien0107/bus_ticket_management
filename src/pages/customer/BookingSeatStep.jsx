@@ -209,6 +209,15 @@ export default function BookingSeatStep({
     setBookingData(prev => ({ ...prev, dropoffId: d.stationId, dropoffOrder: d.stopOrder, unitPrice: d.price || 0, selectedSeats: [], totalPrice: 0 }));
   };
 
+  const isFloor2 = (seat) => {
+    if (!seat || !seat.type) return false;
+    const typeStr = String(seat.type).toLowerCase();
+    return typeStr.includes("2") || typeStr.includes("upper") || typeStr.includes("t2") || typeStr.includes("trên");
+  };
+
+  const floor1Seats = seats.filter(s => !isFloor2(s));
+  const floor2Seats = seats.filter(s => isFloor2(s));
+
   if (loading) {
      return (
        <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -340,10 +349,9 @@ export default function BookingSeatStep({
           <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-container overflow-hidden">
             <div className="bg-surface-container-low px-6 py-4 flex justify-between items-center border-b border-surface-container">
               <h2 className="font-bold text-xl">Chọn ghế</h2>
-              <div className="flex bg-surface-container p-1 rounded-lg">
-                <button className="bg-surface-container-lowest px-4 py-1.5 rounded-md text-sm font-bold shadow-sm">Tầng 1</button>
-                <button className="px-4 py-1.5 rounded-md text-sm font-bold text-on-surface-variant opacity-50">Tầng 2</button>
-              </div>
+              <span className="text-xs text-on-surface-variant font-bold bg-surface-container px-3 py-1.5 rounded-full">
+                {floor2Seats.length > 0 ? "Sơ đồ 2 tầng" : "Sơ đồ 1 tầng"}
+              </span>
             </div>
             
             <div className="p-8 relative min-h-[300px]">
@@ -370,34 +378,110 @@ export default function BookingSeatStep({
                 </div>
               </div>
 
-              <div className="bg-surface-container-low rounded-2xl p-6 relative">
-                <div className="absolute top-4 right-6 opacity-30">
-                  <span className="material-symbols-outlined text-3xl">airline_seat_recline_extra</span>
+              {seats.length === 0 && !loadingSeats ? (
+                <p className="text-center text-sm text-on-surface-variant py-8 bg-surface-container-low rounded-2xl">
+                  Sơ đồ trống (API chưa trả ghế)
+                </p>
+              ) : floor2Seats.length > 0 ? (
+                /* Sơ đồ 2 tầng hiển thị đồng thời bên cạnh nhau */
+                <div className="flex flex-col sm:flex-row gap-6 justify-center items-stretch">
+                  {/* Tầng 1 */}
+                  <div className="flex-1 bg-surface-container-low rounded-2xl p-5 border border-surface-container/60 relative">
+                    <div className="text-center font-extrabold text-xs text-primary mb-5 border-b border-outline-variant/30 pb-2 uppercase tracking-wider">
+                      Tầng 1 (Tầng dưới)
+                    </div>
+                    <div className="grid grid-cols-3 gap-y-4 gap-x-4 max-w-xs mx-auto">
+                      {floor1Seats.map((seat, idx) => {
+                        const isSelected = bookingData.selectedSeats.some(s => s.seatNumber === seat.seatNumber);
+                        let btnClass = "w-10 h-10 rounded-lg flex items-center justify-center text-[11px] font-bold transition-all ";
+                        if (seat.status === "booked") {
+                          btnClass += "bg-surface-dim/30 cursor-not-allowed text-on-surface-variant/30 border border-transparent";
+                        } else if (isSelected) {
+                          btnClass += "bg-primary text-on-primary shadow-md transform scale-105 border border-primary";
+                        } else {
+                          btnClass += "bg-surface-container-lowest hover:bg-surface-container-highest border border-surface-container-high";
+                        }
+                        return (
+                          <React.Fragment key={seat.id}>
+                            <button
+                              className={btnClass}
+                              disabled={seat.status === "booked"}
+                              onClick={() => handleSeatClick(seat)}
+                            >
+                              {seat.seatNumber || seat.name || "?"}
+                            </button>
+                            {idx % 2 !== 0 && <div className="w-10 h-10"></div>}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Tầng 2 */}
+                  <div className="flex-1 bg-surface-container-low rounded-2xl p-5 border border-surface-container/60 relative">
+                    <div className="text-center font-extrabold text-xs text-secondary mb-5 border-b border-outline-variant/30 pb-2 uppercase tracking-wider">
+                      Tầng 2 (Tầng trên)
+                    </div>
+                    <div className="grid grid-cols-3 gap-y-4 gap-x-4 max-w-xs mx-auto">
+                      {floor2Seats.map((seat, idx) => {
+                        const isSelected = bookingData.selectedSeats.some(s => s.seatNumber === seat.seatNumber);
+                        let btnClass = "w-10 h-10 rounded-lg flex items-center justify-center text-[11px] font-bold transition-all ";
+                        if (seat.status === "booked") {
+                          btnClass += "bg-surface-dim/30 cursor-not-allowed text-on-surface-variant/30 border border-transparent";
+                        } else if (isSelected) {
+                          btnClass += "bg-primary text-on-primary shadow-md transform scale-105 border border-primary";
+                        } else {
+                          btnClass += "bg-surface-container-lowest hover:bg-surface-container-highest border border-surface-container-high";
+                        }
+                        return (
+                          <React.Fragment key={seat.id}>
+                            <button
+                              className={btnClass}
+                              disabled={seat.status === "booked"}
+                              onClick={() => handleSeatClick(seat)}
+                            >
+                              {seat.seatNumber || seat.name || "?"}
+                            </button>
+                            {idx % 2 !== 0 && <div className="w-10 h-10"></div>}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-3 gap-y-6 gap-x-8 max-w-xs mx-auto pt-8">
-                  {seats.length === 0 && !loadingSeats ? <p className="col-span-3 text-center text-sm text-on-surface-variant py-4">Sơ đồ trống (API chưa trả ghế)</p> : 
-                    seats.map((seat, idx) => {
+              ) : (
+                /* Sơ đồ 1 tầng hiển thị đơn lẻ */
+                <div className="bg-surface-container-low rounded-2xl p-6 relative max-w-xs mx-auto border border-surface-container/60">
+                  <div className="absolute top-4 right-6 opacity-20">
+                    <span className="material-symbols-outlined text-3xl">airline_seat_recline_extra</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-y-4 gap-x-4 pt-4">
+                    {floor1Seats.map((seat, idx) => {
                       const isSelected = bookingData.selectedSeats.some(s => s.seatNumber === seat.seatNumber);
-                      let btnClass = "w-12 h-12 rounded-xl flex items-center justify-center text-xs font-bold transition-colors ";
+                      let btnClass = "w-10 h-10 rounded-lg flex items-center justify-center text-[11px] font-bold transition-all ";
                       if (seat.status === "booked") {
-                        btnClass += "bg-surface-dim/40 cursor-not-allowed text-on-surface-variant/40";
+                        btnClass += "bg-surface-dim/30 cursor-not-allowed text-on-surface-variant/30 border border-transparent";
                       } else if (isSelected) {
-                        btnClass += "bg-primary text-on-primary shadow-md";
+                        btnClass += "bg-primary text-on-primary shadow-md transform scale-105 border border-primary";
                       } else {
-                        btnClass += "bg-surface-container-high hover:bg-surface-container-highest";
+                        btnClass += "bg-surface-container-lowest hover:bg-surface-container-highest border border-surface-container-high";
                       }
                       return (
                         <React.Fragment key={seat.id}>
-                          <button className={btnClass} onClick={() => handleSeatClick(seat)}>
+                          <button
+                            className={btnClass}
+                            disabled={seat.status === "booked"}
+                            onClick={() => handleSeatClick(seat)}
+                          >
                             {seat.seatNumber || seat.name || "?"}
                           </button>
-                          {idx % 2 !== 0 && <div className="w-12 h-12"></div>}
+                          {idx % 2 !== 0 && <div className="w-10 h-10"></div>}
                         </React.Fragment>
                       );
-                  })}
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

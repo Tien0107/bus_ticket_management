@@ -188,15 +188,12 @@ export default function TicketDetail() {
           <div className="pass-cutout-l"></div>
           <div className="pass-cutout-r"></div>
 
-          {/* QR Code Section */}
+          {/* Ticket Code Section */}
           <div className="p-8 flex flex-col items-center">
-            <div className={`bg-white p-4 rounded-2xl shadow-sm mb-4 ${isCancelled ? 'opacity-30' : ''}`}>
-              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrCodeData}`} alt="QR Code" className="w-[150px] h-[150px]" />
-            </div>
             {isCancelled ? (
                <p className="text-lg font-bold text-error uppercase tracking-widest mb-1">VÉ ĐÃ HỦY</p>
             ) : (
-               <p className="text-[11px] font-medium text-on-surface-variant tracking-widest uppercase mb-1">Quét khi lên xe</p>
+               <p className="text-[11px] font-medium text-on-surface-variant tracking-widest uppercase mb-1">Mã vé</p>
             )}
             <p className="font-mono text-sm font-bold text-primary">{qrCodeData}</p>
             
