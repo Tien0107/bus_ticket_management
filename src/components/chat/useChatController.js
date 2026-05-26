@@ -412,12 +412,13 @@ export default function useChatController() {
           senderName: currentUser.fullName || "Người dùng",
           senderId: currentUser.id,
         });
+        await loadMessages({ boxId: selectedBoxId, reset: true });
       } catch (err) {
         console.error("Lỗi gửi tin nhắn:", err);
         addToast(err.response?.data?.message || "Gửi tin nhắn thất bại", "error");
       }
     },
-    [addToast, composeValue, currentUser, selectedBoxId, stopTyping]
+    [addToast, composeValue, currentUser, loadMessages, selectedBoxId, stopTyping]
   );
 
   const handleCreateBox = useCallback(
@@ -473,7 +474,6 @@ export default function useChatController() {
             };
           })
         );
-        addToast("Đã thu hồi tin nhắn", "success");
       } catch (err) {
         console.error("Lỗi thu hồi tin nhắn:", err);
         addToast(err.response?.data?.message || "Thu hồi tin nhắn thất bại", "error");
