@@ -3,6 +3,7 @@ import { createVehicle, deleteVehicleSeat, getCompanyInfo, getVehicles, manageSe
 import { useToast } from "../../context/ToastContext";
 import {
   CompanyPageShell,
+  DangerButton,
   EmptyState,
   ErrorState,
   Field,
@@ -60,6 +61,8 @@ export default function Vehicles() {
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [formData, setFormData] = useState(defaultForm);
   const [companyId, setCompanyId] = useState(getStoredCompanyId());
+  const [deletingVehicle, setDeletingVehicle] = useState(null);
+  const [deletingSeats, setDeletingSeats] = useState(false);
 
   useEffect(() => {
     fetchVehicles();
@@ -91,7 +94,7 @@ export default function Vehicles() {
 
   const stats = useMemo(() => {
     const active = vehicles.filter((vehicle) => vehicle.status === "active").length;
-    const seats = vehicles.reduce((sum, vehicle) => sum + Number(vehicle.totalSeats || vehicle.capacity || 0), 0);
+    const seats = vehicles.reduce((sum, vehicle) => sum + Number(vehicle.totalSeats ?? vehicle.capacity ?? 0), 0);
 
     return [
       { icon: "directions_bus", label: "Tổng phương tiện", value: vehicles.length, tone: "primary" },
@@ -121,7 +124,7 @@ export default function Vehicles() {
     setFormData({
       vehicleNumber: vehicle.plateNumber || vehicle.vehicleNumber || "",
       type: vehicle.type || "seat",
-      capacity: vehicle.totalSeats || vehicle.capacity || 24,
+      capacity: vehicle.totalSeats ?? vehicle.capacity ?? 24,
       status: vehicle.status || "active",
     });
     setShowModal(true);
@@ -183,15 +186,43 @@ export default function Vehicles() {
     }
   };
 
-  const handleDeleteSeats = async (vehicleId) => {
-    if (!window.confirm("Bạn chắc chắn muốn xóa toàn bộ ghế của xe này?")) return;
+  const handleOpenDeleteSeats = (vehicle) => {
+    setDeletingVehicle(vehicle);
+  };
+
+  const handleCloseDeleteSeats = () => {
+    if (deletingSeats) return;
+    setDeletingVehicle(null);
+  };
+
+  const handleDeleteSeats = async () => {
+    if (!deletingVehicle?.id) return;
 
     try {
-      await deleteVehicleSeat(vehicleId);
-      addToast("Xóa ghế xe thành công", "success");
-      fetchVehicles();
+      setDeletingSeats(true);
+      await deleteVehicleSeat(deletingVehicle.id);
+
+      await updateVehicle(deletingVehicle.id, {
+        plateNumber: deletingVehicle.plateNumber || deletingVehicle.vehicleNumber || "",
+        type: deletingVehicle.type || "seat",
+        totalSeats: 0,
+        status: deletingVehicle.status || "active",
+        companyId: deletingVehicle.companyId || companyId || getStoredCompanyId(),
+      });
+
+      setVehicles((current) =>
+        current.map((vehicle) =>
+          Number(vehicle.id) === Number(deletingVehicle.id)
+            ? { ...vehicle, totalSeats: 0, capacity: 0 }
+            : vehicle
+        )
+      );
+      addToast("Đã gỡ cấu hình ghế của xe", "success");
+      setDeletingVehicle(null);
     } catch (err) {
-      addToast(err.response?.data?.message || "Lỗi xóa ghế xe", "error");
+      addToast(err.response?.data?.message || "Lỗi gỡ cấu hình ghế", "error");
+    } finally {
+      setDeletingSeats(false);
     }
   };
 
@@ -217,7 +248,7 @@ export default function Vehicles() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {vehicles.map((vehicle) => {
-            const seatCount = vehicle.totalSeats || vehicle.capacity || 0;
+            const seatCount = vehicle.totalSeats ?? vehicle.capacity ?? 0;
             const status = vehicle.status || "inactive";
 
             return (
@@ -239,7 +270,7 @@ export default function Vehicles() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-lg bg-surface-container-low p-3">
                     <p className="text-xs font-medium text-on-surface-variant">Sức chứa</p>
-                    <p className="mt-1 font-extrabold text-on-surface">{seatCount} ghế</p>
+                    <p className="mt-1 font-extrabold text-on-surface">{seatCount > 0 ? `${seatCount} ghế` : "Chưa cấu hình"}</p>
                   </div>
                   <div className="rounded-lg bg-surface-container-low p-3">
                     <p className="text-xs font-medium text-on-surface-variant">Trạng thái</p>
@@ -249,7 +280,7 @@ export default function Vehicles() {
 
                 <div className="mt-5 flex justify-end gap-2">
                   <IconButton icon="edit" label="Sửa xe" onClick={() => handleEdit(vehicle)} />
-                  <IconButton icon="delete_outline" label="Xóa ghế" variant="danger" onClick={() => handleDeleteSeats(vehicle.id)} />
+                  <IconButton icon="delete_outline" label="Gỡ cấu hình ghế" variant="danger" onClick={() => handleOpenDeleteSeats(vehicle)} />
                 </div>
               </article>
             );
@@ -311,6 +342,36 @@ export default function Vehicles() {
               </SelectControl>
             </Field>
           </form>
+        </ModalShell>
+      )}
+
+      {deletingVehicle && (
+        <ModalShell
+          title="Gỡ cấu hình ghế"
+          subtitle={deletingVehicle.plateNumber || deletingVehicle.vehicleNumber || "Phương tiện"}
+          onClose={handleCloseDeleteSeats}
+          footer={
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <SecondaryButton onClick={handleCloseDeleteSeats} disabled={deletingSeats}>
+                Hủy
+              </SecondaryButton>
+              <DangerButton icon="delete" onClick={handleDeleteSeats} disabled={deletingSeats}>
+                {deletingSeats ? "Đang gỡ..." : "Gỡ cấu hình"}
+              </DangerButton>
+            </div>
+          }
+        >
+          <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+            <div className="flex gap-3">
+              <span className="material-symbols-outlined mt-0.5 text-red-700">warning</span>
+              <div>
+                <p className="font-bold text-red-800">Bạn chắc chắn muốn gỡ toàn bộ cấu hình ghế của xe này?</p>
+                <p className="mt-1 text-sm leading-6 text-red-700">
+                  Thao tác này chỉ xóa cấu hình ghế của xe, không xóa thông tin xe khỏi danh sách phương tiện.
+                </p>
+              </div>
+            </div>
+          </div>
         </ModalShell>
       )}
     </CompanyPageShell>

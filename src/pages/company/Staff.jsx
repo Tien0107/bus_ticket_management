@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getStaff, updateStaff, updateStaffRole } from "../../api/company";
+import { getStaff, updateStaff, updateStaffRole, verifyCompanyAccount } from "../../api/company";
 import { createNotification } from "../../api/notification";
 import { useToast } from "../../context/ToastContext";
 import {
@@ -38,8 +38,14 @@ const editableRoles = ["dispatcher", "support", "company_admin"];
 
 const statusTone = {
   active: "emerald",
-  inactive: "red",
+  inactive: "amber",
   banned: "red",
+};
+
+const statusLabel = {
+  active: "Hoạt động",
+  inactive: "Không hoạt động",
+  banned: "Bị chặn",
 };
 
 const accountStatusNotification = {
@@ -123,7 +129,7 @@ export default function Staff() {
     if (!keyword) return staff;
 
     return staff.filter((member) =>
-      [member.fullName, member.email, member.phone, member.role, member.staffProfileRole, member.position]
+      [member.fullName, member.email, member.phone, member.role, member.staffProfileRole]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
@@ -188,8 +194,19 @@ export default function Staff() {
 
     try {
       const staffUserId = getStaffId(editingStaff);
-      await updateStaff(staffUserId, editFormData);
       const statusChanged = editFormData.status && editFormData.status !== editingStaff?.status;
+      const staffPayload = {
+        fullName: editFormData.fullName,
+        email: editFormData.email,
+        phone: editFormData.phone,
+      };
+
+      await updateStaff(staffUserId, staffPayload);
+
+      if (statusChanged) {
+        await verifyCompanyAccount({ id: staffUserId, status: editFormData.status });
+      }
+
       const statusNotification = accountStatusNotification[editFormData.status];
       await notifyStaff({
         userId: staffUserId,
@@ -205,9 +222,16 @@ export default function Staff() {
             : "/company/dashboard",
       });
       addToast("Cập nhật nhân viên thành công", "success");
+      setStaff((current) =>
+        current.map((member) =>
+          getStaffId(member) === staffUserId
+            ? { ...member, ...staffPayload, status: editFormData.status }
+            : member
+        )
+      );
       setShowEditModal(false);
       setEditingStaff(null);
-      fetchStaff();
+      await fetchStaff();
     } catch (err) {
       addToast(err.response?.data?.message || "Cập nhật thông tin thất bại", "error");
     }
@@ -242,13 +266,12 @@ export default function Staff() {
       ) : (
         <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-sm">
+            <table className="w-full min-w-[860px] text-sm">
               <thead className="bg-surface-container-low">
                 <tr>
                   <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Nhân viên</th>
                   <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Liên hệ</th>
                   <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Vai trò</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Vị trí</th>
                   <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Trạng thái</th>
                   <th className="px-5 py-3 text-right font-bold text-on-surface-variant">Thao tác</th>
                 </tr>
@@ -277,12 +300,9 @@ export default function Staff() {
                       <td className="px-5 py-4">
                         <StatusBadge tone={roleTone[role] || "slate"}>{roleLabel[role] || role}</StatusBadge>
                       </td>
-                      <td className="px-5 py-4 text-on-surface-variant">
-                        {member.position || member.department || "—"}
-                      </td>
                       <td className="px-5 py-4">
                         <StatusBadge tone={statusTone[member.status] || "slate"}>
-                          {member.status === "active" ? "Hoạt động" : member.status || "—"}
+                          {statusLabel[member.status] || member.status || "—"}
                         </StatusBadge>
                       </td>
                       <td className="px-5 py-4">

@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   getAdminCompanyUploadPresigned,
   getCompanyInfo,
@@ -77,7 +76,6 @@ const isAcceptedFileType = (file, acceptedMimeTypes = []) => {
 };
 
 export default function CompanyProfile() {
-  const navigate = useNavigate();
   const { addToast } = useToast();
 
   const [profile, setProfile] = useState(null);
@@ -174,13 +172,6 @@ export default function CompanyProfile() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    addToast("Đã đăng xuất", "success");
-    navigate("/login");
-  };
-
   if (loading) {
     return (
       <CompanyPageShell title="Hồ sơ công ty" description="Đang tải thông tin công ty.">
@@ -204,16 +195,6 @@ export default function CompanyProfile() {
       eyebrow="Profile"
       title="Hồ sơ công ty"
       description="Cập nhật tên, hotline, logo và địa chỉ theo đúng dữ liệu backend đang hỗ trợ."
-      actions={
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition-colors hover:bg-red-100"
-        >
-          <span className="material-symbols-outlined text-[20px]">logout</span>
-          Đăng xuất
-        </button>
-      }
       maxWidth="max-w-6xl"
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
