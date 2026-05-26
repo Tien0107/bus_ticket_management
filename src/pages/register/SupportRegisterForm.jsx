@@ -11,7 +11,6 @@ export default function SupportRegisterForm() {
   const { addToast } = useToast();
   const [form, setForm] = useState({
     fullName: "",
-    username: "",
     email: "",
     phone: "",
     password: "",
@@ -97,7 +96,6 @@ export default function SupportRegisterForm() {
     }
 
     const payload = {
-      username: form.username,
       fullName: form.fullName,
       contactInfo: {
         email: form.email,
@@ -222,31 +220,17 @@ export default function SupportRegisterForm() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-on-surface-variant ml-1">Họ và tên</label>
-          <input
-            name="fullName"
-            className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
-            placeholder="Nguyễn Văn B"
-            type="text"
-            value={form.fullName}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-on-surface-variant ml-1">Tên đăng nhập</label>
-          <input
-            name="username"
-            className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
-            placeholder="support_a"
-            type="text"
-            value={form.username}
-            onChange={handleChange}
-            required
-          />
-        </div>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-on-surface-variant ml-1">Họ và tên</label>
+        <input
+          name="fullName"
+          className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
+          placeholder="Nguyễn Văn B"
+          type="text"
+          value={form.fullName}
+          onChange={handleChange}
+          required
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
