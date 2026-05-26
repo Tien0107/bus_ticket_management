@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { signIn } from "../api/auth";
 import LoginForm from "./login/LoginForm";
 import SocialLoginButtons from "./login/SocialLoginButtons";
-import { buildAuthenticatedUser, getRedirectUrl, waitForLoginLoading } from "./login/authUtils";
+import { buildAuthenticatedUser, getRedirectUrl } from "./login/authUtils";
 
 const getLoginErrorState = (message, loginMethod) => {
   if (!message) return { fieldErrors: {}, formError: "" };
@@ -63,10 +63,8 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const completeLogin = useCallback(
-    async (data, startedAt = Date.now()) => {
+    async (data) => {
       const { token, user } = buildAuthenticatedUser(data);
-
-      await waitForLoginLoading(startedAt);
 
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
@@ -101,16 +99,14 @@ function Login() {
 
     setError("");
     setLoading(true);
-    const startedAt = Date.now();
 
     try {
       const account = identifier.trim();
       const payload = loginMethod === "email" ? { email: account, password } : { phone: account, password };
       const res = await signIn(payload);
-      await completeLogin(res.data, startedAt);
+      await completeLogin(res.data);
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || "Đăng nhập thất bại";
-      await waitForLoginLoading(startedAt);
       setError(errorMsg);
       setLoading(false);
     }
