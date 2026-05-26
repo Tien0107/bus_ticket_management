@@ -16,9 +16,19 @@ export default function LoginForm({
   onTogglePassword,
   loading,
   onSubmit,
+  fieldErrors = {},
+  formError = "",
 }) {
+  const hasIdentifierError = Boolean(fieldErrors.identifier);
+  const hasPasswordError = Boolean(fieldErrors.password);
+  const inputBaseClass =
+    "w-full rounded-xl border bg-white py-3.5 text-sm font-medium outline-none transition-all placeholder:text-outline focus:ring-4 disabled:cursor-not-allowed disabled:bg-surface-container-low/50 disabled:text-on-surface-variant";
+  const normalInputClass = "border-outline-variant/40 focus:border-primary focus:ring-primary/10";
+  const errorInputClass = "border-red-300 bg-red-50/30 focus:border-red-500 focus:ring-red-500/10";
+  const fieldErrorClass = "mt-2 flex items-center gap-1.5 text-xs font-semibold text-red-500";
+
   return (
-    <form onSubmit={onSubmit} className="space-y-5" aria-busy={loading}>
+    <form onSubmit={onSubmit} className="space-y-5" aria-busy={loading} noValidate>
       <div>
         <div className="mb-3 grid grid-cols-2 rounded-xl bg-surface-container-low p-1">
           {loginMethodOptions.map((item) => {
@@ -50,17 +60,25 @@ export default function LoginForm({
             {loginMethod === "email" ? "mail" : "call"}
           </span>
           <input
-            className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-4 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
-            placeholder={loginMethod === "email" ? "you@example.com" : "0901234567"}
+            className={`${inputBaseClass} pl-12 pr-4 ${hasIdentifierError ? errorInputClass : normalInputClass}`}
+            placeholder={loginMethod === "email" ? "you@gmail.com" : "0901234567"}
             type={loginMethod === "email" ? "email" : "tel"}
             inputMode={loginMethod === "email" ? "email" : "tel"}
             autoComplete={loginMethod === "email" ? "email" : "tel"}
             value={identifier}
             onChange={(event) => onIdentifierChange(event.target.value)}
             disabled={loading}
+            aria-invalid={hasIdentifierError}
+            aria-describedby={hasIdentifierError ? "login-identifier-error" : undefined}
             required
           />
         </div>
+        {hasIdentifierError && (
+          <p id="login-identifier-error" className={fieldErrorClass}>
+            <span className="material-symbols-outlined text-[16px]">info</span>
+            {fieldErrors.identifier}
+          </p>
+        )}
       </div>
 
       <div>
@@ -75,12 +93,14 @@ export default function LoginForm({
             lock
           </span>
           <input
-            className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-12 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
+            className={`${inputBaseClass} pl-12 pr-12 ${hasPasswordError ? errorInputClass : normalInputClass}`}
             placeholder="Nhập mật khẩu"
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(event) => onPasswordChange(event.target.value)}
             disabled={loading}
+            aria-invalid={hasPasswordError}
+            aria-describedby={hasPasswordError ? "login-password-error" : undefined}
             required
           />
           <button
@@ -95,6 +115,12 @@ export default function LoginForm({
             </span>
           </button>
         </div>
+        {hasPasswordError && (
+          <p id="login-password-error" className={fieldErrorClass}>
+            <span className="material-symbols-outlined text-[16px]">info</span>
+            {fieldErrors.password}
+          </p>
+        )}
       </div>
 
       <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-container-low px-4 py-3">
@@ -124,6 +150,13 @@ export default function LoginForm({
           </>
         )}
       </button>
+
+      {formError && (
+        <p className="flex items-center justify-center gap-1.5 text-center text-xs font-bold text-red-600">
+          <span className="material-symbols-outlined text-[16px]">info</span>
+          {formError}
+        </p>
+      )}
     </form>
   );
 }

@@ -1,5 +1,13 @@
 import { jwtDecode } from "jwt-decode";
 
+export const MIN_LOGIN_LOADING_MS = 2000;
+
+export const waitForLoginLoading = (startedAt = Date.now()) =>
+  new Promise((resolve) => {
+    const elapsed = Date.now() - startedAt;
+    window.setTimeout(resolve, Math.max(0, MIN_LOGIN_LOADING_MS - elapsed));
+  });
+
 export const firstValue = (...values) =>
   values.find((value) => value !== undefined && value !== null && value !== "");
 

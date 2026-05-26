@@ -11,6 +11,13 @@ export default function CreateChatForm({
   selectedRecipient,
 }) {
   const hasSearchKeyword = recipientSearch.trim().length > 0;
+  const resultTitle = loadingRecipients
+    ? "Đang tải người nhận..."
+    : selectedRecipient
+    ? `Đã chọn: ${selectedRecipient.fullName}`
+    : hasSearchKeyword
+    ? "Kết quả tìm kiếm"
+    : "Tìm người nhận";
 
   return (
     <form onSubmit={onSubmit} className="mb-4 space-y-3 rounded-xl border border-emerald-100 bg-white p-3">
@@ -19,21 +26,21 @@ export default function CreateChatForm({
         value={recipientSearch}
         onChange={onRecipientSearchChange}
         className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-        placeholder="Tìm người nhận theo tên, email hoặc số điện thoại"
+        placeholder="Email, số điện thoại hoặc role"
       />
       <div className="rounded-lg border border-outline-variant/40 bg-white">
-        <div className="border-b border-outline-variant/20 px-3 py-2 text-xs font-bold text-on-surface-variant">
-          {loadingRecipients
-            ? "Đang tải người nhận..."
-            : selectedRecipient
-            ? `Đã chọn: ${selectedRecipient.fullName}`
-            : "Chọn người nhận"}
+        <div className="flex items-center gap-2 border-b border-outline-variant/20 px-3 py-2 text-xs font-bold text-on-surface-variant">
+          <span className="material-symbols-outlined text-[17px] text-primary">
+            {selectedRecipient ? "check_circle" : hasSearchKeyword ? "manage_search" : "person_search"}
+          </span>
+          <span>{resultTitle}</span>
         </div>
 
         <div className="max-h-44 overflow-y-auto p-2">
           {loadingRecipients ? (
-            <div className="flex items-center justify-center py-6 text-sm font-medium text-on-surface-variant">
-              Đang tải...
+            <div className="flex items-center justify-center gap-2 py-6 text-sm font-medium text-on-surface-variant">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary/25 border-t-primary" />
+              <span>Đang tải...</span>
             </div>
           ) : filteredRecipientUsers.length ? (
             <div className="space-y-2">
@@ -69,9 +76,26 @@ export default function CreateChatForm({
                 );
               })}
             </div>
+          ) : !hasSearchKeyword ? (
+            <div className="flex items-center gap-3 rounded-lg bg-emerald-50/70 px-3 py-4 text-left">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-primary shadow-sm">
+                <span className="material-symbols-outlined text-[22px]">search</span>
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-on-surface">Bắt đầu tìm kiếm</span>
+                <span className="mt-0.5 block text-xs font-medium text-on-surface-variant">
+                  Nhập email, số điện thoại hoặc role ở ô trên
+                </span>
+              </span>
+            </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-outline-variant/50 px-3 py-6 text-center text-sm font-medium text-on-surface-variant">
-              {hasSearchKeyword ? "Không tìm thấy người nhận theo từ khóa" : "Chưa có người nhận có thể chat"}
+            <div className="flex items-center gap-3 rounded-lg border border-dashed border-outline-variant/50 px-3 py-4 text-left">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-container-low text-on-surface-variant">
+                <span className="material-symbols-outlined text-[22px]">person_off</span>
+              </span>
+              <span className="min-w-0 text-sm font-medium text-on-surface-variant">
+                Không tìm thấy người nhận phù hợp
+              </span>
             </div>
           )}
         </div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { verifyAuthFacebookToken, verifyAuthGoogleToken } from "../../api/auth";
-import { useToast } from "../../context/ToastContext";
+import { waitForLoginLoading } from "./authUtils";
 import { FACEBOOK_APP_ID, initGoogleButton, isHttpsPage, loadFacebookSdk } from "./socialAuth";
 
 const GoogleIcon = () => (
@@ -25,7 +25,6 @@ const GoogleIcon = () => (
 );
 
 export default function SocialLoginButtons({ disabled = false, onLoginSuccess, setError }) {
-  const { addToast } = useToast();
   const googleButtonRef = useRef(null);
   const [socialLoading, setSocialLoading] = useState("");
   const [googleReady, setGoogleReady] = useState(false);
@@ -33,27 +32,30 @@ export default function SocialLoginButtons({ disabled = false, onLoginSuccess, s
 
   const handleGoogleCredential = useCallback(
     async (response) => {
+      const startedAt = Date.now();
+      setSocialLoading("google");
+
       if (!response?.credential) {
+        await waitForLoginLoading(startedAt);
         setError("Không nhận được Google ID token.");
-        addToast("Đăng nhập Google thất bại", "error");
+        setSocialLoading("");
         return;
       }
 
       setError("");
-      setSocialLoading("google");
 
       try {
         const res = await verifyAuthGoogleToken({ idToken: response.credential });
-        await onLoginSuccess(res.data, "Đăng nhập Google thành công");
+        await onLoginSuccess(res.data, startedAt);
       } catch (err) {
         const errorMsg = err.response?.data?.message || err.message || "Đăng nhập Google thất bại";
+        await waitForLoginLoading(startedAt);
         setError(errorMsg);
-        addToast("Đăng nhập Google thất bại", "error");
       } finally {
         setSocialLoading("");
       }
     },
-    [addToast, onLoginSuccess, setError]
+    [onLoginSuccess, setError]
   );
 
   useEffect(() => {
@@ -83,22 +85,23 @@ export default function SocialLoginButtons({ disabled = false, onLoginSuccess, s
   const handleGoogleButtonFallback = useCallback(() => {
     if (disabled || socialLoading) return;
     setGoogleRenderKey((key) => key + 1);
-    addToast("Google Login đang tải, thử lại sau vài giây", "info");
-  }, [addToast, disabled, socialLoading]);
+    setError("Google Login đang tải, thử lại sau vài giây.");
+  }, [disabled, setError, socialLoading]);
 
   const handleFacebookLogin = async () => {
     if (disabled || socialLoading) return;
 
     setError("");
+    setSocialLoading("facebook");
+    const startedAt = Date.now();
 
     if (!isHttpsPage()) {
       const errorMsg = "Facebook Login cần chạy trên HTTPS. Hãy mở trang bằng https://localhost:3000/login.";
+      await waitForLoginLoading(startedAt);
       setError(errorMsg);
-      addToast("Facebook Login cần HTTPS", "error");
+      setSocialLoading("");
       return;
     }
-
-    setSocialLoading("facebook");
 
     try {
       const FB = await loadFacebookSdk();
@@ -120,11 +123,11 @@ export default function SocialLoginButtons({ disabled = false, onLoginSuccess, s
         idToken: loginResponse.authResponse.idToken || signedRequest || "",
       });
 
-      await onLoginSuccess(res.data, "Đăng nhập Facebook thành công");
+      await onLoginSuccess(res.data, startedAt);
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || "Đăng nhập Facebook thất bại";
+      await waitForLoginLoading(startedAt);
       setError(errorMsg);
-      addToast("Đăng nhập Facebook thất bại", "error");
     } finally {
       setSocialLoading("");
     }

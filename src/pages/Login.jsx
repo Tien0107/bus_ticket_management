@@ -1,14 +1,60 @@
 import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signIn } from "../api/auth";
-import { useToast } from "../context/ToastContext";
 import LoginForm from "./login/LoginForm";
 import SocialLoginButtons from "./login/SocialLoginButtons";
-import { buildAuthenticatedUser, getRedirectUrl } from "./login/authUtils";
+import { buildAuthenticatedUser, getRedirectUrl, waitForLoginLoading } from "./login/authUtils";
+
+const getLoginErrorState = (message, loginMethod) => {
+  if (!message) return { fieldErrors: {}, formError: "" };
+
+  const normalized = message.toLowerCase();
+  const fieldErrors = {};
+
+  if (normalized.includes("vui lòng nhập mật khẩu")) {
+    fieldErrors.password = message;
+  } else if (normalized.includes("định dạng") || normalized.includes("vui lòng nhập")) {
+    fieldErrors.identifier = message;
+  } else if (normalized.includes("mật khẩu") || normalized.includes("password")) {
+    fieldErrors.password = message;
+  } else if (
+    normalized.includes("email") ||
+    normalized.includes("phone") ||
+    normalized.includes("số điện") ||
+    normalized.includes("tài khoản") ||
+    normalized.includes("account") ||
+    normalized.includes("not found") ||
+    normalized.includes("không tồn tại")
+  ) {
+    fieldErrors.identifier =
+      loginMethod === "email" ? "Email chưa đúng hoặc chưa được đăng ký." : "Số điện thoại chưa đúng hoặc chưa được đăng ký.";
+  } else {
+    return { fieldErrors, formError: message };
+  }
+
+  return { fieldErrors, formError: "" };
+};
+
+const getIdentifierValidationError = (loginMethod, value) => {
+  const account = value.trim();
+
+  if (!account) {
+    return loginMethod === "email" ? "Vui lòng nhập email." : "Vui lòng nhập số điện thoại.";
+  }
+
+  if (loginMethod === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(account)) {
+    return "Email không đúng định dạng. Ví dụ: ten@gmail.com.";
+  }
+
+  if (loginMethod === "phone" && !/^\d{10,13}$/.test(account)) {
+    return "Số điện thoại chỉ gồm 10-13 chữ số.";
+  }
+
+  return "";
+};
 
 function Login() {
   const navigate = useNavigate();
-  const { addToast } = useToast();
   const [loginMethod, setLoginMethod] = useState("email");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -17,20 +63,18 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const completeLogin = useCallback(
-    async (data, successMessage = "Đăng nhập thành công") => {
+    async (data, startedAt = Date.now()) => {
       const { token, user } = buildAuthenticatedUser(data);
+
+      await waitForLoginLoading(startedAt);
 
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      addToast(successMessage, "success");
-
       const redirectUrl = getRedirectUrl(user);
-      setTimeout(() => {
-        navigate(redirectUrl);
-      }, 500);
+      navigate(redirectUrl);
     },
-    [addToast, navigate]
+    [navigate]
   );
 
   const handleLoginMethodChange = (method) => {
@@ -38,23 +82,36 @@ function Login() {
     setIdentifier("");
     setError("");
   };
+  const loginErrorState = getLoginErrorState(error, loginMethod);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (loading) return;
 
+    const identifierError = getIdentifierValidationError(loginMethod, identifier);
+    if (identifierError) {
+      setError(identifierError);
+      return;
+    }
+
+    if (!password.trim()) {
+      setError("Vui lòng nhập mật khẩu.");
+      return;
+    }
+
     setError("");
     setLoading(true);
+    const startedAt = Date.now();
 
     try {
       const account = identifier.trim();
       const payload = loginMethod === "email" ? { email: account, password } : { phone: account, password };
       const res = await signIn(payload);
-      await completeLogin(res.data);
+      await completeLogin(res.data, startedAt);
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || "Đăng nhập thất bại";
+      await waitForLoginLoading(startedAt);
       setError(errorMsg);
-      addToast("Đăng nhập thất bại", "error");
       setLoading(false);
     }
   };
@@ -129,24 +186,25 @@ function Login() {
               </p>
             </div>
 
-            {error && (
-              <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-                <span className="material-symbols-outlined text-[22px]">error</span>
-                <span className="text-sm font-medium leading-6">{error}</span>
-              </div>
-            )}
-
             <LoginForm
               loginMethod={loginMethod}
               onLoginMethodChange={handleLoginMethodChange}
               identifier={identifier}
-              onIdentifierChange={setIdentifier}
+              onIdentifierChange={(value) => {
+                setIdentifier(value);
+                setError("");
+              }}
               password={password}
-              onPasswordChange={setPassword}
+              onPasswordChange={(value) => {
+                setPassword(value);
+                setError("");
+              }}
               showPassword={showPassword}
               onTogglePassword={() => setShowPassword((current) => !current)}
               loading={loading}
               onSubmit={handleSubmit}
+              fieldErrors={loginErrorState.fieldErrors}
+              formError={loginErrorState.formError}
             />
 
             <SocialLoginButtons disabled={loading} onLoginSuccess={completeLogin} setError={setError} />
