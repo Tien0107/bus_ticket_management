@@ -22,8 +22,11 @@ export default function useChatSocket({
   setTypingByBox,
   socketRef,
   viewerId,
+  enabled = true,
 }) {
   useEffect(() => {
+    if (!enabled) return undefined;
+
     const token = localStorage.getItem("token")?.replace(/^Bearer\s+/i, "");
     if (!token) {
       setSocketError("Thiếu token đăng nhập.");
@@ -179,5 +182,6 @@ export default function useChatSocket({
     setTypingByBox,
     socketRef,
     viewerId,
+    enabled,
   ]);
 }

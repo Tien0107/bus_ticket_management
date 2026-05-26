@@ -1,15 +1,19 @@
 import React from "react";
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, useLocation } from "react-router-dom";
 import MainNavbar from "./MainNavbar";
 import MainFooter from "./MainFooter";
 import ChatWidget from "../chat/ChatWidget";
 
+const publicMainPaths = new Set(["/", "/routes", "/companies", "/promotions", "/contact"]);
+
 const MainLayout = () => {
+  const location = useLocation();
   const user = localStorage.getItem("user");
   const token = localStorage.getItem("token");
-  const isCustomerLoggedIn = !!(user && token);
+  const isLoggedIn = !!(user && token);
+  const isPublicPage = publicMainPaths.has(location.pathname);
 
-  if (!isCustomerLoggedIn) {
+  if (!isLoggedIn && !isPublicPage) {
     return <Navigate to="/login" replace />;
   }
 
@@ -25,7 +29,7 @@ const MainLayout = () => {
         <Outlet />
       </main>
       <MainFooter />
-      {isCustomerLoggedIn && <ChatWidget />}
+      <ChatWidget />
     </div>
   );
 };

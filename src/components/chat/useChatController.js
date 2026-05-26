@@ -37,7 +37,9 @@ const MAX_RECIPIENT_QUERY_PAGES = 8;
 export default function useChatController() {
   const { addToast } = useToast();
   const [currentUser] = useState(getStoredUser);
+  const [token] = useState(() => localStorage.getItem("token"));
   const viewerId = currentUser?.id ? Number(currentUser.id) : null;
+  const isAuthenticated = Boolean(currentUser?.id && token);
   const [open, setOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [boxes, setBoxes] = useState([]);
@@ -137,6 +139,13 @@ export default function useChatController() {
 
   const loadBoxes = useCallback(
     async ({ reset = true, next = null } = {}) => {
+      if (!isAuthenticated) {
+        setBoxes([]);
+        setBoxNext(null);
+        setLoadingBoxes(false);
+        return;
+      }
+
       try {
         setLoadingBoxes(reset);
         const response = await getChatBoxes({ limit: PAGE_SIZE, ...(next ? { next } : {}) });
@@ -155,7 +164,7 @@ export default function useChatController() {
         setLoadingBoxes(false);
       }
     },
-    [addToast]
+    [addToast, isAuthenticated]
   );
 
   const loadRecipients = useCallback(async () => {
@@ -236,7 +245,7 @@ export default function useChatController() {
 
   const loadMessages = useCallback(
     async ({ boxId, reset = true, next = null } = {}) => {
-      if (!boxId) return;
+      if (!boxId || !isAuthenticated) return;
 
       try {
         setLoadingMessages(reset);
@@ -257,7 +266,7 @@ export default function useChatController() {
         setLoadingMessages(false);
       }
     },
-    [addToast, applyRecallCache]
+    [addToast, applyRecallCache, isAuthenticated]
   );
 
   const markRead = useCallback(
@@ -290,11 +299,17 @@ export default function useChatController() {
     setTypingByBox,
     socketRef,
     viewerId,
+    enabled: isAuthenticated,
   });
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setLoadingBoxes(false);
+      return;
+    }
+
     loadBoxes({ reset: true });
-  }, [loadBoxes]);
+  }, [isAuthenticated, loadBoxes]);
 
   useEffect(() => {
     if (!open || !showCreate) {
@@ -516,6 +531,7 @@ export default function useChatController() {
     messageNext,
     messages,
     messagesEndRef,
+    isAuthenticated,
     onlineUserIds,
     open,
     peerTyping,

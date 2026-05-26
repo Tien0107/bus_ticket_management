@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ChatBoxList from "./ChatBoxList";
 import CreateChatForm from "./CreateChatForm";
 import MessageInput from "./MessageInput";
@@ -6,23 +8,70 @@ import useChatController from "./useChatController";
 
 export default function ChatWidget() {
   const chat = useChatController();
+  const navigate = useNavigate();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  const handleOpenChat = () => {
+    if (!chat.isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
+    setShowLoginPrompt(false);
+    chat.setOpen(true);
+  };
+
+  const handleLoginNow = () => {
+    setShowLoginPrompt(false);
+    navigate("/login");
+  };
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
       {!chat.open && (
-        <button
-          type="button"
-          onClick={() => chat.setOpen(true)}
-          className="relative inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-[0_14px_34px_rgba(0,128,43,0.28)] ring-4 ring-white transition-all hover:-translate-y-0.5 hover:bg-primary/90"
-          aria-label="Mở trò chuyện"
-        >
-          <span className="material-symbols-outlined text-[28px]">chat_bubble</span>
-          {chat.totalUnread > 0 && (
-            <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
-              {chat.totalUnread}
-            </span>
+        <div className="flex items-end gap-3">
+          {showLoginPrompt && (
+            <div className="w-[min(280px,calc(100vw-104px))] rounded-2xl border border-emerald-100 bg-white p-4 text-left shadow-[0_18px_50px_rgba(15,23,42,0.18)]">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-extrabold text-on-surface">Bạn chưa đăng nhập</p>
+                  <p className="mt-1 text-xs font-medium leading-5 text-on-surface-variant">
+                    Đăng nhập để mở trò chuyện và gửi tin nhắn.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPrompt(false)}
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-low"
+                  aria-label="Đóng thông báo đăng nhập"
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={handleLoginNow}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-bold text-white hover:bg-primary/90"
+              >
+                <span className="material-symbols-outlined text-[18px]">login</span>
+                Đăng nhập ngay
+              </button>
+            </div>
           )}
-        </button>
+          <button
+            type="button"
+            onClick={handleOpenChat}
+            className="relative inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-[0_14px_34px_rgba(0,128,43,0.28)] ring-4 ring-white transition-all hover:-translate-y-0.5 hover:bg-primary/90"
+            aria-label="Mở trò chuyện"
+          >
+            <span className="material-symbols-outlined text-[28px]">chat_bubble</span>
+            {chat.totalUnread > 0 && (
+              <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                {chat.totalUnread}
+              </span>
+            )}
+          </button>
+        </div>
       )}
 
       {chat.open && (
