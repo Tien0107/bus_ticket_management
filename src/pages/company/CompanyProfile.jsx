@@ -305,11 +305,6 @@ export default function CompanyProfile() {
                             </SecondaryButton>
                           )}
                         </div>
-                        {formData.logoUrl && (
-                          <p className="mt-3 truncate text-xs font-medium text-on-surface-variant">
-                            {formData.logoUrl}
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -369,7 +364,6 @@ export default function CompanyProfile() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <InfoItem label="Tên công ty" value={profile.name} />
                 <InfoItem label="Hotline" value={profile.hotline} />
-                <InfoItem label="Logo URL" value={profile.logoUrl} />
                 <InfoItem label="Địa chỉ" value={profile.address} />
                 <InfoItem label="Vĩ độ" value={profile.latitude} />
                 <InfoItem label="Kinh độ" value={profile.longitude} />
