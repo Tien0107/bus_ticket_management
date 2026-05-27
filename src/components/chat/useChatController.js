@@ -438,6 +438,21 @@ export default function useChatController() {
         )
       );
 
+      const realtimePayload = {
+        id: optimisticMessage.id,
+        messageId: optimisticMessage.id,
+        clientMessageId: optimisticMessage.id,
+        body: text,
+        message: text,
+        boxId: selectedBoxId,
+        createdAt,
+        fullName: currentUser.fullName || "Người dùng",
+        senderName: currentUser.fullName || "Người dùng",
+        senderId: currentUser.id,
+      };
+
+      socketRef.current?.emit("chat:message:send", realtimePayload);
+
       try {
         const response = await sendChatMessage(selectedBoxId, { message: text });
         const sentMessagePayload = getSentMessagePayload(response.data);
@@ -459,14 +474,6 @@ export default function useChatController() {
           );
         }
 
-        socketRef.current?.emit("chat:message:send", {
-          body: text,
-          message: text,
-          boxId: selectedBoxId,
-          createdAt,
-          senderName: currentUser.fullName || "Người dùng",
-          senderId: currentUser.id,
-        });
         if (!sentMessagePayload) {
           window.setTimeout(() => {
             loadMessages({ boxId: selectedBoxId, reset: true, silent: true });
