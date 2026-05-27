@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   createChatBox,
   getChatBoxes,
@@ -26,6 +26,7 @@ import {
   PAGE_SIZE,
   readRecalledMessageIds,
   RECALLED_MESSAGE,
+  sortBoxesByLatestActivity,
   sortMessagesOldestFirst,
   toNumber,
   zeroUnreadForViewer,
@@ -33,6 +34,18 @@ import {
 import useChatSocket from "./useChatSocket";
 
 const MAX_RECIPIENT_QUERY_PAGES = 8;
+
+const getSentMessagePayload = (data) => {
+  const candidates = [
+    data?.message,
+    data?.chatMessage,
+    data?.data?.message,
+    data?.data?.chatMessage,
+    data?.data,
+  ];
+
+  return candidates.find((candidate) => candidate && typeof candidate === "object" && !Array.isArray(candidate)) || null;
+};
 
 export default function useChatController() {
   const { addToast } = useToast();
@@ -65,7 +78,10 @@ export default function useChatController() {
   const socketRef = useRef(null);
   const selectedBoxRef = useRef(null);
   const activeBoxRef = useRef(null);
+  const messagesScrollRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const olderScrollSnapshotRef = useRef(null);
+  const skipNextAutoScrollRef = useRef(false);
   const typingTimerRef = useRef(null);
   const typingActiveRef = useRef(false);
   const recallCacheKey = useMemo(() => getRecallCacheKey(viewerId), [viewerId]);
@@ -154,7 +170,10 @@ export default function useChatController() {
         setBoxes((current) => {
           if (reset) return data.boxes;
           const known = new Set(current.map((box) => String(box.id)));
-          return [...current, ...data.boxes.filter((box) => !known.has(String(box.id)))];
+          return sortBoxesByLatestActivity([
+            ...current,
+            ...data.boxes.filter((box) => !known.has(String(box.id))),
+          ]);
         });
         setBoxNext(data.next);
       } catch (err) {
@@ -244,11 +263,11 @@ export default function useChatController() {
   }, [addToast, recipientSearch, viewerId]);
 
   const loadMessages = useCallback(
-    async ({ boxId, reset = true, next = null } = {}) => {
+    async ({ boxId, reset = true, next = null, silent = false } = {}) => {
       if (!boxId || !isAuthenticated) return;
 
       try {
-        setLoadingMessages(reset);
+        if (!silent) setLoadingMessages(reset);
         const response = await getChatMessages(boxId, { limit: PAGE_SIZE, ...(next ? { next } : {}) });
         const data = normalizeMessagesResponse(response.data, boxId);
         const messagesWithRecallState = applyRecallCache(data.messages);
@@ -263,7 +282,7 @@ export default function useChatController() {
         console.error("Lỗi tải tin nhắn:", err);
         addToast(err.response?.data?.message || "Không thể tải tin nhắn", "error");
       } finally {
-        setLoadingMessages(false);
+        if (!silent) setLoadingMessages(false);
       }
     },
     [addToast, applyRecallCache, isAuthenticated]
@@ -344,7 +363,22 @@ export default function useChatController() {
     markRead(selectedBoxId);
   }, [loadMessages, markRead, selectedBoxId]);
 
+  useLayoutEffect(() => {
+    const snapshot = olderScrollSnapshotRef.current;
+    const scroller = messagesScrollRef.current;
+
+    if (!snapshot || !scroller) return;
+
+    scroller.scrollTop = Math.max(0, scroller.scrollHeight - snapshot.scrollHeight + snapshot.scrollTop);
+    olderScrollSnapshotRef.current = null;
+  }, [messages.length]);
+
   useEffect(() => {
+    if (skipNextAutoScrollRef.current) {
+      skipNextAutoScrollRef.current = false;
+      return;
+    }
+
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length, selectedBoxId]);
 
@@ -395,15 +429,36 @@ export default function useChatController() {
 
       setMessages((current) => appendUniqueMessages(current, optimisticMessage));
       setBoxes((current) =>
-        current.map((box) =>
-          Number(box.id) === Number(selectedBoxId)
-            ? { ...box, lastMessage: text, lastMessageSenderId: currentUser.id }
-            : box
+        sortBoxesByLatestActivity(
+          current.map((box) =>
+            Number(box.id) === Number(selectedBoxId)
+              ? { ...box, lastMessage: text, lastMessageSenderId: currentUser.id, lastMessageAt: createdAt }
+              : box
+          )
         )
       );
 
       try {
-        await sendChatMessage(selectedBoxId, { message: text });
+        const response = await sendChatMessage(selectedBoxId, { message: text });
+        const sentMessagePayload = getSentMessagePayload(response.data);
+        if (sentMessagePayload) {
+          const sentMessage = normalizeMessage(
+            {
+              ...sentMessagePayload,
+              boxId: selectedBoxId,
+              message: sentMessagePayload.message ?? sentMessagePayload.body ?? text,
+              senderId: sentMessagePayload.senderId ?? currentUser.id,
+              fullName: sentMessagePayload.fullName || sentMessagePayload.senderName || currentUser.fullName,
+              createdAt: sentMessagePayload.createdAt || createdAt,
+            },
+            selectedBoxId
+          );
+
+          setMessages((current) =>
+            current.map((message) => (String(message.id) === String(optimisticMessage.id) ? sentMessage : message))
+          );
+        }
+
         socketRef.current?.emit("chat:message:send", {
           body: text,
           message: text,
@@ -412,7 +467,11 @@ export default function useChatController() {
           senderName: currentUser.fullName || "Người dùng",
           senderId: currentUser.id,
         });
-        await loadMessages({ boxId: selectedBoxId, reset: true });
+        if (!sentMessagePayload) {
+          window.setTimeout(() => {
+            loadMessages({ boxId: selectedBoxId, reset: true, silent: true });
+          }, 300);
+        }
       } catch (err) {
         console.error("Lỗi gửi tin nhắn:", err);
         addToast(err.response?.data?.message || "Gửi tin nhắn thất bại", "error");
@@ -506,8 +565,26 @@ export default function useChatController() {
     loadBoxes({ reset: false, next: boxNext });
   }, [boxNext, loadBoxes]);
 
-  const handleLoadOlderMessages = useCallback(() => {
-    loadMessages({ boxId: selectedBoxId, reset: false, next: messageNext });
+  const handleLoadOlderMessages = useCallback(async () => {
+    if (!selectedBoxId || !messageNext) return;
+
+    const scroller = messagesScrollRef.current;
+    if (scroller) {
+      olderScrollSnapshotRef.current = {
+        scrollHeight: scroller.scrollHeight,
+        scrollTop: scroller.scrollTop,
+      };
+      skipNextAutoScrollRef.current = true;
+    }
+
+    await loadMessages({ boxId: selectedBoxId, reset: false, next: messageNext });
+
+    window.requestAnimationFrame(() => {
+      if (olderScrollSnapshotRef.current) {
+        olderScrollSnapshotRef.current = null;
+        skipNextAutoScrollRef.current = false;
+      }
+    });
   }, [loadMessages, messageNext, selectedBoxId]);
 
   return {
@@ -531,6 +608,7 @@ export default function useChatController() {
     messageNext,
     messages,
     messagesEndRef,
+    messagesScrollRef,
     isAuthenticated,
     onlineUserIds,
     open,

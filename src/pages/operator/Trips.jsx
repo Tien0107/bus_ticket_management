@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { getDrivers, getRoutes, getTrips, getVehicles, updateTrip } from "../../api/operator";
 import { createNotification } from "../../api/notification";
 import { useToast } from "../../context/ToastContext";
@@ -37,6 +37,34 @@ const statusTone = {
   cancelled: "red",
 };
 
+const filterStatuses = new Set(Object.keys(statusLabel));
+
+const getTripFilterStorageKey = (scheduleId) => `operatorTripFilters:${scheduleId || "unknown"}`;
+
+const readStoredTripFilters = (scheduleId) => {
+  try {
+    const filters = JSON.parse(sessionStorage.getItem(getTripFilterStorageKey(scheduleId)) || "{}");
+    return filters && typeof filters === "object" ? filters : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveStoredTripFilters = (scheduleId, filters) => {
+  try {
+    const hasFilters = (filters.status && filters.status !== "all") || filters.date;
+    const storageKey = getTripFilterStorageKey(scheduleId);
+
+    if (hasFilters) {
+      sessionStorage.setItem(storageKey, JSON.stringify(filters));
+    } else {
+      sessionStorage.removeItem(storageKey);
+    }
+  } catch {
+    // sessionStorage can be unavailable in private or restricted browser modes.
+  }
+};
+
 const emptyForm = {
   vehicleId: "",
   driverId: "",
@@ -46,7 +74,29 @@ const emptyForm = {
 
 const getTripVehicleId = (trip = {}) => trip.vehicleId ?? trip.vehicle_id ?? trip.vehicle?.id ?? "";
 const getTripDriverId = (trip = {}) => trip.driverId ?? trip.driver_id ?? trip.driver?.id ?? "";
-const getTripDepartureDate = (trip = {}) => trip.departureDate ?? trip.departure_date ?? "";
+const getTripDriverName = (trip = {}) =>
+  trip.driverName ??
+  trip.driver_name ??
+  trip.driver?.fullName ??
+  trip.driver?.full_name ??
+  trip.fullName ??
+  trip.companyName ??
+  "";
+const getTripDepartureDate = (trip = {}) =>
+  trip.departureDate ??
+  trip.departure_date ??
+  trip.tripDepartureDate ??
+  trip.trip_departure_date ??
+  trip.departureAt ??
+  trip.departure_at ??
+  trip.departureDay ??
+  trip.departure_day ??
+  trip.tripDate ??
+  trip.trip_date ??
+  trip.startDate ??
+  trip.start_date ??
+  trip.date ??
+  "";
 const getTripPlateNumber = (trip = {}) =>
   trip.plateNumber ?? trip.plate_number ?? trip.vehicle?.plateNumber ?? trip.vehicle?.plate_number ?? "";
 const getTripTotalSeats = (trip = {}) =>
@@ -78,6 +128,7 @@ export default function Trips() {
   const { scheduleId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
 
   const [trips, setTrips] = useState([]);
@@ -85,8 +136,15 @@ export default function Trips() {
   const [vehicles, setVehicles] = useState([]);
   const [routes, setRoutes] = useState([]);
   const [schedule] = useState(location.state?.schedule || null);
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterDate, setFilterDate] = useState("");
+  const [filterStatus, setFilterStatus] = useState(() => {
+    const storedFilters = readStoredTripFilters(scheduleId);
+    const status = searchParams.get("status") || storedFilters.status;
+    return filterStatuses.has(status) ? status : "all";
+  });
+  const [filterDate, setFilterDate] = useState(() => {
+    const storedFilters = readStoredTripFilters(scheduleId);
+    return searchParams.get("date") || storedFilters.date || today();
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -217,7 +275,16 @@ export default function Trips() {
       Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 
       const response = await getTrips(scheduleId, params);
-      setTrips(Array.isArray(response.data?.trips) ? response.data.trips : []);
+      const tripItems = Array.isArray(response.data?.trips)
+        ? response.data.trips
+        : Array.isArray(response.data?.trip)
+        ? response.data.trip
+        : Array.isArray(response.data?.data?.trips)
+        ? response.data.data.trips
+        : Array.isArray(response.data?.data?.trip)
+        ? response.data.data.trip
+        : [];
+      setTrips(tripItems);
       setError("");
     } catch (err) {
       console.error("Lỗi tải chuyến:", err);
@@ -268,6 +335,27 @@ export default function Trips() {
   const handleSelectDriver = (driverId) => {
     handleChange("driverId", String(driverId));
     setDriverMenuOpen(false);
+  };
+
+  const updateFilters = ({ status = filterStatus, date = filterDate } = {}) => {
+    setFilterStatus(status);
+    setFilterDate(date);
+    saveStoredTripFilters(scheduleId, { status, date });
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (status && status !== "all") {
+      nextParams.set("status", status);
+    } else {
+      nextParams.delete("status");
+    }
+
+    if (date) {
+      nextParams.set("date", date);
+    } else {
+      nextParams.delete("date");
+    }
+
+    setSearchParams(nextParams, { replace: true });
   };
 
   const handleSave = async () => {
@@ -369,7 +457,7 @@ export default function Trips() {
 
       <ToolbarCard>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[220px_220px_auto]">
-          <SelectControl value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+          <SelectControl value={filterStatus} onChange={(e) => updateFilters({ status: e.target.value })}>
             <option value="all">Tất cả trạng thái</option>
             <option value="scheduled">Sắp chạy</option>
             <option value="running">Đang chạy</option>
@@ -379,12 +467,11 @@ export default function Trips() {
           <input
             type="date"
             value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
+            onChange={(e) => updateFilters({ date: e.target.value })}
             className={inputClass}
           />
           <SecondaryButton icon="refresh" onClick={() => {
-            setFilterStatus("all");
-            setFilterDate("");
+            updateFilters({ status: "all", date: today() });
           }}>
             Đặt lại
           </SecondaryButton>
@@ -400,44 +487,64 @@ export default function Trips() {
       ) : (
         <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-sm">
+            <table className="w-full min-w-[820px] text-sm">
               <thead className="bg-surface-container-low">
                 <tr>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Chuyến</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Tuyến</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Xe</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Sức chứa</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Trạng thái</th>
-                  <th className="px-5 py-3 text-right font-bold text-on-surface-variant">Thao tác</th>
+                  <th className="px-5 py-3 text-left text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Chuyến</th>
+                  <th className="px-5 py-3 text-left text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Tuyến</th>
+                  <th className="px-5 py-3 text-left text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Xe</th>
+                  <th className="px-5 py-3 text-left text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Trạng thái</th>
+                  <th className="px-5 py-3 text-right text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
-                {trips.map((trip) => (
+                {trips.map((trip) => {
+                  const displayDate = getTripDepartureDate(trip) || filterDate;
+                  const driverName = getTripDriverName(trip);
+
+                  return (
                   <tr key={trip.id} className="hover:bg-surface-container-low/70">
-                    <td className="px-5 py-4">
-                      <p className="font-extrabold text-on-surface">#{trip.id}</p>
-                      <p className="mt-1 text-xs text-on-surface-variant">{trip.companyName || "—"}</p>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-base font-extrabold text-primary ring-1 ring-emerald-100">
+                          #{trip.id}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-on-surface">
+                            {driverName || "Chưa gán tài xế"}
+                          </p>
+                          <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant">
+                            <span className="material-symbols-outlined text-[15px] text-primary">event</span>
+                            {displayDate ? formatTripDate(displayDate) : "Chưa có ngày"}
+                          </p>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-3.5">
                       <p className="font-bold text-on-surface">{trip.fromLocation} → {trip.toLocation}</p>
-                      <p className="mt-1 text-xs text-on-surface-variant">{Number(trip.distanceKm || 0).toLocaleString("vi-VN")} km</p>
+                      <p className="mt-1 text-xs font-medium text-on-surface-variant">
+                        {Number(trip.distanceKm || 0).toLocaleString("vi-VN")} km
+                      </p>
                     </td>
-                    <td className="px-5 py-4 font-medium text-on-surface">{trip.plateNumber || "Chưa gán xe"}</td>
-                    <td className="px-5 py-4 text-on-surface-variant">
-                      {trip.totalSeats || 0} ghế · {trip.type || "—"}
+                    <td className="px-5 py-3.5">
+                      <p className="font-bold text-on-surface">{trip.plateNumber || "Chưa gán xe"}</p>
+                      <p className="mt-1 text-xs font-medium text-on-surface-variant">
+                        {trip.totalSeats || 0} ghế · {trip.type || "—"}
+                      </p>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-3.5">
                       <StatusBadge tone={statusTone[trip.status] || "slate"}>
                         {statusLabel[trip.status] || trip.status || "—"}
                       </StatusBadge>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-3.5">
                       <div className="flex justify-end">
                         <IconButton icon="edit" label="Sửa chuyến" variant="primary" onClick={() => openEditModal(trip)} />
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

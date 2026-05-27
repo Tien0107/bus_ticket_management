@@ -20,12 +20,12 @@ export default function CreateChatForm({
     : "Tìm người nhận";
 
   return (
-    <form onSubmit={onSubmit} className="mb-4 space-y-3 rounded-xl border border-emerald-100 bg-white p-3">
+    <form onSubmit={onSubmit} className="mb-3 space-y-2 rounded-xl border border-emerald-100 bg-white p-2.5">
       <input
         type="text"
         value={recipientSearch}
         onChange={onRecipientSearchChange}
-        className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+        className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
         placeholder="Email, số điện thoại hoặc role"
       />
       <div className="rounded-lg border border-outline-variant/40 bg-white">
@@ -36,7 +36,7 @@ export default function CreateChatForm({
           <span>{resultTitle}</span>
         </div>
 
-        <div className="max-h-44 overflow-y-auto p-2">
+        <div className="max-h-36 overflow-y-auto p-2">
           {loadingRecipients ? (
             <div className="flex items-center justify-center gap-2 py-6 text-sm font-medium text-on-surface-variant">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary/25 border-t-primary" />
@@ -103,7 +103,7 @@ export default function CreateChatForm({
       <textarea
         value={firstMessage}
         onChange={onFirstMessageChange}
-        className="min-h-20 w-full resize-none rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+        className="min-h-16 w-full resize-none rounded-lg border border-outline-variant/40 bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
         placeholder="Tin nhắn đầu tiên"
       />
       <button

@@ -27,7 +27,7 @@ export default function ChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
       {!chat.open && (
         <div className="flex items-end gap-3">
           {showLoginPrompt && (
@@ -75,25 +75,30 @@ export default function ChatWidget() {
       )}
 
       {chat.open && (
-        <section className="flex h-[min(620px,calc(100vh-96px))] w-[min(380px,calc(100vw-28px))] flex-col overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.20)]">
-          <div className="flex h-[74px] shrink-0 items-center justify-between border-b border-emerald-100 bg-white px-4">
+        <section className="flex h-[min(580px,calc(100vh-82px))] w-[min(350px,calc(100vw-24px))] flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_22px_60px_rgba(15,23,42,0.18)]">
+          <div className="flex h-[58px] shrink-0 items-center justify-between border-b border-slate-100 bg-white px-3">
             <div className="flex min-w-0 items-center gap-2">
               {chat.selectedBox && (
                 <button
                   type="button"
                   onClick={() => chat.setSelectedBoxId(null)}
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-slate-100 hover:text-on-surface"
                   aria-label="Quay lại danh sách"
                 >
-                  <span className="material-symbols-outlined text-[23px]">arrow_back</span>
+                  <span className="material-symbols-outlined text-[21px]">arrow_back</span>
                 </button>
               )}
               <div className="min-w-0">
-                <h2 className="truncate text-xl font-bold text-on-surface">
+                <h2 className="truncate text-base font-extrabold leading-5 text-on-surface">
                   {chat.selectedBox ? chat.selectedBox.displayName : "Trò chuyện"}
                 </h2>
                 {chat.selectedBox && (
-                  <p className="truncate text-sm font-medium text-on-surface-variant">
+                  <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs font-semibold text-on-surface-variant">
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full ${
+                        chat.peerTyping ? "bg-amber-400" : chat.selectedPeerOnline ? "bg-emerald-500" : "bg-slate-300"
+                      }`}
+                    />
                     {chat.peerTyping ? "Đang nhập..." : chat.selectedPeerOnline ? "Đang online" : "Đang offline"}
                   </p>
                 )}
@@ -105,21 +110,21 @@ export default function ChatWidget() {
                 <button
                   type="button"
                   onClick={() => chat.setShowCreate((current) => !current)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary hover:bg-emerald-50"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition hover:bg-emerald-50"
                   aria-label="Tạo hội thoại"
                   title="Tạo hội thoại"
                 >
-                  <span className="material-symbols-outlined text-[26px]">add</span>
+                  <span className="material-symbols-outlined text-[23px]">add</span>
                 </button>
               )}
               <button
                 type="button"
                 onClick={chat.handleClose}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary hover:bg-emerald-50"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition hover:bg-emerald-50"
                 aria-label="Đóng trò chuyện"
                 title="Đóng"
               >
-                <span className="material-symbols-outlined text-[26px]">close</span>
+                <span className="material-symbols-outlined text-[23px]">close</span>
               </button>
             </div>
           </div>
@@ -131,7 +136,7 @@ export default function ChatWidget() {
           )}
 
           {!chat.selectedBox ? (
-            <div className="min-h-0 flex-1 overflow-y-auto bg-[#fbfdfc] p-4">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-[#fbfdfc] p-3">
               {chat.showCreate && (
                 <CreateChatForm
                   filteredRecipientUsers={chat.filteredRecipientUsers}
@@ -164,6 +169,7 @@ export default function ChatWidget() {
                 messageNext={chat.messageNext}
                 messages={chat.messages}
                 messagesEndRef={chat.messagesEndRef}
+                messagesScrollRef={chat.messagesScrollRef}
                 onLoadOlder={chat.handleLoadOlderMessages}
                 onRecallMessage={chat.handleRecallMessage}
                 peerTyping={chat.peerTyping}

@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import {
   appendUniqueMessages,
   normalizeIncomingMessage,
   RECALLED_MESSAGE,
   SOCKET_URL,
+  sortBoxesByLatestActivity,
   toNumber,
   zeroUnreadForViewer,
 } from "./chatUtils";
@@ -24,6 +25,8 @@ export default function useChatSocket({
   viewerId,
   enabled = true,
 }) {
+  const handledMessageKeysRef = useRef(new Set());
+
   useEffect(() => {
     if (!enabled) return undefined;
 
@@ -51,7 +54,26 @@ export default function useChatSocket({
 
     const handleNewMessage = (payload) => {
       const message = normalizeIncomingMessage(payload);
-      if (!message) return;
+      if (!message) {
+        loadBoxes({ reset: true });
+        return;
+      }
+
+      const messageKey = [
+        message.id,
+        message.boxId,
+        message.senderId,
+        message.createdAt,
+        message.message,
+      ].map((value) => String(value ?? "")).join("|");
+
+      if (handledMessageKeysRef.current.has(messageKey)) return;
+      handledMessageKeysRef.current.add(messageKey);
+
+      if (handledMessageKeysRef.current.size > 200) {
+        const [oldestKey] = handledMessageKeysRef.current;
+        handledMessageKeysRef.current.delete(oldestKey);
+      }
 
       const activeBoxId = selectedBoxRef.current;
       const isActiveBox = Number(activeBoxId) === Number(message.boxId);
@@ -62,23 +84,35 @@ export default function useChatSocket({
       }
 
       setBoxes((current) =>
-        current.map((box) => {
-          if (Number(box.id) !== Number(message.boxId)) return box;
-          let nextBox = { ...box, lastMessage: message.message, lastMessageSenderId: message.senderId };
+        sortBoxesByLatestActivity(
+          current.map((box) => {
+            if (Number(box.id) !== Number(message.boxId)) return box;
+            let nextBox = {
+              ...box,
+              lastMessage: message.message,
+              lastMessageSenderId: message.senderId,
+              lastMessageAt: message.createdAt,
+            };
 
-          if (isActiveBox) {
-            nextBox = zeroUnreadForViewer(nextBox, viewerId);
-          } else if (Number(message.senderId) !== Number(viewerId)) {
-            if (Number(box.receiverId) === Number(viewerId)) {
-              nextBox.unreadReceiverCount = Number(nextBox.unreadReceiverCount || 0) + 1;
-            } else if (Number(box.senderId) === Number(viewerId)) {
-              nextBox.unreadSenderCount = Number(nextBox.unreadSenderCount || 0) + 1;
+            if (isActiveBox) {
+              nextBox = zeroUnreadForViewer(nextBox, viewerId);
+            } else if (Number(message.senderId) !== Number(viewerId)) {
+              nextBox.unreadCount = Number(nextBox.unreadCount || 0) + 1;
+              if (Number(box.receiverId) === Number(viewerId)) {
+                nextBox.unreadReceiverCount = Number(nextBox.unreadReceiverCount || 0) + 1;
+              } else if (Number(box.senderId) === Number(viewerId)) {
+                nextBox.unreadSenderCount = Number(nextBox.unreadSenderCount || 0) + 1;
+              }
             }
-          }
 
-          return nextBox;
-        })
+            return nextBox;
+          })
+        )
       );
+
+      if (!isActiveBox && Number(message.senderId) !== Number(viewerId)) {
+        window.setTimeout(() => loadBoxes({ reset: true }), 300);
+      }
     };
 
     const handleTypingStart = (payload = {}) => {
@@ -157,6 +191,11 @@ export default function useChatSocket({
     socket.on("unauthorized", handleConnectError);
     socket.on("error", handleConnectError);
     socket.on("message:new", handleNewMessage);
+    socket.on("message:created", handleNewMessage);
+    socket.on("message:send", handleNewMessage);
+    socket.on("chat:message:new", handleNewMessage);
+    socket.on("chat:message:receive", handleNewMessage);
+    socket.on("chat:message:send", handleNewMessage);
     socket.on("chat:new", () => loadBoxes({ reset: true }));
     socket.on("chat:typing:start", handleTypingStart);
     socket.on("chat:typing:stop", handleTypingStop);
@@ -171,6 +210,7 @@ export default function useChatSocket({
     };
   }, [
     activeBoxRef,
+    handledMessageKeysRef,
     loadBoxes,
     markRead,
     rememberRecalledMessageId,

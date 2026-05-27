@@ -55,6 +55,39 @@ const formatDateRange = (startDate, endDate) => {
   return `${start} - ${end}`;
 };
 
+const getScheduleStartDate = (schedule = {}) =>
+  schedule.startDate ??
+  schedule.start_date ??
+  schedule.scheduleStartDate ??
+  schedule.schedule_start_date ??
+  schedule.fromDate ??
+  schedule.from_date ??
+  schedule.validFrom ??
+  schedule.valid_from ??
+  "";
+
+const getScheduleEndDate = (schedule = {}) =>
+  schedule.endDate ??
+  schedule.end_date ??
+  schedule.scheduleEndDate ??
+  schedule.schedule_end_date ??
+  schedule.toDate ??
+  schedule.to_date ??
+  schedule.validTo ??
+  schedule.valid_to ??
+  "";
+
+const hydrateScheduleDates = (schedule = {}) => {
+  const startDate = getScheduleStartDate(schedule);
+  const endDate = getScheduleEndDate(schedule);
+
+  return {
+    ...schedule,
+    startDate,
+    endDate,
+  };
+};
+
 const emptyForm = {
   routeId: "",
   departureTime: "06:00",
@@ -96,7 +129,8 @@ export default function Schedules() {
         getTripSchedules({ limit: 10, orderBy: "asc" }),
         getRoutes({ limit: 10 }),
       ]);
-      setSchedules(Array.isArray(schedulesRes.data?.trip) ? schedulesRes.data.trip : []);
+      const schedulesData = Array.isArray(schedulesRes.data?.trip) ? schedulesRes.data.trip : [];
+      setSchedules(schedulesData.map(hydrateScheduleDates));
       setRoutes(Array.isArray(routesRes.data?.routes) ? routesRes.data.routes : []);
       setError("");
     } catch (err) {
@@ -138,8 +172,8 @@ export default function Schedules() {
     setFormData({
       routeId: "",
       departureTime: schedule.departureTime || "06:00",
-      startDate: toDateInputValue(schedule.startDate),
-      endDate: toDateInputValue(schedule.endDate),
+      startDate: toDateInputValue(getScheduleStartDate(schedule)),
+      endDate: toDateInputValue(getScheduleEndDate(schedule)),
       status: schedule.status ?? true,
     });
     setShowModal(true);
@@ -178,8 +212,8 @@ export default function Schedules() {
                   ...schedule,
                   ...updatedSchedule,
                   departureTime: updatedSchedule.departureTime || payload.departureTime,
-                  startDate: updatedSchedule.startDate || payload.startDate,
-                  endDate: updatedSchedule.endDate || payload.endDate,
+                  startDate: updatedSchedule.startDate || updatedSchedule.start_date || payload.startDate,
+                  endDate: updatedSchedule.endDate || updatedSchedule.end_date || payload.endDate,
                   status: updatedSchedule.status ?? payload.status,
                 }
               : schedule
@@ -307,7 +341,10 @@ export default function Schedules() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
-                {schedules.map((schedule) => (
+                {schedules.map((schedule) => {
+                  const dateRange = formatDateRange(getScheduleStartDate(schedule), getScheduleEndDate(schedule));
+
+                  return (
                   <tr key={schedule.id} className="hover:bg-surface-container-low/70">
                     <td className="px-5 py-4">
                       <p className="font-bold text-on-surface">{schedule.fromLocation} → {schedule.toLocation}</p>
@@ -315,9 +352,9 @@ export default function Schedules() {
                     </td>
                     <td className="px-5 py-4">
                       <p className="font-medium text-on-surface">{schedule.departureTime || "—"}</p>
-                      {formatDateRange(schedule.startDate, schedule.endDate) && (
+                      {dateRange && (
                         <p className="mt-1 text-xs text-on-surface-variant">
-                          {formatDateRange(schedule.startDate, schedule.endDate)}
+                          {dateRange}
                         </p>
                       )}
                     </td>
@@ -342,7 +379,8 @@ export default function Schedules() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

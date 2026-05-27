@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { getStaff, updateStaff, verifyCompanyAccount } from "../../api/company";
 import { createNotification, getNotifications, markNotificationRead } from "../../api/notification";
@@ -235,7 +236,9 @@ export default function NotificationBell({ align = "right" }) {
   const [isOpen, setIsOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
   const [accountDialogNotification, setAccountDialogNotification] = useState(null);
+  const [dropdownPosition, setDropdownPosition] = useState(null);
   const dropdownRef = useRef(null);
+  const dropdownMenuRef = useRef(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
   const currentUser = getCurrentUser();
@@ -386,13 +389,48 @@ export default function NotificationBell({ align = "right" }) {
   // Handle clicking outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      const clickedTrigger = dropdownRef.current?.contains(event.target);
+      const clickedMenu = dropdownMenuRef.current?.contains(event.target);
+
+      if (!clickedTrigger && !clickedMenu) {
         setIsOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setDropdownPosition(null);
+      return undefined;
+    }
+
+    const updateDropdownPosition = () => {
+      const trigger = dropdownRef.current;
+      if (!trigger) return;
+
+      const rect = trigger.getBoundingClientRect();
+      const gap = 8;
+      const width = window.innerWidth >= 640 ? 384 : 300;
+      const rawLeft = align === "left" ? rect.left : rect.right - width;
+      const left = Math.min(Math.max(8, rawLeft), window.innerWidth - width - 8);
+      const top = Math.min(rect.bottom + gap, window.innerHeight - 96);
+
+      setDropdownPosition({ left, top, width });
+    };
+
+    updateDropdownPosition();
+    const frameId = window.requestAnimationFrame(updateDropdownPosition);
+    window.addEventListener("resize", updateDropdownPosition);
+    window.addEventListener("scroll", updateDropdownPosition, true);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", updateDropdownPosition);
+      window.removeEventListener("scroll", updateDropdownPosition, true);
+    };
+  }, [align, isOpen]);
 
   const handleNotificationClick = async (notification) => {
     if (!notification?.id) return;
@@ -439,8 +477,16 @@ export default function NotificationBell({ align = "right" }) {
       </button>
 
       {/* Dropdown Menu */}
-      {isOpen && (
-        <div className={`absolute ${align === "left" ? "left-0" : "right-0"} mt-2 w-[300px] sm:w-96 bg-surface-container-lowest rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-outline-variant/20 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200`}>
+      {isOpen && dropdownPosition && createPortal(
+        <div
+          ref={dropdownMenuRef}
+          style={{
+            left: dropdownPosition.left,
+            top: dropdownPosition.top,
+            width: dropdownPosition.width,
+          }}
+          className="fixed z-[120] overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container-lowest shadow-[0_18px_60px_rgba(15,23,42,0.22)] animate-in fade-in slide-in-from-top-2 duration-200"
+        >
           <div className="px-4 py-3 border-b border-outline-variant/20 flex items-center justify-between bg-surface/50">
             <h3 className="font-bold text-lg text-on-surface">Thông báo</h3>
           </div>
@@ -509,11 +555,13 @@ export default function NotificationBell({ align = "right" }) {
             </div>
           )}
         </div>
+        ,
+        document.body
       )}
 
       {accountDialogNotification && accountDialogContext?.isAccountAction && (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-4"
           onMouseDown={() => {
             if (!actionLoading) setAccountDialogNotification(null);
           }}

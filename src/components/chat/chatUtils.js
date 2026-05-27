@@ -60,11 +60,44 @@ const normalizeBox = (box = {}) => ({
   senderId: toNumber(box.senderId),
   receiverId: toNumber(box.receiverId),
   lastMessageSenderId: toNumber(box.lastMessageSenderId),
+  lastMessageAt:
+    box.lastMessageAt ??
+    box.lastMessageCreatedAt ??
+    box.lastMessageTime ??
+    box.lastMessageDate ??
+    box.updatedAt ??
+    box.createdAt ??
+    null,
+  unreadCount: Number(box.unreadCount ?? box.unread_count ?? 0),
   unreadReceiverCount: Number(box.unreadReceiverCount || 0),
   unreadSenderCount: Number(box.unreadSenderCount || 0),
   displayName: box.displayName || `Hội thoại #${box.id ?? box.boxId ?? ""}`,
   lastMessage: box.lastMessage || "",
 });
+
+const getBoxActivityTime = (box = {}) => {
+  const candidates = [
+    box.lastMessageAt,
+    box.lastMessageCreatedAt,
+    box.lastMessageTime,
+    box.lastMessageDate,
+    box.updatedAt,
+    box.createdAt,
+  ];
+
+  for (const value of candidates) {
+    const time = new Date(value).getTime();
+    if (Number.isFinite(time)) return time;
+  }
+
+  return 0;
+};
+
+export const sortBoxesByLatestActivity = (items = []) =>
+  items
+    .map((box, index) => ({ box, index, time: getBoxActivityTime(box) }))
+    .sort((left, right) => right.time - left.time || left.index - right.index)
+    .map(({ box }) => box);
 
 export const normalizeBoxesResponse = (data) => {
   const boxes = Array.isArray(data?.boxes)
@@ -78,7 +111,7 @@ export const normalizeBoxesResponse = (data) => {
     : [];
 
   return {
-    boxes: boxes.map(normalizeBox).filter((box) => box.id),
+    boxes: sortBoxesByLatestActivity(boxes.map(normalizeBox).filter((box) => box.id)),
     next: data?.next ?? data?.data?.next ?? null,
   };
 };
@@ -132,6 +165,8 @@ export const normalizeIncomingMessage = (payload = {}) => {
 };
 
 export const getUnreadForViewer = (box, viewerId) => {
+  const unreadCount = Number(box.unreadCount ?? box.unread_count ?? 0);
+  if (unreadCount > 0) return unreadCount;
   if (!viewerId) return Math.max(Number(box.unreadReceiverCount || 0), Number(box.unreadSenderCount || 0));
   if (Number(box.receiverId) === Number(viewerId)) return Number(box.unreadReceiverCount || 0);
   if (Number(box.senderId) === Number(viewerId)) return Number(box.unreadSenderCount || 0);
@@ -139,8 +174,8 @@ export const getUnreadForViewer = (box, viewerId) => {
 };
 
 export const zeroUnreadForViewer = (box, viewerId) => {
-  if (Number(box.receiverId) === Number(viewerId)) return { ...box, unreadReceiverCount: 0 };
-  if (Number(box.senderId) === Number(viewerId)) return { ...box, unreadSenderCount: 0 };
+  if (Number(box.receiverId) === Number(viewerId)) return { ...box, unreadCount: 0, unreadReceiverCount: 0 };
+  if (Number(box.senderId) === Number(viewerId)) return { ...box, unreadCount: 0, unreadSenderCount: 0 };
   return box;
 };
 
