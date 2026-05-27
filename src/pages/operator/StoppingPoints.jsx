@@ -41,6 +41,15 @@ const findRouteForSchedule = (schedule, routes) => {
   );
 };
 
+const getStoredCompanyId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user.companyId || null;
+  } catch {
+    return null;
+  }
+};
+
 export default function StoppingPoints() {
   const { scheduleId } = useParams();
   const location = useLocation();
@@ -144,7 +153,14 @@ export default function StoppingPoints() {
       return;
     }
 
+    const companyId = editingPoint?.companyId || schedule?.companyId || getStoredCompanyId();
+    if (!companyId) {
+      addToast({ type: "error", title: "Không tìm thấy công ty để lưu điểm dừng" });
+      return;
+    }
+
     const payload = {
+      companyId: Number(companyId),
       scheduleId: Number(scheduleId),
       allowPickup: Boolean(formData.allowPickup),
       allowDropoff: Boolean(formData.allowDropoff),

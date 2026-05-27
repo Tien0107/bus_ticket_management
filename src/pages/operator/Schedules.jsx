@@ -27,6 +27,13 @@ import {
 
 const today = () => new Date().toISOString().split("T")[0];
 
+const toDateInputValue = (value) => {
+  if (!value) return today();
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).split("T")[0] || today();
+  return date.toISOString().split("T")[0];
+};
+
 const emptyForm = {
   routeId: "",
   departureTime: "06:00",
@@ -110,9 +117,9 @@ export default function Schedules() {
     setFormData({
       routeId: "",
       departureTime: schedule.departureTime || "06:00",
-      startDate: today(),
-      endDate: today(),
-      status: true,
+      startDate: toDateInputValue(schedule.startDate),
+      endDate: toDateInputValue(schedule.endDate),
+      status: schedule.status ?? true,
     });
     setShowModal(true);
   };

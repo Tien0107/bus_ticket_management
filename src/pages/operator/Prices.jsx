@@ -34,6 +34,15 @@ const emptyForm = {
   status: true,
 };
 
+const getStoredCompanyId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user.companyId || null;
+  } catch {
+    return null;
+  }
+};
+
 export default function Prices() {
   const { addToast } = useToast();
   const [prices, setPrices] = useState([]);
@@ -149,7 +158,14 @@ export default function Prices() {
       return;
     }
 
+    const companyId = editingPrice?.companyId || getStoredCompanyId();
+    if (!companyId) {
+      addToast({ type: "error", title: "Không tìm thấy công ty để lưu bảng giá" });
+      return;
+    }
+
     const payload = {
+      companyId: Number(companyId),
       routeId: Number(formData.routeId),
       fromStationId: Number(formData.fromStationId),
       toStationId: Number(formData.toStationId),
