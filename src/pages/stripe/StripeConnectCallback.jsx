@@ -81,7 +81,7 @@ export default function StripeConnectCallback() {
         </div>
 
         <h1 className="mt-5 text-2xl font-extrabold text-on-surface">
-          {isSuccess ? "Stripe đã kết nối" : isError ? "Kết nối thất bại" : "Đang xử lý Stripe"}
+          {isSuccess ? "Đã kết nối" : isError ? "Kết nối thất bại" : "Đang xử lý "}
         </h1>
         <p className="mt-3 text-sm leading-6 text-on-surface-variant">{state.message}</p>
 

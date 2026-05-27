@@ -181,10 +181,7 @@ export default function Booking() {
   };
 
   const handleProcessPayment = async () => {
-    try {
-      // 1. Tạo đặt vé trên backend kèm theo mã Coupon giảm giá (nếu có)
-      addToast("Đang xử lý tạo đơn đặt vé...", "info");
-      
+    try {   
       const bookingPromises = bookingData.selectedSeats.map((seat, index) => {
         const payload = {
             type: isRoundTrip ? "round_trip" : "one_way",

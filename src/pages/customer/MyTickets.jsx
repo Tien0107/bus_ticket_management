@@ -312,7 +312,7 @@ export default function MyTickets() {
 
         const paidIntentId = paymentIntent?.id || paymentIntentId;
         if (paymentIntent?.status === "succeeded") {
-          addToast(`Thanh toán thành công! ${paidIntentId ? `(PI: ${paidIntentId})` : ""}`, "success");
+          addToast(`Thanh toán thành công!`, "success");
           fetchTickets();
           return;
         }
