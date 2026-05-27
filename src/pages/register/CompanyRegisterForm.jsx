@@ -123,7 +123,7 @@ export default function CompanyRegisterForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="mb-6">
         <h3 className="text-xl font-bold text-on-surface mb-2">Đăng ký Công ty</h3>
-        <p className="text-on-surface-variant">Tham gia BusGo để quản lý xe buýt của bạn</p>
+        <p className="text-on-surface-variant">Tham gia BusGo để quản lý xe của bạn</p>
       </div>
 
       {error && (
@@ -289,28 +289,7 @@ export default function CompanyRegisterForm() {
         </div>
       </div>
 
-      <div className="flex items-start gap-4 py-2 px-1 relative">
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary-container rounded-full"></div>
-        <div className="pl-4 flex items-center">
-          <input
-            type="checkbox"
-            id="terms-company"
-            checked={agreeTerms}
-            onChange={(event) => setAgreeTerms(event.target.checked)}
-            className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
-          />
-          <label className="ml-3 text-sm text-on-surface-variant leading-tight" htmlFor="terms-company">
-            Tôi đồng ý với{" "}
-            <span className="text-primary font-semibold cursor-pointer hover:underline">
-              Điều khoản sử dụng
-            </span>{" "}
-            và{" "}
-            <span className="text-primary font-semibold cursor-pointer hover:underline">
-              Chính sách bảo mật
-            </span>
-          </label>
-        </div>
-      </div>
+
 
       <button
         type="submit"

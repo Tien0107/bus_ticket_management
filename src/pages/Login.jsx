@@ -1,15 +1,32 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signIn } from "../api/auth";
 import LoginForm from "./login/LoginForm";
 import SocialLoginButtons from "./login/SocialLoginButtons";
 import { buildAuthenticatedUser, getRedirectUrl } from "./login/authUtils";
 
-const getLoginErrorState = (message, loginMethod) => {
+const getLoginIdentifierMeta = (value) => {
+  const rawValue = value.trim();
+
+  if (rawValue.includes("@")) {
+    return {
+      field: "email",
+      value: rawValue.toLowerCase(),
+    };
+  }
+
+  return {
+    field: "phone",
+    value: rawValue.replace(/[\s.-]/g, ""),
+  };
+};
+
+const getLoginErrorState = (message, identifier) => {
   if (!message) return { fieldErrors: {}, formError: "" };
 
   const normalized = message.toLowerCase();
   const fieldErrors = {};
+  const loginField = getLoginIdentifierMeta(identifier).field;
 
   if (normalized.includes("vui lòng nhập mật khẩu")) {
     fieldErrors.password = message;
@@ -27,7 +44,7 @@ const getLoginErrorState = (message, loginMethod) => {
     normalized.includes("không tồn tại")
   ) {
     fieldErrors.identifier =
-      loginMethod === "email" ? "Email chưa đúng hoặc chưa được đăng ký." : "Số điện thoại chưa đúng hoặc chưa được đăng ký.";
+      loginField === "email" ? "Email chưa đúng hoặc chưa được đăng ký." : "Số điện thoại chưa đúng hoặc chưa được đăng ký.";
   } else {
     return { fieldErrors, formError: message };
   }
@@ -35,18 +52,19 @@ const getLoginErrorState = (message, loginMethod) => {
   return { fieldErrors, formError: "" };
 };
 
-const getIdentifierValidationError = (loginMethod, value) => {
+const getIdentifierValidationError = (value) => {
   const account = value.trim();
+  const loginMeta = getLoginIdentifierMeta(value);
 
   if (!account) {
-    return loginMethod === "email" ? "Vui lòng nhập email." : "Vui lòng nhập số điện thoại.";
+    return "Vui lòng nhập email hoặc số điện thoại.";
   }
 
-  if (loginMethod === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(account)) {
+  if (loginMeta.field === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginMeta.value)) {
     return "Email không đúng định dạng. Ví dụ: ten@gmail.com.";
   }
 
-  if (loginMethod === "phone" && !/^\d{10,13}$/.test(account)) {
+  if (loginMeta.field === "phone" && !/^\d{10,13}$/.test(loginMeta.value)) {
     return "Số điện thoại chỉ gồm 10-13 chữ số.";
   }
 
@@ -55,7 +73,6 @@ const getIdentifierValidationError = (loginMethod, value) => {
 
 function Login() {
   const navigate = useNavigate();
-  const [loginMethod, setLoginMethod] = useState("email");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -70,23 +87,32 @@ function Login() {
       localStorage.setItem("user", JSON.stringify(user));
 
       const redirectUrl = getRedirectUrl(user);
-      navigate(redirectUrl);
+      navigate(redirectUrl, { replace: true });
     },
     [navigate]
   );
 
-  const handleLoginMethodChange = (method) => {
-    setLoginMethod(method);
-    setIdentifier("");
-    setError("");
-  };
-  const loginErrorState = getLoginErrorState(error, loginMethod);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    let storedUser = {};
+    try {
+      storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+      storedUser = {};
+    }
+
+    navigate(getRedirectUrl(storedUser), { replace: true });
+  }, [navigate]);
+
+  const loginErrorState = getLoginErrorState(error, identifier);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (loading) return;
 
-    const identifierError = getIdentifierValidationError(loginMethod, identifier);
+    const identifierError = getIdentifierValidationError(identifier);
     if (identifierError) {
       setError(identifierError);
       return;
@@ -101,8 +127,8 @@ function Login() {
     setLoading(true);
 
     try {
-      const account = identifier.trim();
-      const payload = loginMethod === "email" ? { email: account, password } : { phone: account, password };
+      const loginMeta = getLoginIdentifierMeta(identifier);
+      const payload = { [loginMeta.field]: loginMeta.value, password };
       const res = await signIn(payload);
       await completeLogin(res.data);
     } catch (err) {
@@ -122,14 +148,6 @@ function Login() {
             </span>
             BusGo
           </Link>
-          <div className="flex items-center gap-3">
-            <Link to="/" className="hidden rounded-lg px-4 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface sm:inline-flex">
-              Trang chủ
-            </Link>
-            <Link to="/register" className="rounded-lg border border-outline-variant/50 px-4 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary/5">
-              Tạo tài khoản
-            </Link>
-          </div>
         </nav>
       </header>
 
@@ -183,8 +201,6 @@ function Login() {
             </div>
 
             <LoginForm
-              loginMethod={loginMethod}
-              onLoginMethodChange={handleLoginMethodChange}
               identifier={identifier}
               onIdentifierChange={(value) => {
                 setIdentifier(value);

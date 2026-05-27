@@ -68,7 +68,7 @@ function App() {
         reverseOrder={false}
         gutter={10}
         toastOptions={{
-          duration: 1000,
+          duration: 3600,
           style: {
             border: "1px solid rgba(226, 232, 240, 0.95)",
             borderRadius: "10px",
@@ -79,14 +79,14 @@ function App() {
             padding: "12px 14px",
           },
           success: {
-            duration: 1000,
+            duration: 3200,
             iconTheme: {
               primary: "#059669",
               secondary: "#ecfdf5",
             },
           },
           error: {
-            duration: 1000,
+            duration: 5500,
             iconTheme: {
               primary: "#dc2626",
               secondary: "#fef2f2",

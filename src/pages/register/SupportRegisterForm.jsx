@@ -132,7 +132,7 @@ export default function SupportRegisterForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="mb-6">
-        <h3 className="text-xl font-bold text-on-surface mb-2">Đăng ký Nhân viên Hỗ trợ (Support)</h3>
+        <h3 className="text-xl font-bold text-on-surface mb-2">Đăng ký Nhân viên Hỗ trợ </h3>
         <p className="text-on-surface-variant">Trở thành nhân viên hỗ trợ chăm sóc khách hàng và giải đáp thắc mắc</p>
       </div>
 
@@ -303,24 +303,6 @@ export default function SupportRegisterForm() {
         </div>
       </div>
 
-      <div className="flex items-start gap-4 py-2 px-1 relative">
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary-container rounded-full"></div>
-        <div className="pl-4 flex items-center">
-          <input
-            type="checkbox"
-            id="terms-support"
-            checked={agreeTerms}
-            onChange={(event) => setAgreeTerms(event.target.checked)}
-            className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
-          />
-          <label className="ml-3 text-sm text-on-surface-variant leading-tight" htmlFor="terms-support">
-            Tôi đồng ý với{" "}
-            <span className="text-primary font-semibold cursor-pointer hover:underline">Điều khoản sử dụng</span>{" "}
-            và{" "}
-            <span className="text-primary font-semibold cursor-pointer hover:underline">Chính sách bảo mật</span>
-          </label>
-        </div>
-      </div>
 
       <button
         type="submit"

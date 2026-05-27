@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { getPickupPoints, getDropoffPoints, prepareTrip, getTripSeats, getTripScheduleRatings } from "../../api/customer";
-import { getTripSchedules } from "../../api/customer"; // Cho việc tìm chuyến về
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
+
+const getApiMessage = (err, fallback) => err.response?.data?.message || err.message || fallback;
 
 export default function BookingSeatStep({ 
   bookingData, 
@@ -20,6 +21,7 @@ export default function BookingSeatStep({
   const [loading, setLoading] = useState(true);
   const [loadingSeats, setLoadingSeats] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [seatError, setSeatError] = useState("");
   const { addToast } = useToast();
 
   const handleNextClick = async () => {
@@ -81,6 +83,7 @@ export default function BookingSeatStep({
     const fetchStep1 = async () => {
       try {
         setLoading(true);
+        setSeatError("");
         if (!bookingData.companyId || !bookingData.date) {
            addToast("Thiếu định danh chuyến đi. Bạn sẽ được chuyển về trang chủ.", "error");
            navigate("/");
@@ -114,7 +117,13 @@ export default function BookingSeatStep({
         });
       } catch (err) {
         console.error("Lỗi API Step 1:", err);
-        addToast((err.response?.data?.message || err.message), "error");
+        if (active) {
+          setPickups([]);
+          setDropoffs([]);
+          setSeats([]);
+          setLoadingSeats(false);
+          setSeatError(getApiMessage(err, "Không thể chuẩn bị chuyến đi để chọn ghế."));
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -164,17 +173,22 @@ export default function BookingSeatStep({
     let active = true;
     const fetchSeats = async () => {
       if (!bookingData.tripId || typeof bookingData.pickupOrder !== 'number' || typeof bookingData.dropoffOrder !== 'number') {
+        if (active) setLoadingSeats(false);
         return;
       }
       try {
         setLoadingSeats(true);
+        setSeatError("");
         const seatsRes = await getTripSeats(bookingData.tripId, bookingData.pickupOrder, bookingData.dropoffOrder);
         if (!active) { console.log("Aborted effect"); return; }
         const seatData = seatsRes.data?.seats || seatsRes.data || [];
         setSeats(seatData);
       } catch (err) {
         console.error("Lỗi API lấy sơ đồ ghế:", err);
-        addToast("Không thể tải sơ đồ ghế: " + (err.response?.data?.message || err.message), "error");
+        if (active) {
+          setSeats([]);
+          setSeatError("Không thể tải sơ đồ ghế: " + getApiMessage(err, "Vui lòng thử lại sau."));
+        }
       } finally {
         if (active) setLoadingSeats(false);
       }
@@ -217,6 +231,67 @@ export default function BookingSeatStep({
 
   const floor1Seats = seats.filter(s => !isFloor2(s));
   const floor2Seats = seats.filter(s => isFloor2(s));
+
+  const getSeatLabel = (seat) => seat.seatNumber || seat.name || "?";
+  const isSeatBooked = (seat) => seat.status === "booked";
+
+  const renderSleeperSeat = (seat) => {
+    const isSelected = bookingData.selectedSeats.some(s => s.seatNumber === seat.seatNumber);
+    const isBooked = isSeatBooked(seat);
+    const stateClass = isBooked
+      ? "cursor-not-allowed border-outline-variant/25 bg-surface-container-high/70 text-on-surface-variant/35 shadow-none"
+      : isSelected
+        ? "border-primary bg-primary/5 text-primary shadow-[0_14px_30px_rgba(0,110,28,0.16)] ring-4 ring-primary/10"
+        : "border-outline-variant/45 bg-white text-on-surface shadow-[0_8px_20px_rgba(26,28,28,0.06)] hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_14px_28px_rgba(26,28,28,0.10)]";
+    const pillowClass = isBooked
+      ? "border-outline-variant/15 bg-white/35"
+      : isSelected
+        ? "border-primary/25 bg-white"
+        : "border-outline-variant/35 bg-surface-container-lowest";
+    const lineClass = isSelected ? "bg-primary/20" : isBooked ? "bg-outline-variant/20" : "bg-outline-variant/25";
+
+    return (
+      <button
+        key={seat.id || getSeatLabel(seat)}
+        type="button"
+        className={`group relative flex h-[82px] w-[62px] shrink-0 items-end justify-center rounded-[18px] border pb-3 text-sm font-extrabold transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15 ${stateClass}`}
+        disabled={isBooked}
+        onClick={() => handleSeatClick(seat)}
+        aria-pressed={isSelected}
+        title={`Ghế ${getSeatLabel(seat)}`}
+      >
+        <span className={`absolute left-2 right-2 top-2 h-5 rounded-xl border ${pillowClass}`} />
+        <span className={`absolute left-3 right-3 top-10 h-px ${lineClass}`} />
+        <span className="relative z-10 leading-none">{getSeatLabel(seat)}</span>
+      </button>
+    );
+  };
+
+  const renderSeatDeck = (title, deckSeats, tone = "primary") => {
+    const titleClass = tone === "secondary"
+      ? "border-secondary/15 bg-secondary/5 text-secondary"
+      : "border-primary/15 bg-primary/5 text-primary";
+
+    return (
+      <div className="rounded-3xl border border-outline-variant/25 bg-white p-4 shadow-[0_18px_42px_rgba(26,28,28,0.06)]">
+        <div className="mb-5 flex items-center justify-between border-b border-outline-variant/20 pb-4">
+          <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold ${titleClass}`}>
+            {title}
+          </span>
+          <span className="text-xs font-bold text-on-surface-variant/70">{deckSeats.length} ghế</span>
+        </div>
+        {deckSeats.length === 0 ? (
+          <p className="rounded-2xl bg-surface-container-low px-4 py-6 text-center text-sm font-medium text-on-surface-variant">
+            Không có ghế tầng này
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 justify-items-center gap-x-7 gap-y-6 rounded-2xl bg-surface-container-low px-4 py-5">
+            {deckSeats.map(renderSleeperSeat)}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (loading) {
      return (
@@ -278,12 +353,17 @@ export default function BookingSeatStep({
                 <p className="text-3xl font-extrabold text-on-surface tracking-tight">{departureTime}</p>
                 <p className="font-semibold text-on-surface mt-1">{schedule.fromLocation || "Sài Gòn"}</p>
               </div>
-              <div className="flex flex-col items-center gap-1 px-4">
-                <span className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest">{durationStr}</span>
-                <div className="relative w-32 h-px bg-outline-variant flex items-center justify-between">
-                  <div className="w-2 h-2 rounded-full bg-primary ring-4 ring-primary/10"></div>
-                  <span className="material-symbols-outlined text-primary text-xl absolute left-1/2 -translate-x-1/2 -top-2.5 bg-surface-container-lowest px-1">directions_bus</span>
-                  <div className="w-2 h-2 rounded-full bg-secondary ring-4 ring-secondary/10"></div>
+              <div className="flex min-w-[180px] flex-col items-center gap-2 px-4">
+                <span className="rounded-full bg-surface-container-low px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-on-surface shadow-sm ring-1 ring-outline-variant/30">
+                  {durationStr}
+                </span>
+                <div className="relative flex w-44 items-center justify-between">
+                  <div className="absolute left-4 right-4 top-1/2 h-1 -translate-y-1/2 rounded-full bg-gradient-to-r from-primary/65 via-outline-variant/70 to-secondary/65"></div>
+                  <div className="relative z-10 h-4 w-4 rounded-full border-2 border-white bg-primary shadow-[0_0_0_5px_rgba(0,110,28,0.12)]"></div>
+                  <div className="relative z-20 flex h-11 w-11 items-center justify-center rounded-full border border-primary/15 bg-white text-primary shadow-[0_10px_24px_rgba(26,28,28,0.12)]">
+                    <span className="material-symbols-outlined text-[26px]">directions_bus</span>
+                  </div>
+                  <div className="relative z-10 h-4 w-4 rounded-full border-2 border-white bg-secondary shadow-[0_0_0_5px_rgba(159,66,0,0.12)]"></div>
                 </div>
               </div>
               <div className="text-right">
@@ -361,19 +441,27 @@ export default function BookingSeatStep({
                  </div>
               ) : null}
 
-              <div className="flex justify-between items-center mb-8 px-4">
+              {seatError && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
+                  <div className="flex items-start gap-3">
+                    <span className="material-symbols-outlined mt-0.5 text-[22px]">error</span>
+                    <div>
+                      <p className="font-extrabold text-red-800">Không thể chọn ghế</p>
+                      <p className="mt-1 text-sm font-medium leading-6">{seatError}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!seatError && (
+                <>
+              <div className="mb-6 flex flex-wrap items-center justify-center gap-4 rounded-2xl border border-outline-variant/20 bg-white px-4 py-3 shadow-[0_10px_28px_rgba(26,28,28,0.05)]">
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 bg-surface-container-high rounded-md"></div>
+                  <div className="h-9 w-7 rounded-xl border border-outline-variant/45 bg-white shadow-sm"></div>
                   <span className="text-xs font-semibold text-on-surface-variant">Trống</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 bg-error/20 border border-error/30 rounded-md flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[10px] text-error">close</span>
-                  </div>
-                  <span className="text-xs font-semibold text-on-surface-variant">Đã đặt</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 bg-primary rounded-md"></div>
+                  <div className="h-9 w-7 rounded-xl border border-primary bg-primary/5 shadow-sm ring-2 ring-primary/10"></div>
                   <span className="text-xs font-semibold text-on-surface-variant">Đang chọn</span>
                 </div>
               </div>
@@ -383,104 +471,16 @@ export default function BookingSeatStep({
                   Sơ đồ trống (API chưa trả ghế)
                 </p>
               ) : floor2Seats.length > 0 ? (
-                /* Sơ đồ 2 tầng hiển thị đồng thời bên cạnh nhau */
-                <div className="flex flex-col sm:flex-row gap-6 justify-center items-stretch">
-                  {/* Tầng 1 */}
-                  <div className="flex-1 bg-surface-container-low rounded-2xl p-5 border border-surface-container/60 relative">
-                    <div className="text-center font-extrabold text-xs text-primary mb-5 border-b border-outline-variant/30 pb-2 uppercase tracking-wider">
-                      Tầng 1 (Tầng dưới)
-                    </div>
-                    <div className="grid grid-cols-3 gap-y-4 gap-x-4 max-w-xs mx-auto">
-                      {floor1Seats.map((seat, idx) => {
-                        const isSelected = bookingData.selectedSeats.some(s => s.seatNumber === seat.seatNumber);
-                        let btnClass = "w-10 h-10 rounded-lg flex items-center justify-center text-[11px] font-bold transition-all ";
-                        if (seat.status === "booked") {
-                          btnClass += "bg-surface-dim/30 cursor-not-allowed text-on-surface-variant/30 border border-transparent";
-                        } else if (isSelected) {
-                          btnClass += "bg-primary text-on-primary shadow-md transform scale-105 border border-primary";
-                        } else {
-                          btnClass += "bg-surface-container-lowest hover:bg-surface-container-highest border border-surface-container-high";
-                        }
-                        return (
-                          <React.Fragment key={seat.id}>
-                            <button
-                              className={btnClass}
-                              disabled={seat.status === "booked"}
-                              onClick={() => handleSeatClick(seat)}
-                            >
-                              {seat.seatNumber || seat.name || "?"}
-                            </button>
-                            {idx % 2 !== 0 && <div className="w-10 h-10"></div>}
-                          </React.Fragment>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Tầng 2 */}
-                  <div className="flex-1 bg-surface-container-low rounded-2xl p-5 border border-surface-container/60 relative">
-                    <div className="text-center font-extrabold text-xs text-secondary mb-5 border-b border-outline-variant/30 pb-2 uppercase tracking-wider">
-                      Tầng 2 (Tầng trên)
-                    </div>
-                    <div className="grid grid-cols-3 gap-y-4 gap-x-4 max-w-xs mx-auto">
-                      {floor2Seats.map((seat, idx) => {
-                        const isSelected = bookingData.selectedSeats.some(s => s.seatNumber === seat.seatNumber);
-                        let btnClass = "w-10 h-10 rounded-lg flex items-center justify-center text-[11px] font-bold transition-all ";
-                        if (seat.status === "booked") {
-                          btnClass += "bg-surface-dim/30 cursor-not-allowed text-on-surface-variant/30 border border-transparent";
-                        } else if (isSelected) {
-                          btnClass += "bg-primary text-on-primary shadow-md transform scale-105 border border-primary";
-                        } else {
-                          btnClass += "bg-surface-container-lowest hover:bg-surface-container-highest border border-surface-container-high";
-                        }
-                        return (
-                          <React.Fragment key={seat.id}>
-                            <button
-                              className={btnClass}
-                              disabled={seat.status === "booked"}
-                              onClick={() => handleSeatClick(seat)}
-                            >
-                              {seat.seatNumber || seat.name || "?"}
-                            </button>
-                            {idx % 2 !== 0 && <div className="w-10 h-10"></div>}
-                          </React.Fragment>
-                        );
-                      })}
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                  {renderSeatDeck("Tầng 1", floor1Seats)}
+                  {renderSeatDeck("Tầng 2", floor2Seats, "secondary")}
                 </div>
               ) : (
-                /* Sơ đồ 1 tầng hiển thị đơn lẻ */
-                <div className="bg-surface-container-low rounded-2xl p-6 relative max-w-xs mx-auto border border-surface-container/60">
-                  <div className="absolute top-4 right-6 opacity-20">
-                    <span className="material-symbols-outlined text-3xl">airline_seat_recline_extra</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-y-4 gap-x-4 pt-4">
-                    {floor1Seats.map((seat, idx) => {
-                      const isSelected = bookingData.selectedSeats.some(s => s.seatNumber === seat.seatNumber);
-                      let btnClass = "w-10 h-10 rounded-lg flex items-center justify-center text-[11px] font-bold transition-all ";
-                      if (seat.status === "booked") {
-                        btnClass += "bg-surface-dim/30 cursor-not-allowed text-on-surface-variant/30 border border-transparent";
-                      } else if (isSelected) {
-                        btnClass += "bg-primary text-on-primary shadow-md transform scale-105 border border-primary";
-                      } else {
-                        btnClass += "bg-surface-container-lowest hover:bg-surface-container-highest border border-surface-container-high";
-                      }
-                      return (
-                        <React.Fragment key={seat.id}>
-                          <button
-                            className={btnClass}
-                            disabled={seat.status === "booked"}
-                            onClick={() => handleSeatClick(seat)}
-                          >
-                            {seat.seatNumber || seat.name || "?"}
-                          </button>
-                          {idx % 2 !== 0 && <div className="w-10 h-10"></div>}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
+                <div className="mx-auto max-w-sm">
+                  {renderSeatDeck("Tầng 1", floor1Seats)}
                 </div>
+              )}
+                </>
               )}
             </div>
           </div>

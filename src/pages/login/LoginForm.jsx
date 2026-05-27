@@ -1,13 +1,6 @@
 import { Link } from "react-router-dom";
 
-const loginMethodOptions = [
-  { id: "email", label: "Email", icon: "mail" },
-  { id: "phone", label: "Số điện thoại", icon: "call" },
-];
-
 export default function LoginForm({
-  loginMethod,
-  onLoginMethodChange,
   identifier,
   onIdentifierChange,
   password,
@@ -30,41 +23,19 @@ export default function LoginForm({
   return (
     <form onSubmit={onSubmit} className="space-y-5" aria-busy={loading} noValidate>
       <div>
-        <div className="mb-3 grid grid-cols-2 rounded-xl bg-surface-container-low p-1">
-          {loginMethodOptions.map((item) => {
-            const active = loginMethod === item.id;
-
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onLoginMethodChange(item.id)}
-                disabled={loading}
-                className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-extrabold transition-all ${
-                  active
-                    ? "bg-white text-primary shadow-sm ring-1 ring-outline-variant/20"
-                    : "text-on-surface-variant hover:text-on-surface"
-                } disabled:cursor-not-allowed disabled:opacity-60`}
-              >
-                <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-        <label className="mb-2 block text-sm font-bold text-on-surface">
-          {loginMethod === "email" ? "Email" : "Số điện thoại"}
-        </label>
+        <label className="mb-2 block text-sm font-bold text-on-surface">Email hoặc số điện thoại</label>
         <div className="relative">
           <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">
-            {loginMethod === "email" ? "mail" : "call"}
+            alternate_email
           </span>
           <input
             className={`${inputBaseClass} pl-12 pr-4 ${hasIdentifierError ? errorInputClass : normalInputClass}`}
-            placeholder={loginMethod === "email" ? "you@gmail.com" : "0901234567"}
-            type={loginMethod === "email" ? "email" : "tel"}
-            inputMode={loginMethod === "email" ? "email" : "tel"}
-            autoComplete={loginMethod === "email" ? "email" : "tel"}
+            placeholder="Email hoặc số điện thoại"
+            type="text"
+            inputMode="text"
+            autoComplete="username"
+            autoCapitalize="none"
+            name="identifier"
             value={identifier}
             onChange={(event) => onIdentifierChange(event.target.value)}
             disabled={loading}
@@ -122,16 +93,6 @@ export default function LoginForm({
           </p>
         )}
       </div>
-
-      <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-container-low px-4 py-3">
-        <input
-          type="checkbox"
-          disabled={loading}
-          className="h-4 w-4 rounded border-outline text-primary focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
-        />
-        <span className="text-sm font-medium text-on-surface-variant">Ghi nhớ đăng nhập</span>
-      </label>
-
       <button
         type="submit"
         disabled={loading}

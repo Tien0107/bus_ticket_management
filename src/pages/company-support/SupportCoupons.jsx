@@ -1,105 +1,169 @@
-import React, { useEffect, useState } from "react";
-import { getSupportCoupons, createSupportCoupon, updateSupportCoupon } from "../../api/companySupport";
-import { useNavigate, Link } from "react-router-dom";
-import { logout } from "../../api/auth";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { logout } from "../../api/auth";
+import { createSupportCoupon, getSupportCoupons, updateSupportCoupon } from "../../api/companySupport";
+
+const PREVIEW_ORDER_AMOUNT = 300000;
+
+const initialForm = {
+  code: "",
+  discountType: "percent",
+  discountValue: "",
+  minOrderAmount: "",
+  maxDiscountAmount: "",
+  totalQuantity: "",
+  startDate: "",
+  endDate: "",
+  isActive: true,
+};
+
+const getDigits = (value) => String(value || "").replace(/\D/g, "");
+
+const toNumber = (value) => {
+  const digits = getDigits(value);
+  return digits ? Number(digits) : 0;
+};
+
+const formatVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
+
+const formatVndInput = (value) => {
+  const digits = getDigits(value);
+  return digits ? Number(digits).toLocaleString("vi-VN") : "";
+};
+
+const toDateTimeLocal = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 16);
+};
+
+const extractCoupons = (response) => {
+  const raw = response.data?.data || response.data;
+  return Array.isArray(raw) ? raw : (raw?.items || raw?.coupons || raw?.records || raw?.content || []);
+};
+
+const getErrorMessage = (err) => {
+  const issues = err.response?.data?.issues;
+  if (Array.isArray(issues) && issues.length > 0) {
+    return issues.map((issue) => issue.reason || issue.message || issue.field).filter(Boolean).join(" | ");
+  }
+  return err.response?.data?.message || err.response?.data?.error || err.message || "Có lỗi xảy ra.";
+};
+
 export default function SupportCoupons() {
+  const navigate = useNavigate();
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4;
-  const navigate = useNavigate();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState(initialForm);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const itemsPerPage = 8;
 
-  let userStr = localStorage.getItem("user");
   let user = {};
   try {
-    if (userStr && userStr !== "undefined") {
-      user = JSON.parse(userStr);
-    }
+    const userStr = localStorage.getItem("user");
+    if (userStr && userStr !== "undefined") user = JSON.parse(userStr);
   } catch (e) {
     user = {};
   }
 
-  // Create coupon form
-  const [form, setForm] = useState({
-    code: "", discountType: "percent", discountValue: "",
-    minOrderAmount: "", maxDiscountAmount: "", totalQuantity: "",
-    startDate: "", endDate: ""
-  });
-
-  const fetchCoupons = async () => {
+  const fetchCoupons = useCallback(async () => {
     try {
       setLoading(true);
+      setError("");
       const res = await getSupportCoupons();
-      const raw = res.data?.data || res.data;
-      const list = Array.isArray(raw) ? raw : (raw?.items || raw?.coupons || raw?.records || raw?.content || []);
-      setCoupons(list);
+      setCoupons(extractCoupons(res));
     } catch (err) {
-      setError("Không thể tải danh sách khuyến mãi.");
+      setError(getErrorMessage(err) || "Không thể tải danh sách khuyến mãi.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { fetchCoupons(); }, []);
+  useEffect(() => {
+    fetchCoupons();
+  }, [fetchCoupons]);
 
-  const handleFormChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const filteredCoupons = useMemo(() => {
+    const keyword = search.trim().toUpperCase();
+    if (!keyword) return coupons;
+    return coupons.filter((coupon) => String(coupon.code || "").toUpperCase().includes(keyword));
+  }, [coupons, search]);
 
-  const [editId, setEditId] = useState(null);
+  const totalPages = Math.max(1, Math.ceil(filteredCoupons.length / itemsPerPage));
+  const paginated = filteredCoupons.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleEditClick = (c) => {
-    setEditId(c.id);
-    setForm({
-      code: c.code || "",
-      discountType: c.discountType || "percent",
-      discountValue: c.discountValue || "",
-      minOrderAmount: c.minOrderAmount || "",
-      maxDiscountAmount: c.maxDiscountAmount || "",
-      totalQuantity: c.totalQuantity || "",
-      startDate: c.startDate ? new Date(c.startDate).toISOString().slice(0, 16) : "",
-      endDate: c.endDate ? new Date(c.endDate).toISOString().slice(0, 16) : ""
-    });
-  };
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
-  const handleCancelEdit = () => {
+  const preview = useMemo(() => {
+    const discountValue = toNumber(form.discountValue);
+    const minOrderAmount = toNumber(form.minOrderAmount);
+    const maxDiscountAmount = form.discountType === "percent"
+      ? toNumber(form.maxDiscountAmount)
+      : discountValue;
+    const eligible = PREVIEW_ORDER_AMOUNT >= minOrderAmount;
+    const rawDiscount = form.discountType === "percent"
+      ? Math.floor((PREVIEW_ORDER_AMOUNT * discountValue) / 100)
+      : discountValue;
+    const cappedDiscount = form.discountType === "percent"
+      ? Math.min(rawDiscount, maxDiscountAmount || rawDiscount)
+      : rawDiscount;
+    const discountAmount = eligible ? Math.min(cappedDiscount, PREVIEW_ORDER_AMOUNT) : 0;
+
+    return {
+      eligible,
+      discountAmount,
+      customerPays: PREVIEW_ORDER_AMOUNT - discountAmount,
+      maxDiscountAmount,
+    };
+  }, [form.discountType, form.discountValue, form.maxDiscountAmount, form.minOrderAmount]);
+
+  const activeCoupons = coupons.filter((coupon) => coupon.isActive !== false).length;
+  const totalUsed = coupons.reduce((sum, coupon) => sum + Number(coupon.usedQuantity || 0), 0);
+  const totalIssued = coupons.reduce((sum, coupon) => sum + Number(coupon.totalQuantity || 0), 0);
+  const fixedCoupons = coupons.filter((coupon) => coupon.discountType === "fixed").length;
+
+  const openCreateModal = () => {
     setEditId(null);
-    setForm({ code: "", discountType: "percent", discountValue: "", minOrderAmount: "", maxDiscountAmount: "", totalQuantity: "", startDate: "", endDate: "" });
+    setForm(initialForm);
+    setSubmitError("");
+    setModalOpen(true);
   };
 
-  const handleCreateOrUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      const payload = {
-        code: form.code,
-        discountType: form.discountType,
-        discountValue: Number(form.discountValue),
-        minOrderAmount: Number(form.minOrderAmount),
-        maxDiscountAmount: Number(form.maxDiscountAmount),
-        totalQuantity: Number(form.totalQuantity),
-        usedQuantity: editId ? undefined : 0,
-        isActive: true,
-      };
-      
-      if (form.startDate) payload.startDate = new Date(form.startDate).toISOString();
-      if (form.endDate) payload.endDate = new Date(form.endDate).toISOString();
+  const openEditModal = (coupon) => {
+    const discountValue = String(Number(coupon.discountValue || 0) || "");
+    setEditId(coupon.id);
+    setForm({
+      code: String(coupon.code || "").toUpperCase().replace(/\s/g, ""),
+      discountType: coupon.discountType || "percent",
+      discountValue,
+      minOrderAmount: String(Number(coupon.minOrderAmount || 0) || ""),
+      maxDiscountAmount: String(Number(coupon.maxDiscountAmount || coupon.discountValue || 0) || ""),
+      totalQuantity: String(Number(coupon.totalQuantity || 0) || ""),
+      startDate: toDateTimeLocal(coupon.startDate),
+      endDate: toDateTimeLocal(coupon.endDate),
+      isActive: coupon.isActive !== false,
+    });
+    setSubmitError("");
+    setModalOpen(true);
+  };
 
-      if (editId) {
-        await updateSupportCoupon(editId, payload);
-        toast.success("Cập nhật mã khuyến mãi thành công!");
-      } else {
-        await createSupportCoupon(payload);
-        toast.success("Tạo mã khuyến mãi thành công!");
-      }
-      
-      setEditId(null);
-      setForm({ code: "", discountType: "percent", discountValue: "", minOrderAmount: "", maxDiscountAmount: "", totalQuantity: "", startDate: "", endDate: "" });
-      fetchCoupons();
-    } catch (err) {
-      toast.error("Lỗi: " + (err.response?.data?.message || err.message));
-    }
+  const closeModal = () => {
+    if (submitLoading) return;
+    setModalOpen(false);
+    setEditId(null);
+    setForm(initialForm);
+    setSubmitError("");
   };
 
   const handleLogout = async () => {
@@ -113,316 +177,586 @@ export default function SupportCoupons() {
     navigate("/login", { replace: true });
   };
 
-  // Stats
-  const activeCoupons = coupons.filter(c => c.isActive !== false).length;
-  const totalUsed = coupons.reduce((sum, c) => sum + (c.usedQuantity || 0), 0);
-  const avgSave = coupons.length > 0
-    ? (coupons.reduce((sum, c) => sum + (c.discountValue || 0), 0) / coupons.length).toFixed(0)
-    : 0;
-
-  // Pagination
-  const totalPages = Math.ceil(coupons.length / itemsPerPage);
-  const paginated = coupons.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const sidebarItems = [
-    { icon: "confirmation_number", label: "Quản Lý Vé", path: "/company-support/tickets" },
-    { icon: "sell", label: "Mã Khuyến Mãi", path: "/company-support/coupons", active: true },
-  ];
-
-  const inputStyle = {
-    width: "100%", padding: "10px 14px", borderRadius: 10,
-    border: "1px solid #becab9", background: "#f9f9f9",
-    fontSize: 13, color: "#1a1c1c", outline: "none",
-    transition: "border-color 0.15s"
+  const handleCodeChange = (value) => {
+    setForm((prev) => ({
+      ...prev,
+      code: value.toUpperCase().replace(/\s/g, ""),
+    }));
   };
 
-  const labelStyle = {
-    fontSize: 11, fontWeight: 700, color: "#6f7a6b",
-    textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6, display: "block"
+  const handleDiscountTypeChange = (discountType) => {
+    setForm((prev) => ({
+      ...prev,
+      discountType,
+      maxDiscountAmount: discountType === "fixed" ? prev.discountValue : prev.maxDiscountAmount,
+    }));
+  };
+
+  const handleMoneyChange = (field, value) => {
+    const digits = getDigits(value);
+    setForm((prev) => ({
+      ...prev,
+      [field]: digits,
+      ...(field === "discountValue" && prev.discountType === "fixed" ? { maxDiscountAmount: digits } : {}),
+    }));
+  };
+
+  const handleIntegerChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: getDigits(value) }));
+  };
+
+  const validateAndBuildPayload = () => {
+    const code = form.code.trim().toUpperCase();
+    const discountValue = toNumber(form.discountValue);
+    const minOrderAmount = toNumber(form.minOrderAmount);
+    const maxDiscountAmount = form.discountType === "fixed"
+      ? discountValue
+      : toNumber(form.maxDiscountAmount);
+    const totalQuantity = toNumber(form.totalQuantity);
+
+    if (!code) return "Vui lòng nhập mã coupon.";
+    if (!/^[A-Z0-9_-]+$/.test(code)) return "Mã coupon chỉ nên gồm chữ in hoa, số, dấu gạch ngang hoặc gạch dưới.";
+    if (form.discountType !== "percent" && form.discountType !== "fixed") return "Loại giảm giá không hợp lệ.";
+    if (discountValue <= 0) return "Vui lòng nhập giá trị giảm lớn hơn 0.";
+    if (form.discountType === "percent" && discountValue > 100) return "Giảm theo % không được lớn hơn 100.";
+    if (form.discountType === "percent" && maxDiscountAmount <= 0) return "Vui lòng nhập giảm tối đa VND cho mã giảm theo %.";
+    if (!form.minOrderAmount) return "Vui lòng nhập đơn tối thiểu.";
+    if (minOrderAmount < 0) return "Đơn tối thiểu không hợp lệ.";
+    if (totalQuantity <= 0) return "Vui lòng nhập tổng lượt sử dụng lớn hơn 0.";
+
+    const start = form.startDate ? new Date(form.startDate) : null;
+    const end = form.endDate ? new Date(form.endDate) : null;
+    if (start && Number.isNaN(start.getTime())) return "Ngày bắt đầu không hợp lệ.";
+    if (end && Number.isNaN(end.getTime())) return "Ngày kết thúc không hợp lệ.";
+    if (start && end && end <= start) return "Ngày kết thúc phải sau ngày bắt đầu.";
+
+    const payload = {
+      code,
+      discountType: form.discountType,
+      discountValue,
+      minOrderAmount,
+      maxDiscountAmount,
+      totalQuantity,
+      isActive: Boolean(form.isActive),
+    };
+
+    if (!editId) payload.usedQuantity = 0;
+    if (start) payload.startDate = start.toISOString();
+    if (end) payload.endDate = end.toISOString();
+
+    return payload;
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const payloadOrError = validateAndBuildPayload();
+    if (typeof payloadOrError === "string") {
+      setSubmitError(payloadOrError);
+      return;
+    }
+
+    try {
+      setSubmitLoading(true);
+      setSubmitError("");
+      if (editId) {
+        await updateSupportCoupon(editId, payloadOrError);
+        toast.success("Cập nhật coupon thành công");
+      } else {
+        await createSupportCoupon(payloadOrError);
+        toast.success("Tạo coupon thành công");
+      }
+      setModalOpen(false);
+      setEditId(null);
+      setForm(initialForm);
+      setSubmitError("");
+      await fetchCoupons();
+    } catch (err) {
+      setSubmitError(getErrorMessage(err));
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const sidebarItems = [
+    { icon: "confirmation_number", label: "Quản lý vé", path: "/company-support/tickets" },
+    { icon: "sell", label: "Mã khuyến mãi", path: "/company-support/coupons", active: true },
+  ];
+
+  const currencyField = ({ label, field, required = false, disabled = false, helper = "", placeholder = "0" }) => (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-outline">
+        {label}{required ? " *" : ""}
+      </span>
+      <span className="relative block">
+        <input
+          value={formatVndInput(form[field])}
+          onChange={(event) => handleMoneyChange(field, event.target.value)}
+          disabled={disabled}
+          inputMode="numeric"
+          placeholder={placeholder}
+          className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-3 pr-10 text-sm font-bold text-on-surface outline-none transition-all placeholder:text-outline/60 focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-surface-container-low disabled:text-on-surface-variant"
+        />
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-extrabold text-outline">đ</span>
+      </span>
+      {helper ? <span className="mt-1 block text-xs font-medium text-on-surface-variant">{helper}</span> : null}
+    </label>
+  );
+
+  const discountLabel = (coupon) => {
+    if (coupon.discountType === "percent") {
+      return `${Number(coupon.discountValue || 0)}%`;
+    }
+    return formatVnd(coupon.discountValue);
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "'Be Vietnam Pro', sans-serif", background: "#f9f9f9" }}>
-      {/* === SIDEBAR === */}
-      <aside style={{
-        width: 260, background: "#ffffff", display: "flex", flexDirection: "column",
-        borderRight: "1px solid #e2e2e2", padding: "24px 0", flexShrink: 0
-      }}>
-        <div style={{ padding: "0 24px", marginBottom: 32 }}>
-          <h1 style={{ fontSize: 18, fontWeight: 900, color: "#006e1c", letterSpacing: "-0.5px" }}>Quản Trị Nhà Xe</h1>
-          <p style={{ fontSize: 11, color: "#6f7a6b", textTransform: "uppercase", letterSpacing: "1px", marginTop: 2 }}>Trang Khuyến Mãi</p>
+    <div className="flex min-h-screen bg-surface font-body text-on-surface">
+      <aside className="flex w-[260px] shrink-0 flex-col border-r border-surface-container-high bg-white py-6">
+        <div className="mb-8 px-6">
+          <h1 className="text-lg font-black tracking-tight text-primary">Quản trị nhà xe</h1>
+          <p className="mt-1 text-xs font-bold uppercase tracking-wide text-outline">Trang khuyến mãi</p>
         </div>
 
-        <nav style={{ flex: 1 }}>
+        <nav className="flex-1">
           {sidebarItems.map((item) => (
-            <Link key={item.label} to={item.path}
-              style={{
-                display: "flex", alignItems: "center", gap: 12,
-                padding: "12px 24px", fontSize: 14, fontWeight: item.active ? 700 : 500,
-                color: item.active ? "#006e1c" : "#3f4a3c",
-                background: item.active ? "rgba(0,110,28,0.08)" : "transparent",
-                borderRight: item.active ? "3px solid #006e1c" : "none",
-                textDecoration: "none", transition: "all 0.15s"
-              }}
+            <Link
+              key={item.label}
+              to={item.path}
+              className={`flex items-center gap-3 border-r-4 px-6 py-3 text-sm transition-colors ${
+                item.active
+                  ? "border-primary bg-primary/10 font-extrabold text-primary"
+                  : "border-transparent font-semibold text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+              }`}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{item.icon}</span>
+              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
               {item.label}
             </Link>
           ))}
         </nav>
 
-        {/* User */}
-        <div style={{ padding: "16px 24px", borderTop: "1px solid #e2e2e2" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #006e1c, #4caf50)",
-              display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 16
-            }}>
+        <div className="border-t border-surface-container-high px-6 pt-4">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-black text-white">
               {(user.fullName || user.username || "U").charAt(0).toUpperCase()}
             </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#1a1c1c" }}>{user.fullName || user.username || "Admin"}</p>
-              <p style={{ fontSize: 11, color: "#6f7a6b" }}>Nhân Viên Hỗ Trợ</p>
+              <p className="text-sm font-extrabold text-on-surface">{user.fullName || user.username || "Admin"}</p>
+              <p className="text-xs font-semibold text-outline">Nhân viên hỗ trợ</p>
             </div>
           </div>
-          <button onClick={handleLogout} style={{
-            display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#6f7a6b",
-            background: "none", border: "none", cursor: "pointer", padding: 0
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-sm font-bold text-outline transition-colors hover:text-primary"
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
             Đăng xuất
           </button>
         </div>
       </aside>
 
-      {/* === MAIN CONTENT === */}
-      <main style={{ flex: 1, padding: "32px 40px", overflow: "auto" }}>
-        {/* Top Bar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 12, background: "#ffffff",
-            borderRadius: 12, padding: "10px 20px", flex: 1, maxWidth: 480,
-            border: "1px solid #becab9"
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20, color: "#6f7a6b" }}>search</span>
-            <input placeholder="Tìm kiếm mã khuyến mãi..." style={{
-              border: "none", outline: "none", background: "transparent", fontSize: 14, flex: 1, color: "#1a1c1c"
-            }} />
+      <main className="min-w-0 flex-1 overflow-auto px-8 py-8">
+        <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h2 className="text-3xl font-black tracking-tight text-on-surface">Quản lý mã khuyến mãi</h2>
+            <p className="mt-1 text-sm font-medium text-on-surface-variant">
+              Tạo coupon cho nhà xe, ưu tiên định dạng VND và kiểm soát giới hạn giảm giá.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex h-11 min-w-[280px] items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-3">
+              <span className="material-symbols-outlined text-[20px] text-outline">search</span>
+              <input
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Tìm mã coupon..."
+                className="h-full min-w-0 flex-1 border-none bg-transparent text-sm font-semibold outline-none placeholder:text-outline"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-extrabold text-white shadow-sm transition-colors hover:bg-primary/90"
+            >
+              <span className="material-symbols-outlined text-[20px]">add</span>
+              Thêm coupon
+            </button>
           </div>
         </div>
 
-        {/* Section Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
-          <div>
-            <h2 style={{ fontSize: 28, fontWeight: 900, color: "#1a1c1c", letterSpacing: "-0.5px", marginBottom: 4 }}>Quản Lý Mã Khuyến Mãi</h2>
-            <p style={{ fontSize: 14, color: "#6f7a6b" }}>Thiết lập và theo dõi các chương trình giảm giá.</p>
+        <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-outline">Đang hoạt động</p>
+            <p className="mt-2 text-3xl font-black text-primary">{activeCoupons}</p>
+          </div>
+          <div className="rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-outline">Đã dùng</p>
+            <p className="mt-2 text-3xl font-black text-on-surface">{totalUsed.toLocaleString("vi-VN")}</p>
+          </div>
+          <div className="rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-outline">Tổng lượt phát hành</p>
+            <p className="mt-2 text-3xl font-black text-on-surface">{totalIssued.toLocaleString("vi-VN")}</p>
+          </div>
+          <div className="rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-outline">Coupon VND</p>
+            <p className="mt-2 text-3xl font-black text-secondary">{fixedCoupons}</p>
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: 32 }}>
-          {/* === LEFT: Create Coupon Form === */}
-          <div>
-            <form onSubmit={handleCreateOrUpdate} style={{
-              background: "#ffffff", borderRadius: 16, padding: 28, overflow: "hidden"
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#006e1c" }}>{editId ? "edit" : "add_circle"}</span>
-                <h3 style={{ fontSize: 16, fontWeight: 800, color: "#1a1c1c" }}>{editId ? "Cập Nhật Mã" : "Tạo Mã Mới"}</h3>
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>Mã Khuyến Mãi (CODE)</label>
-                <input name="code" value={form.code} onChange={handleFormChange}
-                  placeholder="VD: GIAM20K" required style={inputStyle} />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-                <div>
-                  <label style={labelStyle}>Loại Giảm Giá</label>
-                  <select name="discountType" value={form.discountType} onChange={handleFormChange} style={inputStyle}>
-                    <option value="percent">Phần Trăm (%)</option>
-                    <option value="fixed">Số Tiền (VNĐ)</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Giá Trị</label>
-                  <input name="discountValue" type="number" value={form.discountValue}
-                    onChange={handleFormChange} placeholder="20" required style={inputStyle} />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-                <div>
-                  <label style={labelStyle}>Đơn Tối Thiểu</label>
-                  <input name="minOrderAmount" type="number" value={form.minOrderAmount}
-                    onChange={handleFormChange} placeholder="100000" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Giảm Tối Đa</label>
-                  <input name="maxDiscountAmount" type="number" value={form.maxDiscountAmount}
-                    onChange={handleFormChange} placeholder="50000" style={inputStyle} />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>Từ Ngày</label>
-                <input name="startDate" type="datetime-local" value={form.startDate}
-                  onChange={handleFormChange} required style={inputStyle} />
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>Đến Ngày</label>
-                <input name="endDate" type="datetime-local" value={form.endDate}
-                  onChange={handleFormChange} required style={inputStyle} />
-              </div>
-
-              <div style={{ marginBottom: 20 }}>
-                <label style={labelStyle}>Tổng Số Lượng Phát Hành</label>
-                <input name="totalQuantity" type="number" value={form.totalQuantity}
-                  onChange={handleFormChange} placeholder="500" required style={inputStyle} />
-              </div>
-
-              <div style={{ display: "flex", gap: 12 }}>
-                <button type="submit" style={{
-                  flex: 1, padding: "12px", borderRadius: 12, border: "none",
-                  background: "#006e1c", color: "#fff", fontWeight: 700, fontSize: 13,
-                  cursor: "pointer", transition: "opacity 0.15s"
-                }}>{editId ? "Cập Nhật" : "Tạo Mới"}</button>
-                {editId && (
-                  <button type="button" onClick={handleCancelEdit} style={{
-                    flex: 1, padding: "12px", borderRadius: 12, border: "1px solid #becab9",
-                    background: "#f3f3f3", color: "#3f4a3c", fontWeight: 700, fontSize: 13,
-                    cursor: "pointer", transition: "opacity 0.15s"
-                  }}>Hủy</button>
-                )}
-              </div>
-            </form>
+        <section className="overflow-hidden rounded-lg border border-outline-variant/30 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-surface-container px-5 py-4">
+            <div>
+              <h3 className="text-lg font-black text-on-surface">Danh sách coupon</h3>
+              <p className="mt-0.5 text-xs font-semibold text-on-surface-variant">
+                Hiển thị {paginated.length} / {filteredCoupons.length} mã
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchCoupons}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+            >
+              <span className="material-symbols-outlined text-[18px]">refresh</span>
+              Làm mới
+            </button>
           </div>
 
-          {/* === RIGHT: Stats + Table === */}
-          <div>
-            {/* Stat cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 28 }}>
-              <div style={{ background: "#fff", borderRadius: 14, padding: "20px 24px" }}>
-                <p style={{ fontSize: 11, color: "#6f7a6b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Đang Hoạt Động</p>
-                <p style={{ fontSize: 36, fontWeight: 900, color: "#006e1c", letterSpacing: "-1px" }}>{activeCoupons}</p>
+          {error ? (
+            <div className="m-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</div>
+          ) : null}
+
+          {loading ? (
+            <div className="flex min-h-[260px] items-center justify-center text-sm font-bold text-outline">Đang tải danh sách coupon...</div>
+          ) : filteredCoupons.length === 0 ? (
+            <div className="flex min-h-[260px] flex-col items-center justify-center px-6 text-center">
+              <span className="material-symbols-outlined text-5xl text-outline/40">sell</span>
+              <p className="mt-3 text-sm font-bold text-on-surface">Chưa có coupon phù hợp</p>
+              <p className="mt-1 text-sm text-on-surface-variant">Bấm “Thêm coupon” để tạo mã giảm giá mới.</p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[960px] border-collapse">
+                  <thead>
+                    <tr className="border-b border-surface-container bg-surface-container-low">
+                      {["Mã coupon", "Giảm giá", "Đơn tối thiểu", "Giảm tối đa", "Đã dùng/Tổng", "Trạng thái", "Thời gian", ""].map((header) => (
+                        <th key={header} className="px-5 py-3 text-left text-xs font-black uppercase tracking-wide text-outline">
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginated.map((coupon) => {
+                      const used = Number(coupon.usedQuantity || 0);
+                      const total = Number(coupon.totalQuantity || 0);
+                      const usagePercent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
+                      return (
+                        <tr key={coupon.id || coupon.code} className="border-b border-surface-container/70 hover:bg-surface-container-low/60">
+                          <td className="px-5 py-4">
+                            <p className="font-black tracking-wide text-on-surface">{coupon.code}</p>
+                            <p className="mt-1 text-xs font-semibold text-outline">ID: {coupon.id || "N/A"}</p>
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                              coupon.discountType === "percent"
+                                ? "bg-primary/10 text-primary"
+                                : "bg-secondary/10 text-secondary"
+                            }`}>
+                              {discountLabel(coupon)}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-sm font-bold text-on-surface">{formatVnd(coupon.minOrderAmount)}</td>
+                          <td className="px-5 py-4 text-sm font-bold text-on-surface">{formatVnd(coupon.maxDiscountAmount)}</td>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="h-2 w-24 overflow-hidden rounded-full bg-surface-container-high">
+                                <div
+                                  className={`h-full rounded-full ${usagePercent >= 90 ? "bg-error" : usagePercent >= 60 ? "bg-secondary" : "bg-primary"}`}
+                                  style={{ width: `${usagePercent}%` }}
+                                />
+                              </div>
+                              <span className="whitespace-nowrap text-xs font-black text-on-surface-variant">{used}/{total}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                              coupon.isActive !== false ? "bg-primary/10 text-primary" : "bg-surface-container-high text-outline"
+                            }`}>
+                              {coupon.isActive !== false ? "Đang bật" : "Đã tắt"}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-xs font-semibold text-on-surface-variant">
+                            <p>{coupon.startDate ? new Date(coupon.startDate).toLocaleString("vi-VN") : "Không giới hạn"}</p>
+                            <p className="mt-1">đến {coupon.endDate ? new Date(coupon.endDate).toLocaleString("vi-VN") : "Không giới hạn"}</p>
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(coupon)}
+                              className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                              Sửa
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <div style={{ background: "#fff", borderRadius: 14, padding: "20px 24px" }}>
-                <p style={{ fontSize: 11, color: "#6f7a6b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Lượt Đã Dùng</p>
-                <p style={{ fontSize: 36, fontWeight: 900, color: "#1a1c1c", letterSpacing: "-1px" }}>{totalUsed.toLocaleString()}</p>
+
+              <div className="flex items-center justify-between border-t border-surface-container px-5 py-4">
+                <span className="text-sm font-semibold text-on-surface-variant">
+                  Trang {currentPage} / {totalPages}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    className="h-9 rounded-lg border border-outline-variant/60 px-3 text-sm font-bold text-on-surface disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Trước
+                  </button>
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    className="h-9 rounded-lg border border-outline-variant/60 px-3 text-sm font-bold text-on-surface disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Sau
+                  </button>
+                </div>
               </div>
-              <div style={{ background: "#fff", borderRadius: 14, padding: "20px 24px" }}>
-                <p style={{ fontSize: 11, color: "#6f7a6b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Mức Giảm T.Bình</p>
-                <p style={{ fontSize: 36, fontWeight: 900, color: "#006e1c", letterSpacing: "-1px" }}>
-                  {avgSave}<span style={{ fontSize: 16, color: "#6f7a6b" }}>%</span>
+            </>
+          )}
+        </section>
+      </main>
+
+      {modalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <form onSubmit={handleSubmit} className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-lg bg-white shadow-[0_24px_80px_rgba(15,23,42,0.25)]">
+            <div className="flex items-center justify-between border-b border-surface-container px-6 py-4">
+              <div>
+                <h3 className="text-xl font-black text-on-surface">{editId ? "Cập nhật coupon" : "Thêm coupon"}</h3>
+                <p className="mt-1 text-sm font-medium text-on-surface-variant">
+                  Tiền nhập theo VND, khi gửi API sẽ là number không có ký hiệu hoặc dấu phân cách.
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={submitLoading}
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface disabled:opacity-50"
+                aria-label="Đóng"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
             </div>
 
-            {/* Manage Coupons Table */}
-            <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: "1px solid #f3f3f3" }}>
-                <h3 style={{ fontSize: 16, fontWeight: 800, color: "#1a1c1c" }}>Danh Sách Khuyến Mãi</h3>
+            <div className="grid max-h-[calc(92vh-80px)] overflow-y-auto lg:grid-cols-[1.25fr_0.75fr]">
+              <div className="space-y-5 p-6">
+                {submitError ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{submitError}</div>
+                ) : null}
+
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-outline">Mã coupon *</span>
+                  <input
+                    value={form.code}
+                    onChange={(event) => handleCodeChange(event.target.value)}
+                    placeholder="SALE20, GIAM50K"
+                    className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-3 text-sm font-black uppercase tracking-wide text-on-surface outline-none transition-all placeholder:font-semibold placeholder:normal-case placeholder:tracking-normal placeholder:text-outline/60 focus:border-primary focus:ring-4 focus:ring-primary/10"
+                  />
+                </label>
+
+                <div>
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-outline">Loại giảm giá *</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleDiscountTypeChange("percent")}
+                      className={`rounded-lg border px-4 py-3 text-left transition-all ${
+                        form.discountType === "percent"
+                          ? "border-primary bg-primary/10 text-primary ring-4 ring-primary/10"
+                          : "border-outline-variant/60 bg-white text-on-surface hover:bg-surface-container-low"
+                      }`}
+                    >
+                      <span className="block text-sm font-black">Giảm theo %</span>
+                      <span className="mt-1 block text-xs font-semibold text-on-surface-variant">Ví dụ 20 là giảm 20%</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDiscountTypeChange("fixed")}
+                      className={`rounded-lg border px-4 py-3 text-left transition-all ${
+                        form.discountType === "fixed"
+                          ? "border-secondary bg-secondary/10 text-secondary ring-4 ring-secondary/10"
+                          : "border-outline-variant/60 bg-white text-on-surface hover:bg-surface-container-low"
+                      }`}
+                    >
+                      <span className="block text-sm font-black">Giảm tiền VND</span>
+                      <span className="mt-1 block text-xs font-semibold text-on-surface-variant">Ví dụ 50.000đ</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  {form.discountType === "percent" ? (
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-outline">% giảm *</span>
+                      <span className="relative block">
+                        <input
+                          value={form.discountValue}
+                          onChange={(event) => handleIntegerChange("discountValue", event.target.value)}
+                          inputMode="numeric"
+                          placeholder="20"
+                          className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-3 pr-10 text-sm font-bold text-on-surface outline-none transition-all placeholder:text-outline/60 focus:border-primary focus:ring-4 focus:ring-primary/10"
+                        />
+                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-extrabold text-outline">%</span>
+                      </span>
+                    </label>
+                  ) : (
+                    currencyField({ label: "Số tiền giảm", field: "discountValue", required: true, placeholder: "50.000" })
+                  )}
+
+                  {form.discountType === "percent"
+                    ? currencyField({ label: "Giảm tối đa", field: "maxDiscountAmount", required: true, placeholder: "50.000" })
+                    : currencyField({
+                        label: "Giảm tối đa",
+                        field: "maxDiscountAmount",
+                        disabled: true,
+                        helper: "Tự động bằng số tiền giảm cho coupon fixed.",
+                      })}
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  {currencyField({ label: "Đơn tối thiểu", field: "minOrderAmount", required: true, placeholder: "100.000" })}
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-outline">Tổng lượt sử dụng *</span>
+                    <input
+                      value={form.totalQuantity}
+                      onChange={(event) => handleIntegerChange("totalQuantity", event.target.value)}
+                      inputMode="numeric"
+                      placeholder="100"
+                      className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-3 text-sm font-bold text-on-surface outline-none transition-all placeholder:text-outline/60 focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-outline">Ngày bắt đầu</span>
+                    <input
+                      type="datetime-local"
+                      value={form.startDate}
+                      onChange={(event) => setForm((prev) => ({ ...prev, startDate: event.target.value }))}
+                      className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-3 text-sm font-bold text-on-surface outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-outline">Ngày kết thúc</span>
+                    <input
+                      type="datetime-local"
+                      value={form.endDate}
+                      onChange={(event) => setForm((prev) => ({ ...prev, endDate: event.target.value }))}
+                      className="w-full rounded-lg border border-outline-variant/60 bg-white px-3 py-3 text-sm font-bold text-on-surface outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    />
+                  </label>
+                </div>
+
+                <label className="flex items-center justify-between rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3">
+                  <span>
+                    <span className="block text-sm font-black text-on-surface">Kích hoạt coupon</span>
+                    <span className="mt-1 block text-xs font-semibold text-on-surface-variant">Mặc định bật để khách có thể dùng ngay.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={form.isActive}
+                    onChange={(event) => setForm((prev) => ({ ...prev, isActive: event.target.checked }))}
+                    className="h-5 w-5 accent-primary"
+                  />
+                </label>
               </div>
 
-              {error && <div style={{ padding: 16, background: "#ffdad6", color: "#93000a", margin: 16, borderRadius: 12 }}>{error}</div>}
-
-              {loading ? (
-                <div style={{ textAlign: "center", padding: 48, color: "#6f7a6b" }}>Đang tải...</div>
-              ) : coupons.length === 0 ? (
-                <div style={{ textAlign: "center", padding: 48, color: "#6f7a6b" }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 48, opacity: 0.3, display: "block", marginBottom: 8 }}>sell</span>
-                  <p style={{ fontWeight: 600 }}>Chưa có mã giảm giá nào.</p>
-                </div>
-              ) : (
-                <>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "2px solid #e2e2e2" }}>
-                        {["MÃ CKT", "GIẢM GIÁ", "ĐƠN TỐI THIỂU", "ĐÃ DÙNG/TỔNG", "HẠN DÙNG", ""].map(h => (
-                          <th key={h} style={{
-                            padding: "12px 20px", fontSize: 11, fontWeight: 700, color: "#6f7a6b",
-                            textAlign: "left", textTransform: "uppercase", letterSpacing: "0.5px"
-                          }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginated.map((c) => {
-                        const used = c.usedQuantity || 0;
-                        const total = c.totalQuantity || 1;
-                        const pct = Math.min((used / total) * 100, 100);
-                        const discountText = c.discountType === "percent"
-                          ? `${c.discountValue}% OFF`
-                          : `${Number(c.discountValue || 0).toLocaleString()}đ`;
-
-                        return (
-                          <tr key={c.id} style={{ borderBottom: "1px solid #f3f3f3", transition: "background 0.15s" }}
-                            onMouseEnter={e => e.currentTarget.style.background = "#f9fdf9"}
-                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                            <td style={{ padding: "14px 20px" }}>
-                              <span style={{ fontWeight: 800, color: "#1a1c1c", fontSize: 14, letterSpacing: "0.5px" }}>{c.code}</span>
-                            </td>
-                            <td style={{ padding: "14px 20px", fontSize: 13, color: "#3f4a3c", fontWeight: 500 }}>
-                              {discountText}
-                            </td>
-                            <td style={{ padding: "14px 20px", fontSize: 13, color: "#3f4a3c" }}>
-                              {Number(c.minOrderAmount || 0).toLocaleString()}đ
-                            </td>
-                            <td style={{ padding: "14px 20px", width: 180 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                <div style={{ flex: 1, height: 6, background: "#e2e2e2", borderRadius: 3, overflow: "hidden" }}>
-                                  <div style={{
-                                    width: pct + "%", height: "100%", borderRadius: 3,
-                                    background: pct > 80 ? "#ba1a1a" : pct > 50 ? "#9f4200" : "#006e1c",
-                                    transition: "width 0.3s"
-                                  }}></div>
-                                </div>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: "#3f4a3c", whiteSpace: "nowrap" }}>
-                                  {used}/{total}
-                                </span>
-                              </div>
-                            </td>
-                            <td style={{ padding: "14px 20px", fontSize: 12, color: "#6f7a6b" }}>
-                              {c.endDate ? new Date(c.endDate).toLocaleDateString("vi-VN") : "N/A"}
-                            </td>
-                            <td style={{ padding: "14px 20px", textAlign: "right" }}>
-                              <button 
-                                onClick={() => handleEditClick(c)}
-                                style={{
-                                padding: "6px 14px", borderRadius: 8, border: "1px solid #becab9",
-                                background: "#fff", color: "#3f4a3c", fontSize: 12,
-                                fontWeight: 600, cursor: "pointer"
-                              }}>Sửa</button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-
-                  {/* Pagination */}
-                  <div style={{
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "14px 20px", borderTop: "1px solid #f3f3f3", fontSize: 13, color: "#6f7a6b"
-                  }}>
-                    <span>Hiển thị {paginated.length} / {coupons.length} mã</span>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(p => (
-                        <button key={p} onClick={() => setCurrentPage(p)} style={{
-                          width: 32, height: 32, borderRadius: 8, border: "none", cursor: "pointer",
-                          fontWeight: 700, fontSize: 13,
-                          background: currentPage === p ? "#006e1c" : "#f3f3f3",
-                          color: currentPage === p ? "#fff" : "#3f4a3c"
-                        }}>{p}</button>
-                      ))}
+              <aside className="border-t border-surface-container bg-surface-container-low p-6 lg:border-l lg:border-t-0">
+                <div className="sticky top-0 space-y-4">
+                  <div className="rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-outline">Preview đơn mẫu</p>
+                    <p className="mt-2 text-3xl font-black text-on-surface">{formatVnd(PREVIEW_ORDER_AMOUNT)}</p>
+                    <div className="mt-5 space-y-3 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <span className="font-semibold text-on-surface-variant">Loại giảm</span>
+                        <span className="font-black text-on-surface">
+                          {form.discountType === "percent" ? `${toNumber(form.discountValue)}%` : formatVnd(toNumber(form.discountValue))}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="font-semibold text-on-surface-variant">Giảm tối đa</span>
+                        <span className="font-black text-on-surface">{formatVnd(preview.maxDiscountAmount)}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="font-semibold text-on-surface-variant">Tiền giảm</span>
+                        <span className="font-black text-primary">-{formatVnd(preview.discountAmount)}</span>
+                      </div>
+                      <div className="border-t border-surface-container pt-3">
+                        <div className="flex items-end justify-between gap-4">
+                          <span className="font-black text-on-surface">Khách trả</span>
+                          <span className="text-2xl font-black text-secondary">{formatVnd(preview.customerPays)}</span>
+                        </div>
+                      </div>
                     </div>
+                    {!preview.eligible ? (
+                      <p className="mt-4 rounded-lg bg-secondary/10 px-3 py-2 text-xs font-bold text-secondary">
+                        Đơn mẫu chưa đạt đơn tối thiểu {formatVnd(toNumber(form.minOrderAmount))}.
+                      </p>
+                    ) : null}
                   </div>
-                </>
-              )}
+
+                  <div className="rounded-lg border border-outline-variant/30 bg-white p-5 text-sm text-on-surface-variant shadow-sm">
+                    {form.discountType === "percent" ? (
+                      <p>
+                        Ví dụ: Đơn {formatVnd(PREVIEW_ORDER_AMOUNT)}, giảm {toNumber(form.discountValue)}%, tối đa {formatVnd(preview.maxDiscountAmount)} thì khách trả {formatVnd(preview.customerPays)}.
+                      </p>
+                    ) : (
+                      <p>
+                        Ví dụ: Đơn {formatVnd(PREVIEW_ORDER_AMOUNT)}, giảm {formatVnd(toNumber(form.discountValue))} thì khách trả {formatVnd(preview.customerPays)}.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </aside>
             </div>
-          </div>
+
+            <div className="flex items-center justify-end gap-3 border-t border-surface-container px-6 py-4">
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={submitLoading}
+                className="h-11 rounded-lg border border-outline-variant/60 bg-white px-5 text-sm font-extrabold text-on-surface transition-colors hover:bg-surface-container-low disabled:opacity-50"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={submitLoading}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-extrabold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {submitLoading ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" />
+                    Đang lưu...
+                  </>
+                ) : editId ? "Cập nhật coupon" : "Tạo coupon"}
+              </button>
+            </div>
+          </form>
         </div>
-      </main>
+      ) : null}
     </div>
   );
 }

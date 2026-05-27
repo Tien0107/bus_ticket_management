@@ -296,24 +296,6 @@ export default function OperatorRegisterForm() {
         </div>
       </div>
 
-      <div className="flex items-start gap-4 py-2 px-1 relative">
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary-container rounded-full"></div>
-        <div className="pl-4 flex items-center">
-          <input
-            type="checkbox"
-            id="terms-operator"
-            checked={agreeTerms}
-            onChange={(event) => setAgreeTerms(event.target.checked)}
-            className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
-          />
-          <label className="ml-3 text-sm text-on-surface-variant leading-tight" htmlFor="terms-operator">
-            Tôi đồng ý với{" "}
-            <span className="text-primary font-semibold cursor-pointer hover:underline">Điều khoản sử dụng</span>{" "}
-            và{" "}
-            <span className="text-primary font-semibold cursor-pointer hover:underline">Chính sách bảo mật</span>
-          </label>
-        </div>
-      </div>
 
       <button
         type="submit"

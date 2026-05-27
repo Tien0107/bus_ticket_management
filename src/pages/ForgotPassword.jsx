@@ -356,8 +356,8 @@ function ForgotPassword() {
                 <div>
                   <label className="mb-2 block text-sm font-bold text-on-surface">Xác nhận mật khẩu</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">
-                      lock_check
+                    <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center overflow-hidden text-outline">
+                      lock
                     </span>
                     <input
                       className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-12 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"

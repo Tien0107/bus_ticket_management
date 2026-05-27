@@ -9,10 +9,6 @@ const VIETNAM_PROVINCES = [
   "Tuyên Quang", "Vĩnh Long", "Vĩnh Phúc", "Yên Bái"
 ];
 
-const removeAccents = (str) => {
-  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
-};
-
 const LocationDropdown = ({ value, onChange, placeholder, icon }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState(value || "");
@@ -33,14 +29,12 @@ const LocationDropdown = ({ value, onChange, placeholder, icon }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [value]);
 
-  const filtered = VIETNAM_PROVINCES.filter(p => 
-    removeAccents(p.toLowerCase()).includes(removeAccents(search.toLowerCase()))
-  );
+  const filtered = VIETNAM_PROVINCES;
 
   return (
     <div className="relative w-full" ref={wrapperRef}>
       <div 
-        className="flex items-center bg-surface-container-low px-4 py-3 rounded-xl focus-within:ring-2 ring-primary/20 transition-all cursor-text"
+        className="flex items-center bg-surface-container-low px-4 py-3 rounded-xl focus-within:ring-2 ring-primary/20 transition-all cursor-pointer"
         onClick={() => setIsOpen(true)}
       >
         <span className="material-symbols-outlined text-primary mr-3">
@@ -50,15 +44,14 @@ const LocationDropdown = ({ value, onChange, placeholder, icon }) => {
           className="bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-on-surface w-full placeholder:text-outline-variant font-medium"
           placeholder={placeholder}
           type="text"
+          readOnly
           value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setIsOpen(true);
-            if (e.target.value !== value) {
-              onChange("");
-            }
-          }}
           onFocus={() => setIsOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            setIsOpen(true);
+          }}
         />
         {value && (
           <button 

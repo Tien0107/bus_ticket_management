@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getCompanies, getPromotions } from "../api/public";
 import { getTripSchedules, getTripScheduleRatings } from "../api/customer";
 import LocationDropdown from "../components/common/LocationDropdown";
@@ -39,14 +39,26 @@ const fallbackPromoImages = [
   "/images/real_promo_payment_1778469409783.png"
 ];
 
+const getTodayInputValue = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const isDateBeforeToday = (value) => Boolean(value) && value < getTodayInputValue();
 
 const Home = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const todayInputValue = getTodayInputValue();
   const [departure, setDeparture] = useState("");
   const [destination, setDestination] = useState("");
-  const [date, setDate] = useState("");
-  const [tripType, setTripType] = useState("one_way"); // "one_way" | "round_trip"
-  const [returnDate, setReturnDate] = useState("");
+  const [date, setDate] = useState(todayInputValue);
+  const [tripType] = useState("one_way"); // "one_way" | "round_trip"
+  const [returnDate] = useState("");
+  const [swapAnimating, setSwapAnimating] = useState(false);
 
   // Review Modal States
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -73,6 +85,26 @@ const Home = () => {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  useEffect(() => {
+    const state = location.state || {};
+    if (state.from) setDeparture(state.from);
+    if (state.to) setDestination(state.to);
+    if (state.date) setDate(isDateBeforeToday(state.date) ? todayInputValue : state.date);
+  }, [location.state, todayInputValue]);
+
+  const handleDateChange = (value) => {
+    setDate(!value || isDateBeforeToday(value) ? todayInputValue : value);
+  };
+
+  const handleSwapLocations = () => {
+    if (!departure && !destination) return;
+
+    setSwapAnimating(true);
+    setDeparture(destination);
+    setDestination(departure);
+    window.setTimeout(() => setSwapAnimating(false), 260);
+  };
+
   const fetchSchedules = async (currentPage, isLoadMore = false) => {
     try {
       if (!isLoadMore) {
@@ -85,7 +117,7 @@ const Home = () => {
       const response = await getTripSchedules({
         from: departure.trim(),
         to: destination.trim(),
-        date: date,
+        date: isDateBeforeToday(date) ? todayInputValue : date,
         limit: 10,
         page: currentPage,
         orderBy: "asc"
@@ -118,11 +150,17 @@ const Home = () => {
   };
 
   const handleSearch = () => {
-    if (!departure.trim() || !destination.trim() || !date) {
+    const searchDate = isDateBeforeToday(date) ? todayInputValue : date;
+
+    if (!departure.trim() || !destination.trim() || !searchDate) {
       setSearchInitiated(true);
       setSearchError("Vui lòng nhập đầy đủ Điểm đi, Điểm đến và Ngày đi trước khi tìm kiếm.");
       setSchedules([]);
       return;
+    }
+
+    if (searchDate !== date) {
+      setDate(searchDate);
     }
     
     if (tripType === "round_trip" && !returnDate) {
@@ -260,7 +298,7 @@ const Home = () => {
     setDestination(to);
 
     // Auto trigger search with today's date if date is empty
-    const searchDate = date || new Date().toISOString().split('T')[0];
+    const searchDate = date && !isDateBeforeToday(date) ? date : todayInputValue;
     setDate(searchDate);
 
     setSearchInitiated(true);
@@ -336,9 +374,9 @@ const Home = () => {
               <div className="space-y-6">
                 {/* Đã bỏ chức năng chọn Khứ hồi */}
 
-                <div className="grid grid-cols-1 gap-4">
+                <div className="relative space-y-4">
                   {/* Điểm đi */}
-                  <div>
+                  <div className={`transition-all duration-300 ${swapAnimating ? "translate-y-1 opacity-80" : ""}`}>
                     <label className="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">
                       Điểm đi
                     </label>
@@ -349,8 +387,9 @@ const Home = () => {
                       icon="location_on"
                     />
                   </div>
+
                   {/* Điểm đến */}
-                  <div>
+                  <div className={`transition-all duration-300 ${swapAnimating ? "-translate-y-1 opacity-80" : ""}`}>
                     <label className="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">
                       Điểm đến
                     </label>
@@ -361,6 +400,19 @@ const Home = () => {
                       icon="flag"
                     />
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSwapLocations}
+                    disabled={!departure && !destination}
+                    className="group absolute right-4 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-outline-variant/40 bg-white text-primary shadow-[0_10px_24px_rgba(15,23,42,0.14)] transition-all duration-300 hover:scale-105 hover:border-primary/40 hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-white disabled:hover:text-primary"
+                    aria-label="Đổi chiều điểm đi và điểm đến"
+                    title="Đổi chiều"
+                  >
+                    <span className={`material-symbols-outlined text-[23px] transition-transform duration-300 ${swapAnimating ? "rotate-180" : ""}`}>
+                      swap_vert
+                    </span>
+                  </button>
                 </div>
 
                 {/* Ngày đi */}
@@ -369,7 +421,7 @@ const Home = () => {
                     <label className="text-[0.7rem] font-bold uppercase tracking-wider text-outline mb-1 block">
                       Ngày đi
                     </label>
-                    <div className="flex items-center bg-surface-container-low px-4 py-3 rounded-xl">
+                    <div className="flex min-h-[58px] items-center bg-surface-container-low px-4 py-3 rounded-xl">
                       <span className="material-symbols-outlined text-primary mr-3">
                         calendar_today
                       </span>
@@ -377,8 +429,9 @@ const Home = () => {
                         className="bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-on-surface w-full placeholder:text-outline-variant font-medium text-sm"
                         placeholder="Chọn ngày đi"
                         type="date"
+                        min={todayInputValue}
                         value={date}
-                        onChange={(e) => setDate(e.target.value)}
+                        onChange={(e) => handleDateChange(e.target.value)}
                       />
                     </div>
                   </div>
