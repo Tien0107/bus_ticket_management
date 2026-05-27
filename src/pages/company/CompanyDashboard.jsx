@@ -27,7 +27,7 @@ const quickLinks = [
     to: "/company/payments",
     icon: "payments",
     title: "Thanh toán",
-    description: "Kiểm tra giao dịch, doanh thu và số dư Stripe.",
+    description: "Kiểm tra giao dịch, doanh thu và số dư.",
   },
   {
     to: "/company/profile",

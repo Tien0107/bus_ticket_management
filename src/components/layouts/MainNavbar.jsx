@@ -14,6 +14,14 @@ const MainNavbar = () => {
   useEffect(() => {
     const initUser = async () => {
       try {
+        const token = localStorage.getItem("token")?.trim();
+        if (!token) {
+          localStorage.removeItem("user");
+          setUser(null);
+          setShowUserMenu(false);
+          return;
+        }
+
         const stored = localStorage.getItem("user");
         if (stored) {
           let parsedUser = JSON.parse(stored);
@@ -33,13 +41,31 @@ const MainNavbar = () => {
           }
           
           setUser(parsedUser);
+        } else {
+          setUser(null);
         }
       } catch (e) {
+        localStorage.removeItem("user");
+        setUser(null);
         console.error("Lỗi parse user:", e);
       }
     };
+
     initUser();
-  }, []);
+
+    const handleAuthStateChange = () => {
+      initUser();
+    };
+
+    window.addEventListener("storage", handleAuthStateChange);
+    window.addEventListener("focus", handleAuthStateChange);
+    window.addEventListener("pageshow", handleAuthStateChange);
+    return () => {
+      window.removeEventListener("storage", handleAuthStateChange);
+      window.removeEventListener("focus", handleAuthStateChange);
+      window.removeEventListener("pageshow", handleAuthStateChange);
+    };
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     try {
@@ -51,7 +77,7 @@ const MainNavbar = () => {
     localStorage.removeItem("user");
     setUser(null);
     setShowUserMenu(false);
-    navigate("/");
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -59,7 +85,7 @@ const MainNavbar = () => {
       <div className="flex justify-between items-center w-full px-6 py-3 max-w-7xl mx-auto">
         <Link to="/" className="flex items-center gap-2">
           <img src="/img/busgo.jpg" alt="BusGo" className="h-10 mix-blend-multiply" />
-          <span className="text-xl font-black text-primary tracking-tighter">Bus Go</span>
+          <span className="text-xl font-black text-primary tracking-tighter">BusGo</span>
         </Link>
         <div className="hidden md:flex items-center space-x-8">
           <Link

@@ -18,6 +18,56 @@ import { useToast } from "../../context/ToastContext";
 
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+const DELETED_TICKETS_STORAGE_KEY = "busgo_deleted_tickets";
+const EXPIRED_TICKETS_STORAGE_KEY = "busgo_expired_tickets";
+
+const readStoredTicketIds = (key) => {
+  try {
+    const ids = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(ids) ? ids.map(String) : [];
+  } catch {
+    return [];
+  }
+};
+
+const addStoredTicketId = (key, id) => {
+  const ticketId = String(id);
+  const ids = readStoredTicketIds(key);
+  if (!ids.includes(ticketId)) {
+    localStorage.setItem(key, JSON.stringify([...ids, ticketId]));
+  }
+};
+
+const getLocalPaymentMethod = (ticket) => {
+  try {
+    return (
+      localStorage.getItem(`busgo_payment_method_${ticket?.bookingId}`) ||
+      localStorage.getItem(`busgo_payment_method_${ticket?.id}`) ||
+      ""
+    );
+  } catch {
+    return "";
+  }
+};
+
+const isCashTicket = (ticket) => {
+  return String(ticket?.paymentMethod || ticket?.paymentType || getLocalPaymentMethod(ticket)).toUpperCase() === "CASH";
+};
+
+const getDisplayTicketStatus = (ticket) => {
+  const currentStatus = String(ticket?.status || "pending").toUpperCase();
+  const isStoredExpired = readStoredTicketIds(EXPIRED_TICKETS_STORAGE_KEY).includes(String(ticket?.id));
+
+  if (currentStatus === "EXPIRED" || isStoredExpired) {
+    return "EXPIRED";
+  }
+
+  if (isCashTicket(ticket) && (currentStatus === "PENDING" || currentStatus === "RESERVED")) {
+    return "CASH_PAID";
+  }
+
+  return currentStatus;
+};
 
 const CountdownTimer = ({ expiredAt, onExpire }) => {
   const [timeLeft, setTimeLeft] = useState(new Date(expiredAt).getTime() - Date.now());
@@ -99,9 +149,9 @@ export default function MyTickets() {
       const next = raw.next || res.data?.next || null;
       
       // Xóa vé ảo (Lọc khỏi danh sách hiển thị)
-      const deletedIds = JSON.parse(localStorage.getItem("busgo_deleted_tickets") || "[]");
+      const deletedIds = readStoredTicketIds(DELETED_TICKETS_STORAGE_KEY);
       if (deletedIds.length > 0) {
-        list = list.filter(t => !deletedIds.includes(t.id));
+        list = list.filter(t => !deletedIds.includes(String(t.id)));
       }
       
       if (isLoadMore) {
@@ -149,6 +199,9 @@ export default function MyTickets() {
 
   const executeCancel = async (id, isAuto = false) => {
     try {
+      if (isAuto) {
+        addStoredTicketId(EXPIRED_TICKETS_STORAGE_KEY, id);
+      }
       await cancelTicket(id);
       if (!isAuto) addToast("Hủy vé thành công!", "success");
       try {
@@ -186,11 +239,7 @@ export default function MyTickets() {
   };
 
   const handleDeleteTicket = (id) => {
-    const deletedIds = JSON.parse(localStorage.getItem("busgo_deleted_tickets") || "[]");
-    if (!deletedIds.includes(id)) {
-      deletedIds.push(id);
-      localStorage.setItem("busgo_deleted_tickets", JSON.stringify(deletedIds));
-    }
+    addStoredTicketId(DELETED_TICKETS_STORAGE_KEY, id);
     setTickets(prev => prev.filter(t => t.id !== id));
     addToast("Đã xóa vé khỏi lịch sử!", "success");
   };
@@ -384,11 +433,7 @@ export default function MyTickets() {
           const filteredTickets = tickets.filter(t => {
             if (filterStatus === 'ALL') return true;
             
-            let currentStatus = String(t.status || 'pending').toUpperCase();
-            const isCash = String(t.paymentMethod || t.paymentType || '').toUpperCase() === 'CASH';
-            if (isCash && (currentStatus === 'PENDING' || currentStatus === 'RESERVED')) {
-                currentStatus = 'CASH_PAID';
-            }
+            const currentStatus = getDisplayTicketStatus(t);
 
             if (filterStatus === 'PENDING') return currentStatus === 'PENDING' || currentStatus === 'RESERVED';
             if (filterStatus === 'COMPLETED') return ['COMPLETED', 'PAID', 'CHECKED_IN', 'CASH_PAID'].includes(currentStatus);
@@ -409,16 +454,14 @@ export default function MyTickets() {
           return (
             <div className="space-y-6">
               {filteredTickets.map((t, idx) => {
-                 let currentStatus = String(t.status || 'pending').toUpperCase();
-                 const localMethod = localStorage.getItem(`busgo_payment_method_${t.bookingId}`) || localStorage.getItem(`busgo_payment_method_${t.id}`);
-                 const isCash = String(t.paymentMethod || t.paymentType || localMethod || '').toUpperCase() === 'CASH';
-
-                 // Nếu backend trả về là CASH thì ta coi như đã thanh toán (Tiền mặt)
-                 if (isCash && (currentStatus === 'PENDING' || currentStatus === 'RESERVED')) {
-                     currentStatus = 'CASH_PAID';
-                 }
+               const currentStatus = getDisplayTicketStatus(t);
+               const tripStatus = String(t.tripStatus || t.trip?.status || t.tripSchedule?.tripStatus || t.tripSchedule?.status || '').toUpperCase();
 
                const isPending = currentStatus === "PENDING" || currentStatus === "RESERVED";
+               const isTripCompleted = currentStatus === "COMPLETED" || tripStatus === "COMPLETED";
+               const canShowReviewAction =
+                 !["CANCELLED", "EXPIRED"].includes(currentStatus) &&
+                 (["COMPLETED", "PAID", "CHECKED_IN", "CASH_PAID"].includes(currentStatus) || isTripCompleted);
                
                const statusLabelMap = {
                  'PENDING': 'Chờ thanh toán', 'RESERVED': 'Đã giữ chỗ',
@@ -474,7 +517,7 @@ export default function MyTickets() {
                        {(() => {
                          const rawTime = t.expiredAt || t.createdAt || t.created_at || t.createdDate || t.createAt || t.bookingDate || t.bookingTime || t.orderDate;
                          let baseTime = t.expiredAt ? t.expiredAt : (rawTime ? new Date(new Date(rawTime).getTime() + 10 * 60000).toISOString() : null);
-                         const isCash = String(t.paymentMethod || t.paymentType || '').toUpperCase() === 'CASH';
+                         const isCash = isCashTicket(t);
                          
                          if (isPending && !isCash) {
                            // Fallback to localStorage if API doesn't provide any time
@@ -527,11 +570,9 @@ export default function MyTickets() {
                            <button onClick={() => navigate(`/my-tickets/${t.id}`)} className="flex-1 md:flex-none border border-primary text-primary hover:bg-primary hover:text-white transition-colors px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm">
                              Xem vé
                            </button>
-                           {(currentStatus === 'COMPLETED' || currentStatus === 'PAID' || currentStatus === 'CHECKED_IN' || currentStatus === 'CASH_PAID') && (
+                           {canShowReviewAction && (
                              (() => {
-                               let isTripFinished = currentStatus === 'COMPLETED';
-                               
-                               if (!isTripFinished) {
+                               if (!isTripCompleted) {
                                  return (
                                    <div className="flex-1 md:flex-none bg-surface-container text-on-surface-variant px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm cursor-not-allowed opacity-80" title="Chuyến đi chưa hoàn thành">
                                      <span className="material-symbols-outlined text-[18px]">pending_actions</span>
@@ -578,16 +619,6 @@ export default function MyTickets() {
                                  </button>
                                );
                              })()
-                           )}
-                           
-                           {(currentStatus === 'CANCELLED' || currentStatus === 'EXPIRED') && (
-                             <button 
-                               onClick={() => setTicketToDelete(t.id)} 
-                               className="flex-1 md:flex-none border border-red-200 text-red-500 hover:bg-red-50 transition-colors px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm"
-                             >
-                               <span className="material-symbols-outlined text-[18px]">delete</span>
-                               Xóa vé
-                             </button>
                            )}
                          </>
                       )}

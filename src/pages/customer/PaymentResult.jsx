@@ -98,7 +98,7 @@ export default function PaymentResult() {
 
         <p className="text-on-surface-variant text-sm md:text-base font-medium mb-8 max-w-sm mx-auto">
           {isSuccess
-            ? "Cảm ơn bạn đã lựa chọn Bus Go. Giao dịch của bạn đã hoàn tất và vé xe đang được hệ thống xử lý."
+            ? "Cảm ơn bạn đã lựa chọn BusGo. Giao dịch của bạn đã hoàn tất và vé xe đang được hệ thống xử lý."
             : "Có lỗi xảy ra trong quá trình thanh toán bằng cổng VNPay hoặc giao dịch đã bị hủy bỏ."}
         </p>
 

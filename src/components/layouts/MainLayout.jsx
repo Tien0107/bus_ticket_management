@@ -4,14 +4,18 @@ import MainNavbar from "./MainNavbar";
 import MainFooter from "./MainFooter";
 import ChatWidget from "../chat/ChatWidget";
 
-const publicMainPaths = new Set(["/", "/routes", "/companies", "/promotions", "/contact"]);
+const publicMainPaths = new Set(["/routes", "/companies", "/promotions", "/contact"]);
 
 const MainLayout = () => {
   const location = useLocation();
   const user = localStorage.getItem("user");
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token")?.trim();
   const isLoggedIn = !!(user && token);
   const isPublicPage = publicMainPaths.has(location.pathname);
+
+  if (!token && user) {
+    localStorage.removeItem("user");
+  }
 
   if (!isLoggedIn && !isPublicPage) {
     return <Navigate to="/login" replace />;

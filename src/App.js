@@ -15,6 +15,7 @@ import PaymentResult from "./pages/customer/PaymentResult";
 // Layouts
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import MainLayout from "./components/layouts/MainLayout";
+import PrivateRoute from "./components/PrivateRoute";
 
 // Customer Pages
 import Booking from "./pages/customer/Booking";
@@ -102,11 +103,32 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/company-signup" element={<Navigate to="/register?type=company" replace />} />
           <Route path="/stripe/connect/callback" element={<StripeConnectCallback />} />
-          <Route path="/payment-result" element={<PaymentResult />} />
+          <Route
+            path="/payment-result"
+            element={
+              <PrivateRoute>
+                <PaymentResult />
+              </PrivateRoute>
+            }
+          />
           
           {/* Ticket Detail (Standalone Boarding Pass) */}
-          <Route path="/profile/tickets/:ticketId" element={<TicketDetail />} />
-          <Route path="/my-tickets/:ticketId" element={<TicketDetail />} />
+          <Route
+            path="/profile/tickets/:ticketId"
+            element={
+              <PrivateRoute>
+                <TicketDetail />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/my-tickets/:ticketId"
+            element={
+              <PrivateRoute>
+                <TicketDetail />
+              </PrivateRoute>
+            }
+          />
 
           {/* Main Layout (Home & Customer Pages) */}
           <Route element={<MainLayout />}>
@@ -128,9 +150,30 @@ function App() {
           </Route>
 
           {/* Company Support */}
-          <Route path="/company-support" element={<Navigate to="/company-support/tickets" replace />} />
-          <Route path="/company-support/tickets" element={<SupportTickets />} />
-          <Route path="/company-support/coupons" element={<SupportCoupons />} />
+          <Route
+            path="/company-support"
+            element={
+              <PrivateRoute>
+                <Navigate to="/company-support/tickets" replace />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/company-support/tickets"
+            element={
+              <PrivateRoute>
+                <SupportTickets />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/company-support/coupons"
+            element={
+              <PrivateRoute>
+                <SupportCoupons />
+              </PrivateRoute>
+            }
+          />
 
           {/* Dashboard Layout */}
           <Route element={<DashboardLayout />}>

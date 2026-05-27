@@ -114,7 +114,7 @@ export default function BookingSeatStep({
         });
       } catch (err) {
         console.error("Lỗi API Step 1:", err);
-        addToast("Lỗi khi tải thông tin chuyến đi: " + (err.response?.data?.message || err.message), "error");
+        addToast((err.response?.data?.message || err.message), "error");
       } finally {
         if (active) setLoading(false);
       }

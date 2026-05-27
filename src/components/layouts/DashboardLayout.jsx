@@ -5,7 +5,7 @@ import NotificationBell from "../common/NotificationBell";
 import ChatWidget from "../chat/ChatWidget";
 
 export default function DashboardLayout() {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token")?.trim();
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
@@ -19,6 +19,7 @@ export default function DashboardLayout() {
   }, []);
 
   if (!token) {
+    localStorage.removeItem("user");
     return <Navigate to="/login" replace />;
   }
 
@@ -47,7 +48,7 @@ export default function DashboardLayout() {
     }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + "/");
@@ -121,7 +122,7 @@ export default function DashboardLayout() {
                   <span className="material-symbols-outlined text-[25px]">directions_bus</span>
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-xl font-extrabold leading-tight">Bus Go</span>
+                  <span className="block truncate text-xl font-extrabold leading-tight">BusGo</span>
                   <span className="block truncate text-xs font-bold uppercase text-primary/70">{sectionLabel}</span>
                 </span>
               </Link>
