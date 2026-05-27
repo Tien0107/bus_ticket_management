@@ -193,11 +193,8 @@ function Login() {
                 Đăng nhập tài khoản
               </span>
               <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-on-surface sm:text-4xl">
-                Chào mừng trở lại
+                Chào mừng bạn đến với BusGo!
               </h2>
-              <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                Dùng email, số điện thoại, Google hoặc Facebook để tiếp tục vào BusGo.
-              </p>
             </div>
 
             <LoginForm
