@@ -47,6 +47,50 @@ const getSentMessagePayload = (data) => {
   return candidates.find((candidate) => candidate && typeof candidate === "object" && !Array.isArray(candidate)) || null;
 };
 
+const getBoxActivityTime = (box = {}) => {
+  const candidates = [
+    box.lastMessageAt,
+    box.lastMessageCreatedAt,
+    box.lastMessageTime,
+    box.lastMessageDate,
+    box.updatedAt,
+    box.createdAt,
+  ];
+
+  for (const value of candidates) {
+    const time = new Date(value).getTime();
+    if (Number.isFinite(time)) return time;
+  }
+
+  return 0;
+};
+
+const mergeBoxesWithCurrentActivity = (incomingBoxes, currentBoxes) => {
+  const currentById = new Map(currentBoxes.map((box) => [String(box.id), box]));
+
+  return incomingBoxes.map((box) => {
+    const currentBox = currentById.get(String(box.id));
+    if (!currentBox) return box;
+
+    const currentTime = getBoxActivityTime(currentBox);
+    const incomingTime = getBoxActivityTime(box);
+    if (currentTime <= incomingTime) return box;
+
+    return {
+      ...box,
+      lastMessage: currentBox.lastMessage || box.lastMessage,
+      lastMessageSenderId: currentBox.lastMessageSenderId ?? box.lastMessageSenderId,
+      lastMessageAt: currentBox.lastMessageAt || currentBox.updatedAt || currentBox.createdAt || box.lastMessageAt,
+      unreadCount: Math.max(Number(box.unreadCount || 0), Number(currentBox.unreadCount || 0)),
+      unreadReceiverCount: Math.max(
+        Number(box.unreadReceiverCount || 0),
+        Number(currentBox.unreadReceiverCount || 0)
+      ),
+      unreadSenderCount: Math.max(Number(box.unreadSenderCount || 0), Number(currentBox.unreadSenderCount || 0)),
+    };
+  });
+};
+
 export default function useChatController() {
   const { addToast } = useToast();
   const [currentUser] = useState(getStoredUser);
@@ -71,6 +115,7 @@ export default function useChatController() {
   const [socketError, setSocketError] = useState("");
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
   const [typingByBox, setTypingByBox] = useState(() => ({}));
+  const [realtimeUnreadByBox, setRealtimeUnreadByBox] = useState(() => ({}));
   const [recalledMessageIds, setRecalledMessageIds] = useState(
     () => new Set(readRecalledMessageIds(viewerId))
   );
@@ -86,14 +131,28 @@ export default function useChatController() {
   const typingActiveRef = useRef(false);
   const recallCacheKey = useMemo(() => getRecallCacheKey(viewerId), [viewerId]);
 
+  const boxesWithRealtimeUnread = useMemo(
+    () =>
+      boxes.map((box) => {
+        const realtimeUnread = Number(realtimeUnreadByBox[box.id] || 0);
+        if (realtimeUnread <= 0) return box;
+
+        return {
+          ...box,
+          unreadCount: Math.max(getUnreadForViewer(box, viewerId), realtimeUnread),
+        };
+      }),
+    [boxes, realtimeUnreadByBox, viewerId]
+  );
+
   const selectedBox = useMemo(
-    () => boxes.find((box) => Number(box.id) === Number(selectedBoxId)) || null,
-    [boxes, selectedBoxId]
+    () => boxesWithRealtimeUnread.find((box) => Number(box.id) === Number(selectedBoxId)) || null,
+    [boxesWithRealtimeUnread, selectedBoxId]
   );
 
   const totalUnread = useMemo(
-    () => boxes.reduce((sum, box) => sum + getUnreadForViewer(box, viewerId), 0),
-    [boxes, viewerId]
+    () => boxesWithRealtimeUnread.reduce((sum, box) => sum + getUnreadForViewer(box, viewerId), 0),
+    [boxesWithRealtimeUnread, viewerId]
   );
 
   const peerTyping = useMemo(() => {
@@ -168,11 +227,12 @@ export default function useChatController() {
         const data = normalizeBoxesResponse(response.data);
 
         setBoxes((current) => {
-          if (reset) return data.boxes;
+          const boxesWithCurrentActivity = mergeBoxesWithCurrentActivity(data.boxes, current);
+          if (reset) return sortBoxesByLatestActivity(boxesWithCurrentActivity);
           const known = new Set(current.map((box) => String(box.id)));
           return sortBoxesByLatestActivity([
             ...current,
-            ...data.boxes.filter((box) => !known.has(String(box.id))),
+            ...boxesWithCurrentActivity.filter((box) => !known.has(String(box.id))),
           ]);
         });
         setBoxNext(data.next);
@@ -291,6 +351,12 @@ export default function useChatController() {
   const markRead = useCallback(
     async (boxId) => {
       if (!boxId) return;
+      setRealtimeUnreadByBox((current) => {
+        if (!current[boxId]) return current;
+        const next = { ...current };
+        delete next[boxId];
+        return next;
+      });
       setBoxes((current) =>
         current.map((box) => (Number(box.id) === Number(boxId) ? zeroUnreadForViewer(box, viewerId) : box))
       );
@@ -314,6 +380,7 @@ export default function useChatController() {
     setBoxes,
     setMessages,
     setOnlineUserIds,
+    setRealtimeUnreadByBox,
     setSocketError,
     setTypingByBox,
     socketRef,
@@ -331,6 +398,15 @@ export default function useChatController() {
   }, [isAuthenticated, loadBoxes]);
 
   useEffect(() => {
+    const socket = socketRef.current;
+    if (!isAuthenticated || !socket?.connected || !boxes.length) return;
+
+    boxes.forEach((box) => {
+      if (box.id) socket.emit("chat:join", { boxId: box.id });
+    });
+  }, [boxes, isAuthenticated]);
+
+  useEffect(() => {
     if (!open || !showCreate) {
       setRecipientUsers([]);
       setReceiverId("");
@@ -344,11 +420,6 @@ export default function useChatController() {
   useEffect(() => {
     selectedBoxRef.current = selectedBoxId;
     const socket = socketRef.current;
-    const previousBoxId = activeBoxRef.current;
-
-    if (socket?.connected && previousBoxId && Number(previousBoxId) !== Number(selectedBoxId)) {
-      socket.emit("chat:leave", { boxId: previousBoxId });
-    }
 
     activeBoxRef.current = selectedBoxId;
 
@@ -596,7 +667,7 @@ export default function useChatController() {
 
   return {
     boxNext,
-    boxes,
+    boxes: boxesWithRealtimeUnread,
     composeValue,
     filteredRecipientUsers,
     firstMessage,

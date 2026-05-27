@@ -19,6 +19,7 @@ export default function useChatSocket({
   setBoxes,
   setMessages,
   setOnlineUserIds,
+  setRealtimeUnreadByBox,
   setSocketError,
   setTypingByBox,
   socketRef,
@@ -46,6 +47,7 @@ export default function useChatSocket({
     const handleConnect = () => {
       setSocketError("");
       if (activeBoxRef.current) socket.emit("chat:join", { boxId: activeBoxRef.current });
+      loadBoxes({ reset: true });
     };
 
     const handleConnectError = (error) => {
@@ -81,6 +83,13 @@ export default function useChatSocket({
       if (isActiveBox && Number(message.senderId) !== Number(viewerId)) {
         setMessages((current) => appendUniqueMessages(current, message));
         markRead(message.boxId);
+      }
+
+      if (!isActiveBox && Number(message.senderId) !== Number(viewerId)) {
+        setRealtimeUnreadByBox((current) => ({
+          ...current,
+          [message.boxId]: Number(current[message.boxId] || 0) + 1,
+        }));
       }
 
       setBoxes((current) =>
@@ -218,6 +227,7 @@ export default function useChatSocket({
     setBoxes,
     setMessages,
     setOnlineUserIds,
+    setRealtimeUnreadByBox,
     setSocketError,
     setTypingByBox,
     socketRef,

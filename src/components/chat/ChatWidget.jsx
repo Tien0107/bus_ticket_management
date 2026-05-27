@@ -66,8 +66,8 @@ export default function ChatWidget() {
           >
             <span className="material-symbols-outlined text-[28px]">chat_bubble</span>
             {chat.totalUnread > 0 && (
-              <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
-                {chat.totalUnread}
+              <span className="absolute -right-2 -top-2 inline-flex min-w-6 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1.5 py-0.5 text-xs font-extrabold leading-4 text-white shadow-[0_8px_18px_rgba(239,68,68,0.35)]">
+                {chat.totalUnread > 99 ? "99+" : chat.totalUnread}
               </span>
             )}
           </button>
