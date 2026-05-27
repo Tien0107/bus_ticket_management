@@ -1,29 +1,29 @@
 import axiosClient from "./axiosClient";
 
 export const companySupportRegister = (data) => {
-  return axiosClient.post("/company-admin-support/sign-up", data);
+    return axiosClient.post("/operator-support/sign-up", data);
 };
 
 export const getSupportTickets = (params) => {
-  return axiosClient.get("/company-admin-support/ticket", { params });
+    return axiosClient.get("/operator-support/ticket", { params });
 };
 
 export const getSupportTicketDetail = (id) => {
-  return axiosClient.get(`/company-admin-support/ticket/${id}`);
+    return axiosClient.get(`/operator-support/ticket/${id}`);
 };
 
 export const cancelSupportTicket = (id) => {
-  return axiosClient.delete(`/company-admin-support/ticket/${id}`);
+    return axiosClient.delete(`/operator-support/ticket/${id}`);
 };
 
 export const getSupportCoupons = (params) => {
-  return axiosClient.get("/company-admin-support/coupon", { params });
+    return axiosClient.get("/operator-support/coupon", { params });
 };
 
 export const createSupportCoupon = (data) => {
-  return axiosClient.post("/company-admin-support/coupon", data);
+    return axiosClient.post("/operator-support/coupon", data);
 };
 
 export const updateSupportCoupon = (id, data) => {
-  return axiosClient.put(`/company-admin-support/coupon/${id}`, data);
+    return axiosClient.put(`/operator-support/coupon/${id}`, data);
 };

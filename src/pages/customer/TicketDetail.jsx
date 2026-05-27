@@ -239,26 +239,6 @@ export default function TicketDetail() {
 
         {/* Action Buttons */}
         <div className="mt-8 flex flex-col gap-4">
-          {!isCancelled && (
-            <button 
-              onClick={() => {
-                const targetId = ticket.companyId || 2; 
-                const targetName = ticket.companyName || "Hỗ trợ nhà xe";
-
-                window.dispatchEvent(new CustomEvent("chat:open-with-user", {
-                  detail: { receiverId: targetId, displayName: targetName }
-                }));
-              }}
-              className="w-full bg-primary text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity active:scale-[0.98] duration-200 text-sm shadow-md cursor-pointer"
-            >
-              <span className="material-symbols-outlined">chat</span>
-              Chat với nhà xe hỗ trợ
-            </button>
-          )}
-          <button className="w-full bg-secondary-container text-on-secondary-container font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity active:scale-[0.98] duration-200 text-sm">
-            <span className="material-symbols-outlined">download</span>
-            Tải vé dạng PDF
-          </button>
           {!isCancelled && ticket.status !== 'COMPLETED' && (
             <button onClick={handleCancel} className="w-full bg-transparent text-error border border-error/20 font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-error-container/30 transition-colors active:scale-[0.98] duration-200 text-sm">
               <span className="material-symbols-outlined">cancel</span>

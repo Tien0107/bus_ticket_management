@@ -30,8 +30,6 @@ export default function AddCardStripeForm({ onClose, onAdded }) {
   const stripe = useStripe();
   const elements = useElements();
 
-  const [cardholderName, setCardholderName] = useState("");
-  const [billingEmail, setBillingEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -59,10 +57,6 @@ export default function AddCardStripeForm({ onClose, onAdded }) {
       const { error: confirmError, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
         payment_method: {
           card: cardNumberElement,
-          billing_details: {
-            name: cardholderName.trim() || undefined,
-            email: billingEmail.trim() || undefined,
-          },
         },
       });
 
@@ -83,7 +77,7 @@ export default function AddCardStripeForm({ onClose, onAdded }) {
 
       await addPaymentMethod(paymentMethodId);
       await setDefaultPaymentMethod(paymentMethodId);
-      onAdded?.(paymentMethodId);
+      await onAdded?.(paymentMethodId);
       onClose?.();
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Không thể thêm thẻ.");

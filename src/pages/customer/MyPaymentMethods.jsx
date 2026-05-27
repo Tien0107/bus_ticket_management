@@ -128,10 +128,10 @@ export default function MyPaymentMethods() {
   };
 
   const handleCardAdded = async (newPaymentMethodId) => {
-    const freshMethods = await fetchMethods({ silent: true, preferredId: newPaymentMethodId });
     if (!newPaymentMethodId) return;
 
-    setMethods(normalizeDefaultMethods(freshMethods, newPaymentMethodId));
+    await fetchMethods({ preferredId: newPaymentMethodId });
+    addToast("Thêm thẻ thành công!", "success");
   };
 
   return (

@@ -129,7 +129,7 @@ export default function SupportTickets() {
     }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   // Stats

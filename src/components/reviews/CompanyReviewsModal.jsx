@@ -179,9 +179,6 @@ const CompanyReviewsModal = ({ isOpen, onClose, companyId, companyName }) => {
                       </div>
                       <div>
                         <div className="font-bold text-on-surface text-sm">{review.reviewerName || "Khách hàng"}</div>
-                        <div className="text-xs text-on-surface-variant">
-                          {new Date(review.createdAt).toLocaleDateString('vi-VN')}
-                        </div>
                       </div>
                     </div>
                     <div className="flex gap-0.5">

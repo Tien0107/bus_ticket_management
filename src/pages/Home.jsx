@@ -603,7 +603,7 @@ const Home = () => {
               Nhà xe đối tác
             </h2>
             <p className="text-on-surface-variant">
-              Các nhà xe uy tín hợp tác với Bus Go
+              Các nhà xe uy tín hợp tác với BusGo
             </p>
             <div className="w-20 h-1.5 bg-primary-container rounded-full mt-2"></div>
           </div>
