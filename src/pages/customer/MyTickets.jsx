@@ -581,15 +581,6 @@ export default function MyTickets() {
                                  );
                                }
 
-                               if (isReviewExpired) {
-                                 return (
-                                   <div className="flex-1 md:flex-none bg-surface-container text-on-surface-variant px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm cursor-not-allowed opacity-80" title="Đã quá hạn 7 ngày để đánh giá">
-                                     <span className="material-symbols-outlined text-[18px]">history_toggle_off</span>
-                                     Hết hạn ĐG
-                                   </div>
-                                 );
-                               }
-
                                if (t.isReviewed || t.hasRating) {
                                  return (
                                    <div className="flex-1 md:flex-none bg-green-50 text-green-600 border border-green-200 px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm cursor-default" title="Bạn đã đánh giá chuyến xe này">
@@ -597,6 +588,10 @@ export default function MyTickets() {
                                      Đã đánh giá
                                    </div>
                                  );
+                               }
+
+                               if (isReviewExpired) {
+                                 return null;
                                }
 
                                return (

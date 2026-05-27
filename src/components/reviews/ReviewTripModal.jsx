@@ -26,17 +26,15 @@ const ReviewTripModal = ({ isOpen, onClose, ticket, onSuccess }) => {
     try {
       setLoading(true);
       setError(null);
-      
-      // DEBUG: Xem chính xác data gửi đi
-      const payload = { 
+
+      const resolvedTicketId = Number(ticket.ticketId || ticket.id || ticket.bookingTicketId);
+      const payload = {
         tripId: parseInt(ticket.tripId, 10),
-        rating: parseInt(rating, 10), 
+        ticketId: Number.isFinite(resolvedTicketId) ? resolvedTicketId : (ticket.ticketId || ticket.id || ticket.bookingTicketId),
+        rating: parseInt(rating, 10),
         comment: comment.trim()
       };
-      console.log("🎫 Ticket object:", ticket);
-      console.log("📦 Rating payload:", JSON.stringify(payload));
-      
-      // Gọi API rateTicket
+
       await rateTicket(payload);
       try {
         const userStr = localStorage.getItem("user");
