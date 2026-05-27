@@ -27,11 +27,32 @@ import {
 
 const today = () => new Date().toISOString().split("T")[0];
 
-const toDateInputValue = (value) => {
-  if (!value) return today();
+const toOptionalDateInputValue = (value) => {
+  if (!value) return "";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value).split("T")[0] || today();
+  if (Number.isNaN(date.getTime())) return String(value).split("T")[0] || "";
   return date.toISOString().split("T")[0];
+};
+
+const toDateInputValue = (value) => toOptionalDateInputValue(value) || today();
+
+const toScheduleDatePayload = (value) => `${toDateInputValue(value)}T00:00:00.000Z`;
+
+const formatDate = (value) => {
+  const normalizedDate = toOptionalDateInputValue(value);
+  if (!normalizedDate) return "";
+
+  const [year, month, day] = normalizedDate.split("-");
+  return `${day}/${month}/${year}`;
+};
+
+const formatDateRange = (startDate, endDate) => {
+  const start = formatDate(startDate);
+  const end = formatDate(endDate);
+
+  if (!start && !end) return "";
+  if (!end || start === end) return start;
+  return `${start} - ${end}`;
 };
 
 const emptyForm = {
@@ -141,13 +162,32 @@ export default function Schedules() {
 
     try {
       if (editingSchedule) {
-        await updateTripSchedule(editingSchedule.id, {
+        const payload = {
           departureTime: formData.departureTime,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
+          startDate: toScheduleDatePayload(formData.startDate),
+          endDate: toScheduleDatePayload(formData.endDate),
           status: Boolean(formData.status),
-        });
+        };
+        const response = await updateTripSchedule(editingSchedule.id, payload);
+        const updatedSchedule = response.data?.tripSchedule || response.data?.data?.tripSchedule || {};
+
+        setSchedules((current) =>
+          current.map((schedule) =>
+            Number(schedule.id) === Number(editingSchedule.id)
+              ? {
+                  ...schedule,
+                  ...updatedSchedule,
+                  departureTime: updatedSchedule.departureTime || payload.departureTime,
+                  startDate: updatedSchedule.startDate || payload.startDate,
+                  endDate: updatedSchedule.endDate || payload.endDate,
+                  status: updatedSchedule.status ?? payload.status,
+                }
+              : schedule
+          )
+        );
+        closeModal();
         addToast({ type: "success", title: "Cập nhật lịch biểu thành công" });
+        return;
       } else {
         const companyId = getStoredCompanyId();
         if (!companyId) {
@@ -163,8 +203,8 @@ export default function Schedules() {
           routeId: Number(formData.routeId),
           companyId: Number(companyId),
           departureTime: formData.departureTime,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
+          startDate: toScheduleDatePayload(formData.startDate),
+          endDate: toScheduleDatePayload(formData.endDate),
           status: Boolean(formData.status),
         });
         addToast({ type: "success", title: "Tạo lịch biểu thành công" });
@@ -273,7 +313,14 @@ export default function Schedules() {
                       <p className="font-bold text-on-surface">{schedule.fromLocation} → {schedule.toLocation}</p>
                       <p className="mt-1 text-xs text-on-surface-variant">ID: {schedule.id}</p>
                     </td>
-                    <td className="px-5 py-4 font-medium text-on-surface">{schedule.departureTime || "—"}</td>
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-on-surface">{schedule.departureTime || "—"}</p>
+                      {formatDateRange(schedule.startDate, schedule.endDate) && (
+                        <p className="mt-1 text-xs text-on-surface-variant">
+                          {formatDateRange(schedule.startDate, schedule.endDate)}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-5 py-4 text-on-surface-variant">
                       {Number(schedule.distanceKm || 0).toLocaleString("vi-VN")} km · {Number(schedule.durationMinutes || 0).toLocaleString("vi-VN")} phút
                     </td>
