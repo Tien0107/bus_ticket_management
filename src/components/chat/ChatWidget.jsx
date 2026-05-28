@@ -5,11 +5,46 @@ import CreateChatForm from "./CreateChatForm";
 import MessageInput from "./MessageInput";
 import MessageList from "./MessageList";
 import useChatController from "./useChatController";
+import { useCall, CALL_TYPE } from "../call/CallContext";
+import { useToast } from "../../context/ToastContext";
 
 export default function ChatWidget() {
   const chat = useChatController();
   const navigate = useNavigate();
+  const call = useCall();
+  const { addToast } = useToast();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  // Bắt đầu cuộc gọi từ chat đang mở
+  const handleStartCall = (type) => {
+    if (!chat.selectedBox || !chat.viewerId) return;
+
+    const isSelf =
+      Number(chat.selectedBox.senderId) === Number(chat.viewerId) &&
+      Number(chat.selectedBox.receiverId) === Number(chat.viewerId);
+
+    if (isSelf) {
+      addToast("Không thể gọi cho chính mình", "error");
+      return;
+    }
+
+    // Lấy thông tin người đối diện
+    const peerId =
+      Number(chat.selectedBox.senderId) === Number(chat.viewerId)
+        ? chat.selectedBox.receiverId
+        : chat.selectedBox.senderId;
+
+    const remoteUser = {
+      id: peerId,
+      name: chat.selectedBox.displayName?.replace(/^Bạn và /, "") || "Người dùng",
+      avatar: null, // Có thể mở rộng sau nếu backend trả avatar
+    };
+
+    const started = call.startCall(chat.selectedBox.id, type, remoteUser, peerId);
+    if (started) {
+      addToast(`Đang gọi ${remoteUser.name}...`, "success");
+    }
+  };
 
   const handleOpenChat = () => {
     if (!chat.isAuthenticated) {
@@ -105,7 +140,35 @@ export default function ChatWidget() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {chat.selectedBox && (
+                <>
+                  {/* Nút gọi thoại */}
+                  <button
+                    type="button"
+                    onClick={() => handleStartCall(CALL_TYPE.VOICE)}
+                    disabled={call.isInCall}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition hover:bg-emerald-50 disabled:opacity-40"
+                    aria-label="Gọi thoại"
+                    title="Gọi thoại"
+                  >
+                    <span className="material-symbols-outlined text-[21px]">call</span>
+                  </button>
+
+                  {/* Nút gọi video */}
+                  <button
+                    type="button"
+                    onClick={() => handleStartCall(CALL_TYPE.VIDEO)}
+                    disabled={call.isInCall}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition hover:bg-emerald-50 disabled:opacity-40"
+                    aria-label="Gọi video"
+                    title="Gọi video"
+                  >
+                    <span className="material-symbols-outlined text-[21px]">videocam</span>
+                  </button>
+                </>
+              )}
+
               {!chat.selectedBox && (
                 <button
                   type="button"
@@ -117,6 +180,7 @@ export default function ChatWidget() {
                   <span className="material-symbols-outlined text-[23px]">add</span>
                 </button>
               )}
+
               <button
                 type="button"
                 onClick={chat.handleClose}

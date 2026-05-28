@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { ToastProvider } from "./context/ToastContext";
 import Toast from "./components/Toast";
+import { CallProvider } from "./components/call/CallContext";
 import Home from "./pages/Home";
 
 // Auth & Public
@@ -95,8 +96,9 @@ function App() {
         }}
       />
 
-      <BrowserRouter>
-        <Routes>
+      <CallProvider>
+        <BrowserRouter>
+          <Routes>
           {/* Public (No Navbar/Footer) */}
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -228,8 +230,9 @@ function App() {
               </div>
             }
           />
-        </Routes>
-      </BrowserRouter>
+          </Routes>
+        </BrowserRouter>
+      </CallProvider>
     </ToastProvider>
   );
 }

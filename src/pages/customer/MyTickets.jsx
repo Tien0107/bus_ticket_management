@@ -54,6 +54,21 @@ const isCashTicket = (ticket) => {
   return String(ticket?.paymentMethod || ticket?.paymentType || getLocalPaymentMethod(ticket)).toUpperCase() === "CASH";
 };
 
+const toValidDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const hasPassedDepartureByDays = (ticket, days = 2) => {
+  const departureDate = toValidDate(ticket?.departureDate || ticket?.trip?.departureDate || ticket?.tripSchedule?.departureDate);
+  if (!departureDate) return false;
+
+  const reviewAvailableAt = new Date(departureDate);
+  reviewAvailableAt.setDate(reviewAvailableAt.getDate() + days);
+  return Date.now() >= reviewAvailableAt.getTime();
+};
+
 const getDisplayTicketStatus = (ticket) => {
   const currentStatus = String(ticket?.status || "pending").toUpperCase();
   const isStoredExpired = readStoredTicketIds(EXPIRED_TICKETS_STORAGE_KEY).includes(String(ticket?.id));
@@ -453,15 +468,15 @@ export default function MyTickets() {
 
           return (
             <div className="space-y-6">
-              {filteredTickets.map((t, idx) => {
+             {filteredTickets.map((t, idx) => {
                const currentStatus = getDisplayTicketStatus(t);
-               const tripStatus = String(t.tripStatus || t.trip?.status || t.tripSchedule?.tripStatus || t.tripSchedule?.status || '').toUpperCase();
 
                const isPending = currentStatus === "PENDING" || currentStatus === "RESERVED";
-               const isTripCompleted = currentStatus === "COMPLETED" || tripStatus === "COMPLETED";
+               const isReviewAvailableByDepartureDate = hasPassedDepartureByDays(t, 2);
                const canShowReviewAction =
                  !["CANCELLED", "EXPIRED"].includes(currentStatus) &&
-                 (["COMPLETED", "PAID", "CHECKED_IN", "CASH_PAID"].includes(currentStatus) || isTripCompleted);
+                 ["COMPLETED", "PAID", "CHECKED_IN", "CASH_PAID"].includes(currentStatus) &&
+                 isReviewAvailableByDepartureDate;
                
                const statusLabelMap = {
                  'PENDING': 'Chờ thanh toán', 'RESERVED': 'Đã giữ chỗ',
@@ -472,16 +487,6 @@ export default function MyTickets() {
                };
                const statusLabel = statusLabelMap[currentStatus] || currentStatus;
 
-               // Kế hoạch 1: Kiểm tra hạn đánh giá (7 ngày sau khi khởi hành)
-               let isReviewExpired = false;
-               if (t.departureDate) {
-                 const expireDate = new Date(t.departureDate);
-                 expireDate.setDate(expireDate.getDate() + 7);
-                 if (new Date() > expireDate) {
-                   isReviewExpired = true;
-                 }
-               }
-               
                return (
                  <div key={idx} className="bg-white border rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                    <div className="space-y-2">
@@ -572,15 +577,6 @@ export default function MyTickets() {
                            </button>
                            {canShowReviewAction && (
                              (() => {
-                               if (!isTripCompleted) {
-                                 return (
-                                   <div className="flex-1 md:flex-none bg-surface-container text-on-surface-variant px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm cursor-not-allowed opacity-80" title="Chuyến đi chưa hoàn thành">
-                                     <span className="material-symbols-outlined text-[18px]">pending_actions</span>
-                                     Chưa hoàn thành
-                                   </div>
-                                 );
-                               }
-
                                if (t.isReviewed || t.hasRating) {
                                  return (
                                    <div className="flex-1 md:flex-none bg-green-50 text-green-600 border border-green-200 px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm cursor-default" title="Bạn đã đánh giá chuyến xe này">
@@ -588,10 +584,6 @@ export default function MyTickets() {
                                      Đã đánh giá
                                    </div>
                                  );
-                               }
-
-                               if (isReviewExpired) {
-                                 return null;
                                }
 
                                return (

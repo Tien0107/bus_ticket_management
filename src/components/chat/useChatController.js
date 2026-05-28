@@ -397,14 +397,9 @@ export default function useChatController() {
     loadBoxes({ reset: true });
   }, [isAuthenticated, loadBoxes]);
 
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!isAuthenticated || !socket?.connected || !boxes.length) return;
-
-    boxes.forEach((box) => {
-      if (box.id) socket.emit("chat:join", { boxId: box.id });
-    });
-  }, [boxes, isAuthenticated]);
+  // Không còn tự động join tất cả các box khi load danh sách nữa.
+  // Chỉ join khi user thực sự bấm vào 1 hộp thoại cụ thể (xem useEffect selectedBoxId bên dưới)
+  // và re-join khi socket reconnect (xử lý ở useChatSocket.js)
 
   useEffect(() => {
     if (!open || !showCreate) {
@@ -429,7 +424,16 @@ export default function useChatController() {
       return;
     }
 
-    if (socket?.connected) socket.emit("chat:join", { boxId: selectedBoxId });
+    // === Khi click vào hộp thoại → join room bằng box.id ===
+    console.log("[CHAT] User click vào hộp thoại, boxId =", selectedBoxId, "socket.connected =", !!socket?.connected);
+
+    // Luôn emit (Socket.IO sẽ tự buffer nếu chưa connected)
+    socket?.emit("chat:join", { boxId: selectedBoxId });
+    console.log("[CHAT] ✅ Đã gọi socket.emit('chat:join', { boxId:", selectedBoxId, "})");
+
+    // activeBoxRef đã được set ở trên, nên khi connect/reconnect sẽ tự re-join
+
+
     loadMessages({ boxId: selectedBoxId, reset: true });
     markRead(selectedBoxId);
   }, [loadMessages, markRead, selectedBoxId]);
