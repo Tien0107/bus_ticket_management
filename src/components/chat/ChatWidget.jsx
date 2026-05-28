@@ -155,17 +155,6 @@ export default function ChatWidget() {
                     <span className="material-symbols-outlined text-[21px]">call</span>
                   </button>
 
-                  {/* Nút gọi video */}
-                  <button
-                    type="button"
-                    onClick={() => handleStartCall(CALL_TYPE.VIDEO)}
-                    disabled={call.isInCall}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition hover:bg-emerald-50 disabled:opacity-40"
-                    aria-label="Gọi video"
-                    title="Gọi video"
-                  >
-                    <span className="material-symbols-outlined text-[21px]">videocam</span>
-                  </button>
                 </>
               )}
 

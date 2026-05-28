@@ -6,12 +6,11 @@
  * - Cung cấp API startCall() cho bất kỳ đâu trong app (Chat, danh sách, v.v.)
  */
 
-import React, { createContext, useContext, useCallback, useMemo } from "react";
+import React, { createContext, useContext, useCallback, useEffect, useMemo } from "react";
 import useWebRTCCall from "./useWebRTCCall";
 import { CALL_TYPE, CALL_STATUS } from "./callTypes";
 import IncomingCallModal from "./IncomingCallModal";
 import VoiceCallScreen from "./VoiceCallScreen";
-import VideoCallScreen from "./VideoCallScreen";
 
 const CallContext = createContext(null);
 
@@ -19,15 +18,26 @@ export function CallProvider({ children, externalSocket = null }) {
   // externalSocket = socket chính của chat (từ useChatController)
   // => Khuyến nghị truyền vào để tránh tạo nhiều connection WebSocket
   const call = useWebRTCCall({ externalSocket });
+  const { callType, rejectCall, status } = call;
 
   // API đơn giản để bắt đầu cuộc gọi từ bất kỳ đâu
   const startCall = useCallback((conversationId, callType = CALL_TYPE.VOICE, remoteUser = null, targetUserId = null) => {
+    if (callType === CALL_TYPE.VIDEO) {
+      console.warn("Video call đã được tắt");
+      return false;
+    }
     if (!conversationId) {
       console.warn("startCall cần conversationId");
       return false;
     }
     return call.initiateCall(conversationId, callType, remoteUser, targetUserId);
   }, [call]);
+
+  useEffect(() => {
+    if (status === CALL_STATUS.INCOMING && callType === CALL_TYPE.VIDEO) {
+      rejectCall();
+    }
+  }, [callType, rejectCall, status]);
 
   const value = useMemo(
     () => ({
@@ -61,9 +71,8 @@ export function CallProvider({ children, externalSocket = null }) {
     [call, startCall]
   );
 
-  const showIncoming = call.status === CALL_STATUS.INCOMING;
+  const showIncoming = call.status === CALL_STATUS.INCOMING && call.callType !== CALL_TYPE.VIDEO;
   const showVoice = call.isInCall && call.callType === CALL_TYPE.VOICE;
-  const showVideo = call.isInCall && call.callType === CALL_TYPE.VIDEO;
 
   return (
     <CallContext.Provider value={value}>
@@ -90,21 +99,6 @@ export function CallProvider({ children, externalSocket = null }) {
         onEndCall={() => call.endCall()}
       />
 
-      <VideoCallScreen
-        visible={showVideo}
-        remoteUser={call.remoteUser}
-        status={call.status}
-        duration={call.duration}
-        localStream={call.localStream}
-        remoteStream={call.remoteStream}
-        isMuted={call.isMuted}
-        isVideoOff={call.isVideoOff}
-        isRequestingMedia={call.isRequestingMedia}
-        onToggleMute={call.toggleMute}
-        onToggleVideo={call.toggleVideo}
-        onSwitchCamera={call.switchCamera}
-        onEndCall={() => call.endCall()}
-      />
     </CallContext.Provider>
   );
 }
