@@ -26,7 +26,7 @@ export default function CreateChatForm({
         value={recipientSearch}
         onChange={onRecipientSearchChange}
         className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-        placeholder="Email, số điện thoại hoặc role"
+        placeholder="Email, số điện thoại"
       />
       <div className="rounded-lg border border-outline-variant/40 bg-white">
         <div className="flex items-center gap-2 border-b border-outline-variant/20 px-3 py-2 text-xs font-bold text-on-surface-variant">
@@ -84,7 +84,7 @@ export default function CreateChatForm({
               <span className="min-w-0">
                 <span className="block text-sm font-bold text-on-surface">Bắt đầu tìm kiếm</span>
                 <span className="mt-0.5 block text-xs font-medium text-on-surface-variant">
-                  Nhập email, số điện thoại hoặc role ở ô trên
+                  Nhập email, số điện thoại
                 </span>
               </span>
             </div>
