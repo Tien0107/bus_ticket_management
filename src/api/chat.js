@@ -25,10 +25,10 @@ export const recallChatMessage = (boxId, messageId) => {
 };
 
 export const getChatUploadPresigned = (boxId) => {
-  return axiosClient.get("/file/upload/super-admin/presigned", {
+  return axiosClient.get("/file/upload/auth/presigned", {
     params: {
       folder: "chat",
-      id: boxId,
+      id: String(boxId),
     },
   });
 };

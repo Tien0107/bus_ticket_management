@@ -1,4 +1,18 @@
-import { formatTime, isMessageRecalled, RECALLED_MESSAGE } from "./chatUtils";
+import { useState } from "react";
+import { formatTime, getMessageImageUrl, isMessageRecalled, RECALLED_MESSAGE } from "./chatUtils";
+
+const formatMessageDateTime = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return formatTime(value);
+
+  return date.toLocaleString("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
 
 export default function MessageList({
   loadingMessages,
@@ -11,6 +25,8 @@ export default function MessageList({
   peerTyping,
   viewerId,
 }) {
+  const [activeMetaMessageId, setActiveMetaMessageId] = useState(null);
+
   return (
     <div
       ref={messagesScrollRef}
@@ -37,35 +53,76 @@ export default function MessageList({
           {messages.map((message) => {
             const mine = Number(message.senderId) === Number(viewerId);
             const recalled = isMessageRecalled(message);
-
-            return (
-              <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 shadow-[0_8px_22px_rgba(15,23,42,0.06)] ${
+            const imageUrl = getMessageImageUrl(message);
+            const messageKey = String(message.id);
+            const isImageMessage = Boolean(imageUrl && !recalled);
+            const metaVisible = activeMetaMessageId === messageKey;
+            const toggleMeta = () => {
+              setActiveMetaMessageId((current) => (current === messageKey ? null : messageKey));
+            };
+            const metaClassName = `pointer-events-none absolute top-full z-10 mt-1.5 flex max-w-[240px] items-center gap-2 whitespace-nowrap rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white opacity-0 shadow-[0_12px_24px_rgba(15,23,42,0.22)] transition-all duration-150 group-hover:opacity-100 group-focus-within:opacity-100 ${
+              mine ? "right-0" : "left-0"
+            } ${metaVisible ? "opacity-100" : ""
+            }`;
+            const bubbleClassName = `group relative cursor-pointer outline-none ${
+              imageUrl && !recalled
+                ? "rounded-2xl bg-white shadow-[0_10px_24px_rgba(15,23,42,0.10)] ring-1 ring-slate-100"
+                : `rounded-2xl px-3.5 py-2.5 shadow-[0_8px_22px_rgba(15,23,42,0.06)] ${
                     mine
                       ? "rounded-br-md bg-[#087b2f] text-white"
                       : "rounded-bl-md border border-slate-100 bg-white text-on-surface"
-                  }`}
-                >
-                  {!mine && <p className="mb-1 text-[11px] font-extrabold text-primary">{message.fullName}</p>}
-                  <p className={`whitespace-pre-wrap break-words text-[13px] leading-5 ${recalled ? "italic opacity-75" : ""}`}>
-                    {recalled ? RECALLED_MESSAGE : message.message}
-                  </p>
+                  }`
+            }`;
+
+            return (
+              <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div className={`flex max-w-[78%] flex-col ${mine ? "items-end" : "items-start"}`}>
+                  {!mine && (
+                    <p className={`text-[11px] font-extrabold text-primary ${isImageMessage ? "mb-1 ml-1" : "mb-1"}`}>
+                      {message.fullName}
+                    </p>
+                  )}
                   <div
-                    className={`mt-1.5 flex items-center gap-2 text-[10.5px] font-semibold ${
-                      mine ? "text-white/75" : "text-on-surface-variant"
-                    }`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={toggleMeta}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleMeta();
+                      }
+                    }}
+                    className={bubbleClassName}
                   >
-                    <span>{formatTime(message.createdAt)}</span>
-                    {mine && !recalled && !String(message.id).startsWith("tmp-") && (
-                      <button
-                        type="button"
-                        onClick={() => onRecallMessage(message)}
-                        className="font-bold text-white/80 underline-offset-2 transition hover:text-white hover:underline"
-                      >
-                        Thu hồi
-                      </button>
+                    {imageUrl && !recalled ? (
+                      <img
+                        src={imageUrl}
+                        alt="Ảnh trong tin nhắn"
+                        className="block max-h-64 w-full max-w-[240px] rounded-2xl object-cover"
+                        loading="lazy"
+                      />
+                    ) : recalled ? (
+                      <p className="whitespace-pre-wrap break-words text-[13px] leading-5 italic opacity-75">
+                        {RECALLED_MESSAGE}
+                      </p>
+                    ) : (
+                      <p className="whitespace-pre-wrap break-words text-[13px] leading-5">{message.message}</p>
                     )}
+                    <div className={metaClassName}>
+                      <span>{formatMessageDateTime(message.createdAt)}</span>
+                      {mine && !recalled && !String(message.id).startsWith("tmp-") && (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onRecallMessage(message);
+                          }}
+                          className="pointer-events-auto border-l border-white/20 pl-2 font-bold text-white/90 underline-offset-2 transition hover:text-white hover:underline"
+                        >
+                          Thu hồi
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

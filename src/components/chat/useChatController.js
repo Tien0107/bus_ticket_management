@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   createChatBox,
+  getChatUploadPresigned,
   getChatBoxes,
   getChatMessages,
   markChatBoxRead,
   recallChatMessage,
   sendChatMessage,
+  uploadChatFile,
 } from "../../api/chat";
 import { getUsers } from "../../api/auth";
 import { useToast } from "../../context/ToastContext";
@@ -113,6 +115,7 @@ export default function useChatController() {
   const [recipientSearch, setRecipientSearch] = useState("");
   const [firstMessage, setFirstMessage] = useState("");
   const [socketError, setSocketError] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
   const [typingByBox, setTypingByBox] = useState(() => ({}));
   const [realtimeUnreadByBox, setRealtimeUnreadByBox] = useState(() => ({}));
@@ -424,15 +427,7 @@ export default function useChatController() {
       return;
     }
 
-    // === Khi click vào hộp thoại → join room bằng box.id ===
-    console.log("[CHAT] User click vào hộp thoại, boxId =", selectedBoxId, "socket.connected =", !!socket?.connected);
-
-    // Luôn emit (Socket.IO sẽ tự buffer nếu chưa connected)
     socket?.emit("chat:join", { boxId: selectedBoxId });
-    console.log("[CHAT] ✅ Đã gọi socket.emit('chat:join', { boxId:", selectedBoxId, "})");
-
-    // activeBoxRef đã được set ở trên, nên khi connect/reconnect sẽ tự re-join
-
 
     loadMessages({ boxId: selectedBoxId, reset: true });
     markRead(selectedBoxId);
@@ -479,14 +474,10 @@ export default function useChatController() {
     [selectedBoxId, stopTyping]
   );
 
-  const handleSendMessage = useCallback(
-    async (event) => {
-      event.preventDefault();
-      const text = composeValue.trim();
+  const sendChatText = useCallback(
+    async (rawText) => {
+      const text = String(rawText || "").trim();
       if (!text || !selectedBoxId || !currentUser?.id) return;
-
-      setComposeValue("");
-      stopTyping();
 
       const createdAt = new Date().toISOString();
       const optimisticMessage = normalizeMessage(
@@ -559,7 +550,66 @@ export default function useChatController() {
         addToast(err.response?.data?.message || "Gửi tin nhắn thất bại", "error");
       }
     },
-    [addToast, composeValue, currentUser, loadMessages, selectedBoxId, stopTyping]
+    [addToast, currentUser, loadMessages, selectedBoxId]
+  );
+
+  const handleSendMessage = useCallback(
+    async (event) => {
+      event.preventDefault();
+      const text = composeValue.trim();
+      if (!text) return;
+
+      setComposeValue("");
+      stopTyping();
+      await sendChatText(text);
+    },
+    [composeValue, sendChatText, stopTyping]
+  );
+
+  const handleImageSelect = useCallback(
+    async (event) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+
+      if (!file) return;
+      if (!selectedBoxId) {
+        addToast("Chọn hội thoại trước khi gửi ảnh", "error");
+        return;
+      }
+      if (!file.type.startsWith("image/")) {
+        addToast("Chỉ hỗ trợ gửi file ảnh", "error");
+        return;
+      }
+
+      try {
+        setUploadingImage(true);
+        const presignedResponse = await getChatUploadPresigned(selectedBoxId);
+        const presignedConfig = presignedResponse.data?.data || presignedResponse.data;
+        const acceptedMimeTypes = Array.isArray(presignedConfig?.acceptedMimeTypes)
+          ? presignedConfig.acceptedMimeTypes
+          : [];
+
+        if (acceptedMimeTypes.length && !acceptedMimeTypes.includes(file.type)) {
+          addToast(`Định dạng ảnh không được hỗ trợ. Cho phép: ${acceptedMimeTypes.join(", ")}`, "error");
+          return;
+        }
+
+        const uploadResult = await uploadChatFile(file, presignedConfig);
+        const imageUrl = uploadResult.secure_url || uploadResult.secureUrl || uploadResult.url;
+
+        if (!imageUrl) {
+          throw new Error("Không nhận được URL ảnh sau khi upload");
+        }
+
+        await sendChatText(imageUrl);
+      } catch (err) {
+        console.error("Lỗi gửi ảnh chat:", err);
+        addToast(err.response?.data?.message || err.message || "Gửi ảnh thất bại", "error");
+      } finally {
+        setUploadingImage(false);
+      }
+    },
+    [addToast, selectedBoxId, sendChatText]
   );
 
   const handleCreateBox = useCallback(
@@ -679,6 +729,7 @@ export default function useChatController() {
     handleComposeChange,
     handleCreateBox,
     handleFirstMessageChange,
+    handleImageSelect,
     handleLoadMoreBoxes,
     handleLoadOlderMessages,
     handleRecallMessage,
@@ -708,6 +759,7 @@ export default function useChatController() {
     socketError,
     stopTyping,
     totalUnread,
+    uploadingImage,
     viewerId,
   };
 }

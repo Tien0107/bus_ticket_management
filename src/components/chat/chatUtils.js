@@ -183,8 +183,34 @@ export const getBoxPreview = (box, viewerId) => {
   if (!box.lastMessage) return "Chưa có tin nhắn";
 
   const senderName = Number(box.lastMessageSenderId) === Number(viewerId) ? "Bạn" : box.displayName;
-  return `${senderName}: ${box.lastMessage}`;
+  return `${senderName}: ${getImageUrlFromText(box.lastMessage) ? "Đã gửi một ảnh" : box.lastMessage}`;
 };
+
+export const getImageUrlFromText = (value) => {
+  const text = String(value || "").trim();
+  if (!/^https?:\/\//i.test(text)) return "";
+
+  const withoutQuery = text.split("?")[0].toLowerCase();
+  if (/\.(png|jpe?g|webp|gif|avif|bmp|svg)$/i.test(withoutQuery)) return text;
+  if (text.includes("/image/upload/")) return text;
+
+  return "";
+};
+
+export const getMessageImageUrl = (message = {}) =>
+  getImageUrlFromText(
+    message.imageUrl ??
+      message.image_url ??
+      message.fileUrl ??
+      message.file_url ??
+      message.attachmentUrl ??
+      message.attachment_url ??
+      message.mediaUrl ??
+      message.media_url ??
+      message.url ??
+      message.message ??
+      message.body
+  );
 
 export const appendUniqueMessages = (current, incoming) => {
   const items = Array.isArray(incoming) ? incoming : [incoming];

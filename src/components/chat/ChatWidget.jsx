@@ -232,8 +232,10 @@ export default function ChatWidget() {
               <MessageInput
                 composeValue={chat.composeValue}
                 onChange={chat.handleComposeChange}
+                onImageSelect={chat.handleImageSelect}
                 onStopTyping={chat.stopTyping}
                 onSubmit={chat.handleSendMessage}
+                uploadingImage={chat.uploadingImage}
               />
             </>
           )}
