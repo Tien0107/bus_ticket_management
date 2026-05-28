@@ -8,6 +8,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { CALL_STATUS } from "./callTypes";
+import useRemoteMediaPlayback from "./useRemoteMediaPlayback";
 
 export default function VideoCallScreen({
   visible,
@@ -26,7 +27,14 @@ export default function VideoCallScreen({
 }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const remoteAudioRef = useRef(null);
   const [isLocalPiPMinimized, setIsLocalPiPMinimized] = useState(false);
+  const { isPlaybackBlocked, playRemoteMedia } = useRemoteMediaPlayback({
+    mediaRef: remoteAudioRef,
+    remoteStream,
+    enabled: visible,
+    label: "Remote video audio",
+  });
 
   // Gắn stream vào video elements
   useEffect(() => {
@@ -46,6 +54,8 @@ export default function VideoCallScreen({
     const video = remoteVideoRef.current;
     if (!video) return;
 
+    video.muted = true;
+    video.volume = 0;
     video.srcObject = remoteStream || null;
 
     if (remoteStream) {
@@ -78,6 +88,7 @@ export default function VideoCallScreen({
             ref={remoteVideoRef}
             autoPlay
             playsInline
+            muted
             className="h-full w-full bg-black object-contain"
           />
         ) : (
@@ -92,6 +103,8 @@ export default function VideoCallScreen({
           </div>
         )}
       </div>
+
+      <audio ref={remoteAudioRef} autoPlay playsInline />
 
       {/* Top bar */}
       <div className="relative z-10 flex items-center justify-between px-5 py-4 bg-gradient-to-b from-black/70 to-transparent">
@@ -147,6 +160,17 @@ export default function VideoCallScreen({
 
       {/* Bottom controls */}
       <div className="relative z-10 mt-auto bg-gradient-to-t from-black/90 via-black/80 to-transparent px-6 pb-10 pt-8">
+        {isPlaybackBlocked && (
+          <button
+            type="button"
+            onClick={playRemoteMedia}
+            className="mx-auto mb-4 flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary shadow-lg transition hover:brightness-105"
+          >
+            <span className="material-symbols-outlined text-lg">volume_up</span>
+            <span>Bật âm thanh</span>
+          </button>
+        )}
+
         <div className="flex items-center justify-center gap-5">
           {/* Mute */}
           <button
@@ -170,6 +194,18 @@ export default function VideoCallScreen({
             <span className="material-symbols-outlined text-2xl">
               {isVideoOff ? "videocam_off" : "videocam"}
             </span>
+          </button>
+
+          {/* Speaker */}
+          <button
+            type="button"
+            onClick={playRemoteMedia}
+            className={`flex h-14 w-14 flex-col items-center justify-center rounded-full transition-all active:scale-95 ${
+              isPlaybackBlocked ? "bg-primary hover:brightness-105" : "bg-white/10 hover:bg-white/15"
+            }`}
+            aria-label="Bật âm thanh"
+          >
+            <span className="material-symbols-outlined text-2xl">volume_up</span>
           </button>
 
           {/* Switch Camera (chỉ video) */}

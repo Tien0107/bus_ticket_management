@@ -475,6 +475,38 @@ export default function useWebRTCCall(options = {}) {
         targetSocket.emit("chat:join", { boxId });
     }, [getOrCreateSocket]);
 
+    const updateRemoteStreamTracks = useCallback((tracks = [], onRemoteStream = null) => {
+        const validTracks = tracks.filter(Boolean);
+        if (validTracks.length === 0) return;
+
+        const nextStream = new MediaStream();
+        const seenTrackIds = new Set();
+
+        const addTrack = (track) => {
+            if (!track || track.readyState === "ended" || seenTrackIds.has(track.id)) return;
+            seenTrackIds.add(track.id);
+            try { track.enabled = true; } catch {}
+            nextStream.addTrack(track);
+        };
+
+        remoteStreamRef.current?.getTracks?.().forEach(addTrack);
+        validTracks.forEach(addTrack);
+
+        if (nextStream.getTracks().length === 0) return;
+
+        remoteStreamRef.current = nextStream;
+        setRemoteStream(nextStream);
+        if (onRemoteStream) onRemoteStream(nextStream);
+    }, []);
+
+    const updateRemoteStreamFromReceivers = useCallback((pc, onRemoteStream = null) => {
+        const receiverTracks = pc?.getReceivers?.()
+            ?.map((receiver) => receiver.track)
+            ?.filter((track) => track && track.readyState !== "ended") || [];
+
+        updateRemoteStreamTracks(receiverTracks, onRemoteStream);
+    }, [updateRemoteStreamTracks]);
+
     // ==================== WEBRTC CORE ====================
     const createPeerConnection = useCallback((onRemoteStream) => {
         cleanupPeerConnection();
@@ -505,12 +537,8 @@ export default function useWebRTCCall(options = {}) {
 
         pc.ontrack = (event) => {
             console.log("[CALL] ontrack fired - remote tracks received", event.streams?.[0]?.getTracks?.());
-            if (event.streams && event.streams[0]) {
-                const stream = event.streams[0];
-                remoteStreamRef.current = stream;
-                setRemoteStream(stream);
-                if (onRemoteStream) onRemoteStream(stream);
-            }
+            const streamTracks = event.streams?.flatMap((stream) => stream.getTracks()) || [];
+            updateRemoteStreamTracks([event.track, ...streamTracks], onRemoteStream);
         };
 
         pc.onconnectionstatechange = () => {
@@ -529,22 +557,14 @@ export default function useWebRTCCall(options = {}) {
 
                 // Fallback: if ontrack hasn't fired yet, try to get remote stream from receivers
                 setTimeout(() => {
-                    if (!remoteStreamRef.current && pc) {
-                        const receivers = pc.getReceivers();
-                        const videoReceiver = receivers.find(r => r.track?.kind === 'video');
-                        const audioReceiver = receivers.find(r => r.track?.kind === 'audio');
+                    if (pc) {
+                        const hasAudio = remoteStreamRef.current?.getAudioTracks?.().some((track) => track.readyState !== "ended");
+                        const hasVideo = remoteStreamRef.current?.getVideoTracks?.().some((track) => track.readyState !== "ended");
+                        const needsVideo = callTypeRef.current === CALL_TYPE.VIDEO;
 
-                        if (videoReceiver || audioReceiver) {
-                            // Create a stream from the receiver tracks
-                            const fallbackStream = new MediaStream();
-                            receivers.forEach(r => {
-                                if (r.track) fallbackStream.addTrack(r.track);
-                            });
-                            if (fallbackStream.getTracks().length > 0) {
-                                console.log("[CALL] Using fallback remote stream from receivers");
-                                remoteStreamRef.current = fallbackStream;
-                                setRemoteStream(fallbackStream);
-                            }
+                        if (!remoteStreamRef.current || !hasAudio || (needsVideo && !hasVideo)) {
+                            console.log("[CALL] Syncing remote stream from receivers");
+                            updateRemoteStreamFromReceivers(pc, onRemoteStream);
                         }
                     }
                 }, 1500);
@@ -559,7 +579,14 @@ export default function useWebRTCCall(options = {}) {
 
         pcRef.current = pc;
         return pc;
-    }, [cleanupPeerConnection, getCurrentCallMode, getOrCreateSocket, iceServers]);
+    }, [
+        cleanupPeerConnection,
+        getCurrentCallMode,
+        getOrCreateSocket,
+        iceServers,
+        updateRemoteStreamFromReceivers,
+        updateRemoteStreamTracks,
+    ]);
 
     useEffect(() => { callIdRef.current = callId; }, [callId]);
     useEffect(() => { conversationIdRef.current = conversationId; }, [conversationId]);

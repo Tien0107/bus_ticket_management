@@ -4,8 +4,9 @@
  * Floating overlay toàn màn hình, tối giản, đẹp mắt
  */
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef } from "react";
 import { CALL_STATUS } from "./callTypes";
+import useRemoteMediaPlayback from "./useRemoteMediaPlayback";
 
 export default function VoiceCallScreen({
   visible,
@@ -19,18 +20,12 @@ export default function VoiceCallScreen({
   onEndCall,
 }) {
   const remoteAudioRef = useRef(null);
-
-  // Gắn remoteStream vào audio (phải gọi trước early return)
-  useEffect(() => {
-    const audio = remoteAudioRef.current;
-    if (!audio) return;
-
-    audio.srcObject = remoteStream || null;
-
-    if (remoteStream) {
-      audio.play?.().catch(() => {});
-    }
-  }, [remoteStream]);
+  const { isPlaybackBlocked, playRemoteMedia } = useRemoteMediaPlayback({
+    mediaRef: remoteAudioRef,
+    remoteStream,
+    enabled: visible,
+    label: "Remote voice",
+  });
 
   if (!visible) return null;
 
@@ -104,6 +99,17 @@ export default function VoiceCallScreen({
         <p className="mt-1 text-sm text-white/40">Gọi thoại</p>
       </div>
 
+      {isPlaybackBlocked && (
+        <button
+          type="button"
+          onClick={playRemoteMedia}
+          className="mx-auto mb-4 flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary shadow-lg transition hover:brightness-105"
+        >
+          <span className="material-symbols-outlined text-lg">volume_up</span>
+          <span>Bật âm thanh</span>
+        </button>
+      )}
+
       {/* Hidden audio element to play remote voice */}
       <audio ref={remoteAudioRef} autoPlay playsInline />
 
@@ -138,12 +144,16 @@ export default function VoiceCallScreen({
 
         {/* Speaker (placeholder - có thể mở rộng sau) */}
         <button
-          className="flex h-16 w-16 flex-col items-center justify-center rounded-full bg-white/10 text-white transition-all active:scale-95 hover:bg-white/15"
-          aria-label="Loa ngoài"
-          onClick={() => {}}
+          className={`flex h-16 w-16 flex-col items-center justify-center rounded-full text-white transition-all active:scale-95 ${
+            isPlaybackBlocked ? "bg-primary hover:brightness-105" : "bg-white/10 hover:bg-white/15"
+          }`}
+          aria-label="Bật âm thanh"
+          onClick={playRemoteMedia}
         >
           <span className="material-symbols-outlined text-3xl">volume_up</span>
-          <span className="mt-0.5 text-[10px] font-semibold tracking-wider">LOA</span>
+          <span className="mt-0.5 text-[10px] font-semibold tracking-wider">
+            {isPlaybackBlocked ? "BẬT ÂM" : "LOA"}
+          </span>
         </button>
       </div>
     </div>

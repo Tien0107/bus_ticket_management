@@ -471,12 +471,11 @@ export default function MyTickets() {
              {filteredTickets.map((t, idx) => {
                const currentStatus = getDisplayTicketStatus(t);
 
-               const isPending = currentStatus === "PENDING" || currentStatus === "RESERVED";
-               const isReviewAvailableByDepartureDate = hasPassedDepartureByDays(t, 2);
-               const canShowReviewAction =
-                 !["CANCELLED", "EXPIRED"].includes(currentStatus) &&
-                 ["COMPLETED", "PAID", "CHECKED_IN", "CASH_PAID"].includes(currentStatus) &&
-                 isReviewAvailableByDepartureDate;
+                      const isPending = currentStatus === "PENDING" || currentStatus === "RESERVED";
+                      const isReviewAvailableByDepartureDate = hasPassedDepartureByDays(t, 2);
+                      const canShowReviewAction =
+                        !["PENDING", "RESERVED", "CANCELLED", "EXPIRED"].includes(currentStatus) &&
+                        isReviewAvailableByDepartureDate;
                
                const statusLabelMap = {
                  'PENDING': 'Chờ thanh toán', 'RESERVED': 'Đã giữ chỗ',
