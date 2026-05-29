@@ -5,31 +5,31 @@ export const FACEBOOK_GRAPH_VERSION = process.env.REACT_APP_FACEBOOK_GRAPH_VERSI
 export const isHttpsPage = () => window.location.protocol === "https:";
 
 export const loadScript = (src, id) =>
-  new Promise((resolve, reject) => {
-    const existingScript = document.getElementById(id);
+new Promise((resolve, reject) => {
+  const existingScript = document.getElementById(id);
 
-    if (existingScript) {
-      if (existingScript.dataset.loaded === "true") {
-        resolve(existingScript);
-      } else {
-        existingScript.addEventListener("load", () => resolve(existingScript), { once: true });
-        existingScript.addEventListener("error", reject, { once: true });
-      }
-      return;
+  if (existingScript) {
+    if (existingScript.dataset.loaded === "true") {
+      resolve(existingScript);
+    } else {
+      existingScript.addEventListener("load", () => resolve(existingScript), { once: true });
+      existingScript.addEventListener("error", reject, { once: true });
     }
+    return;
+  }
 
-    const script = document.createElement("script");
-    script.id = id;
-    script.src = src;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      script.dataset.loaded = "true";
-      resolve(script);
-    };
-    script.onerror = reject;
-    document.body.appendChild(script);
-  });
+  const script = document.createElement("script");
+  script.id = id;
+  script.src = src;
+  script.async = true;
+  script.defer = true;
+  script.onload = () => {
+    script.dataset.loaded = "true";
+    resolve(script);
+  };
+  script.onerror = reject;
+  document.body.appendChild(script);
+});
 
 export const initGoogleButton = async ({ buttonElement, onCredential }) => {
   await loadScript("https://accounts.google.com/gsi/client?hl=vi", "google-identity-services");
@@ -41,7 +41,7 @@ export const initGoogleButton = async ({ buttonElement, onCredential }) => {
   window.google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
     callback: onCredential,
-    ux_mode: "popup",
+    ux_mode: "popup"
   });
 
   buttonElement.innerHTML = "";
@@ -50,39 +50,39 @@ export const initGoogleButton = async ({ buttonElement, onCredential }) => {
     theme: "outline",
     size: "large",
     shape: "circle",
-    locale: "vi",
+    locale: "vi"
   });
 
   return true;
 };
 
 export const loadFacebookSdk = () =>
-  new Promise((resolve, reject) => {
-    if (!FACEBOOK_APP_ID) {
-      reject(new Error("Chưa cấu hình Facebook App ID."));
-      return;
-    }
+new Promise((resolve, reject) => {
+  if (!FACEBOOK_APP_ID) {
+    reject(new Error("Chưa cấu hình Facebook App ID."));
+    return;
+  }
 
-    if (window.FB) {
-      window.FB.init({
-        appId: FACEBOOK_APP_ID,
-        cookie: true,
-        xfbml: false,
-        version: FACEBOOK_GRAPH_VERSION,
-      });
-      resolve(window.FB);
-      return;
-    }
+  if (window.FB) {
+    window.FB.init({
+      appId: FACEBOOK_APP_ID,
+      cookie: true,
+      xfbml: false,
+      version: FACEBOOK_GRAPH_VERSION
+    });
+    resolve(window.FB);
+    return;
+  }
 
-    window.fbAsyncInit = () => {
-      window.FB.init({
-        appId: FACEBOOK_APP_ID,
-        cookie: true,
-        xfbml: false,
-        version: FACEBOOK_GRAPH_VERSION,
-      });
-      resolve(window.FB);
-    };
+  window.fbAsyncInit = () => {
+    window.FB.init({
+      appId: FACEBOOK_APP_ID,
+      cookie: true,
+      xfbml: false,
+      version: FACEBOOK_GRAPH_VERSION
+    });
+    resolve(window.FB);
+  };
 
-    loadScript("https://connect.facebook.net/vi_VN/sdk.js", "facebook-jssdk").catch(reject);
-  });
+  loadScript("https://connect.facebook.net/vi_VN/sdk.js", "facebook-jssdk").catch(reject);
+});

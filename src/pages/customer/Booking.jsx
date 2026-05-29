@@ -6,8 +6,8 @@ import {
   createBooking,
   createPaymentMethod,
   getPaymentMethods,
-  setDefaultPaymentMethod,
-} from "../../api/customer";
+  setDefaultPaymentMethod } from
+"../../api/customer";
 import BookingSeatStep from "./BookingSeatStep";
 import BookingCheckoutStep from "./BookingCheckoutStep";
 import SelectPaymentCardModal from "../../components/payment/SelectPaymentCardModal";
@@ -18,7 +18,7 @@ const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 export default function Booking() {
-  const { tripId } = useParams(); // Note: This is actually scheduleId
+  const { tripId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast } = useToast();
@@ -28,23 +28,23 @@ export default function Booking() {
       ...options,
       state: {
         ...(options.state || {}),
-        refreshTickets: Date.now(),
-      },
+        refreshTickets: Date.now()
+      }
     });
   };
-  
+
   const today = new Date().toISOString().split('T')[0];
-  
-  // Trạng thái quản lý luồng Booking
+
+
   const [step, setStep] = useState(1);
   const [isRoundTrip, setIsRoundTrip] = useState(location.state?.isRoundTrip || false);
-  const [bookingPhase, setBookingPhase] = useState("outbound"); // "outbound" | "return"
+  const [bookingPhase, setBookingPhase] = useState("outbound");
   const [bookingData, setBookingData] = useState({
     scheduleId: tripId,
     companyId: location.state?.companyId || location.state?.schedule?.companyId,
     date: location.state?.date || today,
     returnDate: location.state?.returnDate || "",
-    tripId: null, // Sẽ được lấy sau khi Prepare
+    tripId: null,
     selectedSeats: [],
     pickupId: null,
     dropoffId: null,
@@ -52,7 +52,7 @@ export default function Booking() {
     coupon: null,
     paymentMethod: "vnpay",
     totalPrice: 0,
-    schedule: location.state?.schedule || {} // Lưu lại để dùng cho chuyến đi
+    schedule: location.state?.schedule || {}
   });
   const [returnBookingData, setReturnBookingData] = useState(null);
   const [showCardModal, setShowCardModal] = useState(false);
@@ -82,7 +82,7 @@ export default function Booking() {
       return;
     }
     const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-      payment_method: selectedPaymentMethodId || undefined,
+      payment_method: selectedPaymentMethodId || undefined
     });
     if (error) {
       addToast("Thanh toán thẻ thất bại: " + (error.message || "Unknown error"));
@@ -125,10 +125,10 @@ export default function Booking() {
       const defaultCard = normalizedCards.find((card) => card.isDefault);
       setSelectedCardId(
         defaultCard?.stripePaymentMethodId ||
-          defaultCard?.id ||
-          normalizedCards[0]?.stripePaymentMethodId ||
-          normalizedCards[0]?.id ||
-          null,
+        defaultCard?.id ||
+        normalizedCards[0]?.stripePaymentMethodId ||
+        normalizedCards[0]?.id ||
+        null
       );
     } catch (err) {
       setShowCardModal(false);
@@ -177,32 +177,32 @@ export default function Booking() {
 
   const [orderIds, setOrderIds] = useState([]);
 
-  // Tách logic tạo booking (giữ chỗ thật) thành hàm riêng để tái sử dụng
+
   const createBookingsForCurrentSelection = async () => {
     const bookingPromises = bookingData.selectedSeats.map((seat, index) => {
       const payload = {
-          type: isRoundTrip ? "round_trip" : "one_way",
-          outBound: {
-             tripId: Number(bookingData.tripId),
-             seatId: Number(seat.id),
-             fromStationId: Number(bookingData.pickupId),
-             toStationId: Number(bookingData.dropoffId),
-             companyId: Number(bookingData.companyId)
-          }
+        type: isRoundTrip ? "round_trip" : "one_way",
+        outBound: {
+          tripId: Number(bookingData.tripId),
+          seatId: Number(seat.id),
+          fromStationId: Number(bookingData.pickupId),
+          toStationId: Number(bookingData.dropoffId),
+          companyId: Number(bookingData.companyId)
+        }
       };
-      
+
       if (isRoundTrip && returnBookingData && returnBookingData.selectedSeats[index]) {
-          payload.returnBound = {
-             tripId: Number(returnBookingData.tripId),
-             seatId: Number(returnBookingData.selectedSeats[index].id),
-             fromStationId: Number(returnBookingData.pickupId),
-             toStationId: Number(returnBookingData.dropoffId),
-             companyId: Number(returnBookingData.companyId)
-          };
+        payload.returnBound = {
+          tripId: Number(returnBookingData.tripId),
+          seatId: Number(returnBookingData.selectedSeats[index].id),
+          fromStationId: Number(returnBookingData.pickupId),
+          toStationId: Number(returnBookingData.dropoffId),
+          companyId: Number(returnBookingData.companyId)
+        };
       }
-      
+
       if (bookingData.coupon?.id) {
-          payload.couponId = Number(bookingData.coupon.id);
+        payload.couponId = Number(bookingData.coupon.id);
       }
 
       return createBooking(payload);
@@ -211,13 +211,13 @@ export default function Booking() {
     const bookingResponses = await Promise.all(bookingPromises);
     const generatedOrderIds = Array.from(
       new Set(
-        bookingResponses
-          .map((res) => {
-            const data = res?.data || {};
-            return data.bookingId || data.id || data.ticket?.bookingId || data.ticket?.id || null;
-          })
-          .filter(Boolean),
-      ),
+        bookingResponses.
+        map((res) => {
+          const data = res?.data || {};
+          return data.bookingId || data.id || data.ticket?.bookingId || data.ticket?.id || null;
+        }).
+        filter(Boolean)
+      )
     );
 
     if (generatedOrderIds.length === 0) {
@@ -237,8 +237,8 @@ export default function Booking() {
       return false;
     }
 
-    // QUAN TRỌNG: Phải gọi createBooking (API /customer/booking) TRƯỚC KHI sang trang thanh toán (step 2)
-    // để thực sự giữ chỗ (lock ghế) trên backend.
+
+
     try {
       const ids = await createBookingsForCurrentSelection();
       setOrderIds(ids);
@@ -248,7 +248,7 @@ export default function Booking() {
     } catch (err) {
       console.error("Booking creation error before payment page:", err);
       if (err.response?.data?.issues) {
-        const msgs = err.response.data.issues.map(i => `${i.field}: ${i.reason}`).join(" | ");
+        const msgs = err.response.data.issues.map((i) => `${i.field}: ${i.reason}`).join(" | ");
         addToast("Lỗi khi giữ chỗ: " + msgs, "error");
       } else {
         addToast("Lỗi khi giữ chỗ: " + (err.response?.data?.message || err.message || "Không thể tạo đơn đặt vé."), "error");
@@ -259,8 +259,8 @@ export default function Booking() {
 
   const handleProcessPayment = async () => {
     try {
-      // Booking đã được tạo trước đó (khi bấm "Tiếp tục" từ màn chọn ghế -> sang trang thanh toán)
-      // Nên ở đây CHỈ gọi createPaymentMethod để khởi tạo thanh toán cho order đã có sẵn.
+
+
       if (!orderIds || orderIds.length === 0) {
         addToast("Không tìm thấy thông tin đơn hàng đã đặt trước. Vui lòng quay lại chọn ghế.", "error");
         setStep(1);
@@ -268,7 +268,7 @@ export default function Booking() {
       }
       const activeOrderId = orderIds[0];
 
-      // Tiến hành thanh toán cho booking đã tạo sẵn
+
       if (bookingData.paymentMethod === "stripe") {
         await openCardPaymentModal(activeOrderId);
         return;
@@ -278,9 +278,9 @@ export default function Booking() {
 
       if (bookingData.paymentMethod === "vnpay") {
         const url =
-          paymentRes.data?.paymentUrl ||
-          paymentRes.data?.url ||
-          (typeof paymentRes.data === "string" ? paymentRes.data : null);
+        paymentRes.data?.paymentUrl ||
+        paymentRes.data?.url || (
+        typeof paymentRes.data === "string" ? paymentRes.data : null);
         if (url) {
           window.location.href = url;
           return;
@@ -309,7 +309,7 @@ export default function Booking() {
         }
         addToast(
           paymentRes.data?.message ||
-            "Đặt vé thành công! Đã ghi nhận thanh toán tiền mặt. Vui lòng thanh toán tại quầy trước giờ xuất bến.",
+          "Đặt vé thành công! Đã ghi nhận thanh toán tiền mặt. Vui lòng thanh toán tại quầy trước giờ xuất bến.",
           "success"
         );
         navigateToTickets();
@@ -321,61 +321,61 @@ export default function Booking() {
     } catch (err) {
       console.error("Payment Error:", err);
       if (err.response?.data?.issues) {
-         const msgs = err.response.data.issues.map(i => `${i.field}: ${i.reason}`).join(" | ");
-         addToast("Lỗi khi thanh toán: " + msgs, "error");
+        const msgs = err.response.data.issues.map((i) => `${i.field}: ${i.reason}`).join(" | ");
+        addToast("Lỗi khi thanh toán: " + msgs, "error");
       } else {
-         addToast("Lỗi khi thanh toán: " + (err.response?.data?.message || err.message), "error");
+        addToast("Lỗi khi thanh toán: " + (err.response?.data?.message || err.message), "error");
       }
     }
   };
 
   return (
     <div className="bg-surface min-h-screen text-on-surface">
-      {/* Main Content Area */}
+      {}
       <main className="pt-24 pb-20 max-w-7xl mx-auto px-6">
-          {step === 1 && bookingPhase !== "returnSelection" && (
-            <BookingSeatStep 
-              bookingData={bookingPhase === "outbound" ? bookingData : returnBookingData} 
-              setBookingData={bookingPhase === "outbound" ? setBookingData : setReturnBookingData} 
-              onNext={() => {
-                if (isRoundTrip && bookingPhase === "outbound") {
-                  setBookingPhase("returnSelection");
-                } else {
-                  return handleProceedToCheckout();
-                }
-              }} 
-              isRoundTrip={isRoundTrip}
-              setIsRoundTrip={setIsRoundTrip}
-              bookingPhase={bookingPhase}
-              setBookingPhase={setBookingPhase}
-              returnBookingData={returnBookingData}
-              setReturnBookingData={setReturnBookingData}
-              outboundData={bookingData} // To access outbound locations for return trip
-            />
-          )}
+          {step === 1 && bookingPhase !== "returnSelection" &&
+        <BookingSeatStep
+          bookingData={bookingPhase === "outbound" ? bookingData : returnBookingData}
+          setBookingData={bookingPhase === "outbound" ? setBookingData : setReturnBookingData}
+          onNext={() => {
+            if (isRoundTrip && bookingPhase === "outbound") {
+              setBookingPhase("returnSelection");
+            } else {
+              return handleProceedToCheckout();
+            }
+          }}
+          isRoundTrip={isRoundTrip}
+          setIsRoundTrip={setIsRoundTrip}
+          bookingPhase={bookingPhase}
+          setBookingPhase={setBookingPhase}
+          returnBookingData={returnBookingData}
+          setReturnBookingData={setReturnBookingData}
+          outboundData={bookingData} />
 
-          {step === 1 && bookingPhase === "returnSelection" && (
-             <ReturnTripSelection
-               outboundData={bookingData}
-               setReturnBookingData={setReturnBookingData}
-               setBookingPhase={setBookingPhase}
-               onCancel={() => {
-                 setIsRoundTrip(false);
-                 setBookingPhase("outbound");
-               }}
-             />
-          )}
+        }
 
-          {step === 2 && (
-            <BookingCheckoutStep 
-              bookingData={bookingData} 
-              returnBookingData={returnBookingData}
-              isRoundTrip={isRoundTrip}
-              setBookingData={setBookingData} 
-              onBack={() => setStep(1)}
-              onConfirm={handleProcessPayment}
-            />
-          )}
+          {step === 1 && bookingPhase === "returnSelection" &&
+        <ReturnTripSelection
+          outboundData={bookingData}
+          setReturnBookingData={setReturnBookingData}
+          setBookingPhase={setBookingPhase}
+          onCancel={() => {
+            setIsRoundTrip(false);
+            setBookingPhase("outbound");
+          }} />
+
+        }
+
+          {step === 2 &&
+        <BookingCheckoutStep
+          bookingData={bookingData}
+          returnBookingData={returnBookingData}
+          isRoundTrip={isRoundTrip}
+          setBookingData={setBookingData}
+          onBack={() => setStep(1)}
+          onConfirm={handleProcessPayment} />
+
+        }
       </main>
       <SelectPaymentCardModal
         open={showCardModal}
@@ -388,12 +388,12 @@ export default function Booking() {
         loading={loadingCards}
         selectedCardId={selectedCardId}
         onChangeSelectedCard={(card) =>
-          setSelectedCardId(card?.stripePaymentMethodId || card?.id || null)
+        setSelectedCardId(card?.stripePaymentMethodId || card?.id || null)
         }
         onContinueWithSelected={(card) => handleSelectCardAndPay(card)}
         onContinueWithPaymentMethodId={handlePayWithNewCard}
-        continuing={processingCardPayment}
-      />
-    </div>
-  );
+        continuing={processingCardPayment} />
+      
+    </div>);
+
 }

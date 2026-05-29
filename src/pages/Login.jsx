@@ -12,13 +12,13 @@ const getLoginIdentifierMeta = (value) => {
   if (rawValue.includes("@")) {
     return {
       field: "email",
-      value: rawValue.toLowerCase(),
+      value: rawValue.toLowerCase()
     };
   }
 
   return {
     field: "phone",
-    value: rawValue.replace(/[\s.-]/g, ""),
+    value: rawValue.replace(/[\s.-]/g, "")
   };
 };
 
@@ -36,16 +36,16 @@ const getLoginErrorState = (message, identifier) => {
   } else if (normalized.includes("mật khẩu") || normalized.includes("password")) {
     fieldErrors.password = message;
   } else if (
-    normalized.includes("email") ||
-    normalized.includes("phone") ||
-    normalized.includes("số điện") ||
-    normalized.includes("tài khoản") ||
-    normalized.includes("account") ||
-    normalized.includes("not found") ||
-    normalized.includes("không tồn tại")
-  ) {
+  normalized.includes("email") ||
+  normalized.includes("phone") ||
+  normalized.includes("số điện") ||
+  normalized.includes("tài khoản") ||
+  normalized.includes("account") ||
+  normalized.includes("not found") ||
+  normalized.includes("không tồn tại"))
+  {
     fieldErrors.identifier =
-      loginField === "email" ? "Email chưa đúng hoặc chưa được đăng ký." : "Số điện thoại chưa đúng hoặc chưa được đăng ký.";
+    loginField === "email" ? "Email chưa đúng hoặc chưa được đăng ký." : "Số điện thoại chưa đúng hoặc chưa được đăng ký.";
   } else {
     return { fieldErrors, formError: message };
   }
@@ -97,10 +97,10 @@ const mergeOperatorProfileIntoUser = (user, profile) => {
     staffCode: profile.staffCode ?? profile.staff_code ?? user.staffCode,
     hireDate: profile.hireDate ?? profile.hire_date ?? user.hireDate,
     accountStripeId:
-      profile.accountStripeId ??
-      profile.account_stripe_id ??
-      profile.stripeAccountId ??
-      user.accountStripeId,
+    profile.accountStripeId ??
+    profile.account_stripe_id ??
+    profile.stripeAccountId ??
+    user.accountStripeId
   };
 
   delete nextUser.position;
@@ -134,7 +134,7 @@ function Login() {
           nextUser = mergeOperatorProfileIntoUser(nextUser, pickOperatorProfile(profileResponse.data));
           localStorage.setItem("user", JSON.stringify(nextUser));
         } catch {
-          // Không chặn đăng nhập nếu API staff profile tạm thời không trả dữ liệu.
+
         }
       }
 
@@ -208,8 +208,8 @@ function Login() {
           <img
             alt="Xe khách BusGo trên đường dài"
             className="absolute inset-0 h-full w-full object-cover"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBh6xiGedZC9xntBCAWe7zwTDcHZMH6ymh1WFMmKyqNCgWc_YfoiSsC6pdQvXp9C82_b7ZhtlHF7anPgmKL7gzQDuLfd5SSycz2V-KJhZN5LoQSOe5uH2J23jaPYvph8muF-LMpz6zoHJUG8Ob04xVWxzHamOTmTNr7t5DZvMT1AvUJEmtf4bOErcQavd0lHZgFyj7oV8ua_WbCgbAAtXJdoik7qbtFC1r-9d0Qg9J_tcoz8mgj5DEmCzOUp0Tsx3pFWhy6LeDWifQ"
-          />
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBh6xiGedZC9xntBCAWe7zwTDcHZMH6ymh1WFMmKyqNCgWc_YfoiSsC6pdQvXp9C82_b7ZhtlHF7anPgmKL7gzQDuLfd5SSycz2V-KJhZN5LoQSOe5uH2J23jaPYvph8muF-LMpz6zoHJUG8Ob04xVWxzHamOTmTNr7t5DZvMT1AvUJEmtf4bOErcQavd0lHZgFyj7oV8ua_WbCgbAAtXJdoik7qbtFC1r-9d0Qg9J_tcoz8mgj5DEmCzOUp0Tsx3pFWhy6LeDWifQ" />
+          
           <div className="absolute inset-0 bg-slate-950/55" />
           <div className="absolute inset-x-0 bottom-0 p-10 text-white">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
@@ -224,15 +224,15 @@ function Login() {
             </p>
             <div className="mt-8 grid max-w-xl grid-cols-3 gap-3">
               {[
-                ["task_alt", "Vé điện tử"],
-                ["payments", "Thanh toán an toàn"],
-                ["support_agent", "Hỗ trợ nhanh"],
-              ].map(([icon, label]) => (
-                <div key={label} className="rounded-xl bg-white/12 p-4 backdrop-blur">
+              ["task_alt", "Vé điện tử"],
+              ["payments", "Thanh toán an toàn"],
+              ["support_agent", "Hỗ trợ nhanh"]].
+              map(([icon, label]) =>
+              <div key={label} className="rounded-xl bg-white/12 p-4 backdrop-blur">
                   <span className="material-symbols-outlined text-[22px]">{icon}</span>
                   <p className="mt-3 text-sm font-semibold">{label}</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </section>
@@ -265,8 +265,8 @@ function Login() {
               loading={loading}
               onSubmit={handleSubmit}
               fieldErrors={loginErrorState.fieldErrors}
-              formError={loginErrorState.formError}
-            />
+              formError={loginErrorState.formError} />
+            
 
             <SocialLoginButtons disabled={loading} onLoginSuccess={completeLogin} setError={setError} />
 
@@ -279,8 +279,8 @@ function Login() {
           </div>
         </section>
       </main>
-    </div>
-  );
+    </div>);
+
 }
 
 export default Login;

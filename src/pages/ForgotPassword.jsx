@@ -11,7 +11,7 @@ const getContactMeta = (contactValue) => {
       field: "email",
       icon: "mail",
       label: "email",
-      value: rawValue.toLowerCase(),
+      value: rawValue.toLowerCase()
     };
   }
 
@@ -19,17 +19,17 @@ const getContactMeta = (contactValue) => {
     field: "phone",
     icon: "call",
     label: "số điện thoại",
-    value: rawValue.replace(/[\s.-]/g, ""),
+    value: rawValue.replace(/[\s.-]/g, "")
   };
 };
 
 const passwordRules = [
-  ["length", "Tối thiểu 6 ký tự", (value) => value.length >= 6],
-  ["uppercase", "Có chữ hoa", (value) => /[A-Z]/.test(value)],
-  ["lowercase", "Có chữ thường", (value) => /[a-z]/.test(value)],
-  ["number", "Có chữ số", (value) => /\d/.test(value)],
-  ["symbol", "Có ký tự đặc biệt", (value) => /[#@$%&!*?^_]/.test(value)],
-];
+["length", "Tối thiểu 6 ký tự", (value) => value.length >= 6],
+["uppercase", "Có chữ hoa", (value) => /[A-Z]/.test(value)],
+["lowercase", "Có chữ thường", (value) => /[a-z]/.test(value)],
+["number", "Có chữ số", (value) => /\d/.test(value)],
+["symbol", "Có ký tự đặc biệt", (value) => /[#@$%&!*?^_]/.test(value)]];
+
 
 const getApiErrorMessage = (err, fallback) => {
   if (err.response?.status >= 500) {
@@ -39,10 +39,10 @@ const getApiErrorMessage = (err, fallback) => {
   const data = err.response?.data;
 
   if (Array.isArray(data?.issues) && data.issues.length > 0) {
-    return data.issues
-      .map((issue) => issue.reason || issue.message || issue.field)
-      .filter(Boolean)
-      .join(". ");
+    return data.issues.
+    map((issue) => issue.reason || issue.message || issue.field).
+    filter(Boolean).
+    join(". ");
   }
 
   return data?.message || data?.error || fallback;
@@ -63,7 +63,7 @@ function ForgotPassword() {
 
   const contactMeta = useMemo(() => getContactMeta(contact), [contact]);
   const completedRules = useMemo(
-    () => passwordRules.filter(([, , validate]) => validate(newPassword)).length,
+    () => passwordRules.filter(([,, validate]) => validate(newPassword)).length,
     [newPassword]
   );
 
@@ -94,7 +94,7 @@ function ForgotPassword() {
     try {
       await sendOtp({
         field: contactMeta.field,
-        value: contactMeta.value,
+        value: contactMeta.value
       });
 
       setContact(contactMeta.value);
@@ -145,7 +145,7 @@ function ForgotPassword() {
     try {
       const payload = {
         otp: normalizedOtp,
-        password: newPassword,
+        password: newPassword
       };
 
       if (contactMeta.field === "email") {
@@ -188,8 +188,8 @@ function ForgotPassword() {
           </Link>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary"
-          >
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary">
+            
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>
             Đăng nhập
           </Link>
@@ -201,8 +201,8 @@ function ForgotPassword() {
           <img
             alt="Xe khách BusGo"
             className="absolute inset-0 h-full w-full object-cover"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBh6xiGedZC9xntBCAWe7zwTDcHZMH6ymh1WFMmKyqNCgWc_YfoiSsC6pdQvXp9C82_b7ZhtlHF7anPgmKL7gzQDuLfd5SSycz2V-KJhZN5LoQSOe5uH2J23jaPYvph8muF-LMpz6zoHJUG8Ob04xVWxzHamOTmTNr7t5DZvMT1AvUJEmtf4bOErcQavd0lHZgFyj7oV8ua_WbCgbAAtXJdoik7qbtFC1r-9d0Qg9J_tcoz8mgj5DEmCzOUp0Tsx3pFWhy6LeDWifQ"
-          />
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBh6xiGedZC9xntBCAWe7zwTDcHZMH6ymh1WFMmKyqNCgWc_YfoiSsC6pdQvXp9C82_b7ZhtlHF7anPgmKL7gzQDuLfd5SSycz2V-KJhZN5LoQSOe5uH2J23jaPYvph8muF-LMpz6zoHJUG8Ob04xVWxzHamOTmTNr7t5DZvMT1AvUJEmtf4bOErcQavd0lHZgFyj7oV8ua_WbCgbAAtXJdoik7qbtFC1r-9d0Qg9J_tcoz8mgj5DEmCzOUp0Tsx3pFWhy6LeDWifQ" />
+          
           <div className="absolute inset-0 bg-slate-950/55" />
           <div className="absolute inset-x-0 bottom-0 p-10 text-white">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
@@ -229,38 +229,38 @@ function ForgotPassword() {
                 {step === 1 ? "Nhận mã xác thực" : "Tạo mật khẩu mới"}
               </h2>
               <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                {step === 1
-                  ? "Nhập email hoặc số điện thoại để nhận mã OTP."
-                  : "Nhập OTP đã nhận và mật khẩu mới để hoàn tất."}
+                {step === 1 ?
+                "Nhập email hoặc số điện thoại để nhận mã OTP." :
+                "Nhập OTP đã nhận và mật khẩu mới để hoàn tất."}
               </p>
             </div>
 
             <div className="mb-7 grid grid-cols-2 gap-2 rounded-xl bg-surface-container-low p-1">
               {[
-                [1, "Tài khoản", "person_search"],
-                [2, "Xác nhận", "verified_user"],
-              ].map(([value, label, icon]) => (
-                <div
-                  key={value}
-                  className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-bold transition-colors ${
-                    step === value ? "bg-white text-primary shadow-sm" : "text-on-surface-variant"
-                  }`}
-                >
+              [1, "Tài khoản", "person_search"],
+              [2, "Xác nhận", "verified_user"]].
+              map(([value, label, icon]) =>
+              <div
+                key={value}
+                className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-bold transition-colors ${
+                step === value ? "bg-white text-primary shadow-sm" : "text-on-surface-variant"}`
+                }>
+                
                   <span className="material-symbols-outlined text-[18px]">{icon}</span>
                   {label}
                 </div>
-              ))}
+              )}
             </div>
 
-            {error && (
-              <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+            {error &&
+            <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
                 <span className="material-symbols-outlined text-[22px]">error</span>
                 <span className="text-sm font-medium leading-6">{error}</span>
               </div>
-            )}
+            }
 
-            {step === 1 && (
-              <form onSubmit={handleSendOtp} className="space-y-5">
+            {step === 1 &&
+            <form onSubmit={handleSendOtp} className="space-y-5">
                 <div>
                   <label className="mb-2 block text-sm font-bold text-on-surface">Email hoặc số điện thoại</label>
                   <div className="relative">
@@ -268,39 +268,39 @@ function ForgotPassword() {
                       alternate_email
                     </span>
                     <input
-                      className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-4 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
-                      placeholder="email@example.com hoặc 0123456789"
-                      type="text"
-                      inputMode="text"
-                      autoComplete="username"
-                      value={contact}
-                      onChange={(e) => setContact(e.target.value)}
-                    />
+                    className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-4 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    placeholder="email@example.com hoặc 0123456789"
+                    type="text"
+                    inputMode="text"
+                    autoComplete="username"
+                    value={contact}
+                    onChange={(e) => setContact(e.target.value)} />
+                  
                   </div>
                 </div>
 
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-extrabold text-white shadow-[0_12px_24px_rgba(0,110,28,0.18)] transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading ? (
-                    <>
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-extrabold text-white shadow-[0_12px_24px_rgba(0,110,28,0.18)] transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60">
+                
+                  {loading ?
+                <>
                       <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                       Đang gửi OTP...
-                    </>
-                  ) : (
-                    <>
+                    </> :
+
+                <>
                       <span className="material-symbols-outlined text-[20px]">send</span>
                       Gửi OTP
                     </>
-                  )}
+                }
                 </button>
               </form>
-            )}
+            }
 
-            {step === 2 && (
-              <form onSubmit={handleResetPassword} className="space-y-5">
+            {step === 2 &&
+            <form onSubmit={handleResetPassword} className="space-y-5">
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
                   <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Đã gửi OTP đến</p>
                   <div className="mt-1 flex items-center gap-2 text-sm font-bold text-on-surface">
@@ -316,14 +316,14 @@ function ForgotPassword() {
                       pin
                     </span>
                     <input
-                      className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-4 text-center text-xl font-extrabold tracking-[0.45em] outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
-                      placeholder="000000"
-                      type="text"
-                      inputMode="text"
-                      maxLength="6"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value.trimStart().slice(0, 6))}
-                    />
+                    className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-4 text-center text-xl font-extrabold tracking-[0.45em] outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    placeholder="000000"
+                    type="text"
+                    inputMode="text"
+                    maxLength="6"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.trimStart().slice(0, 6))} />
+                  
                   </div>
                 </div>
 
@@ -334,18 +334,18 @@ function ForgotPassword() {
                       lock
                     </span>
                     <input
-                      className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-12 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
-                      placeholder="Nhập mật khẩu mới"
-                      type={showPassword ? "text" : "password"}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                    />
+                    className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-12 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    placeholder="Nhập mật khẩu mới"
+                    type={showPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)} />
+                  
                     <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-outline transition-colors hover:bg-surface-container-low hover:text-primary"
-                      aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                    >
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-outline transition-colors hover:bg-surface-container-low hover:text-primary"
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
+                    
                       <span className="material-symbols-outlined text-xl">
                         {showPassword ? "visibility_off" : "visibility"}
                       </span>
@@ -360,18 +360,18 @@ function ForgotPassword() {
                       lock
                     </span>
                     <input
-                      className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-12 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
-                      placeholder="Nhập lại mật khẩu mới"
-                      type={showPassword ? "text" : "password"}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
+                    className="w-full rounded-xl border border-outline-variant/40 bg-white py-3.5 pl-12 pr-12 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    placeholder="Nhập lại mật khẩu mới"
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)} />
+                  
                     <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-outline transition-colors hover:bg-surface-container-low hover:text-primary"
-                      aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                    >
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-outline transition-colors hover:bg-surface-container-low hover:text-primary"
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
+                    
                       <span className="material-symbols-outlined text-xl">
                         {showPassword ? "visibility_off" : "visibility"}
                       </span>
@@ -386,58 +386,58 @@ function ForgotPassword() {
                   </div>
                   <div className="mb-4 h-2 overflow-hidden rounded-full bg-white">
                     <div
-                      className="h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${(completedRules / passwordRules.length) * 100}%` }}
-                    />
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${completedRules / passwordRules.length * 100}%` }} />
+                  
                   </div>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {passwordRules.map(([key, label, validate]) => {
-                      const done = validate(newPassword);
-                      return (
-                        <div
-                          key={key}
-                          className={`flex items-center gap-2 text-xs font-semibold ${
-                            done ? "text-emerald-700" : "text-on-surface-variant"
-                          }`}
-                        >
+                    const done = validate(newPassword);
+                    return (
+                      <div
+                        key={key}
+                        className={`flex items-center gap-2 text-xs font-semibold ${
+                        done ? "text-emerald-700" : "text-on-surface-variant"}`
+                        }>
+                        
                           <span className="material-symbols-outlined text-[16px]">
                             {done ? "check_circle" : "radio_button_unchecked"}
                           </span>
                           {label}
-                        </div>
-                      );
-                    })}
+                        </div>);
+
+                  })}
                   </div>
                 </div>
 
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-extrabold text-white shadow-[0_12px_24px_rgba(0,110,28,0.18)] transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading ? (
-                    <>
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-extrabold text-white shadow-[0_12px_24px_rgba(0,110,28,0.18)] transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60">
+                
+                  {loading ?
+                <>
                       <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                       Đang đặt lại...
-                    </>
-                  ) : (
-                    <>
+                    </> :
+
+                <>
                       <span className="material-symbols-outlined text-[20px]">lock_reset</span>
                       Đặt lại mật khẩu
                     </>
-                  )}
+                }
                 </button>
 
                 <button
-                  type="button"
-                  onClick={resetForm}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-outline-variant/40 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
-                >
+                type="button"
+                onClick={resetForm}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-outline-variant/40 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low">
+                
                   <span className="material-symbols-outlined text-[18px]">edit</span>
                   Đổi email hoặc số điện thoại
                 </button>
               </form>
-            )}
+            }
 
             <div className="mt-8 text-center">
               <p className="text-sm text-on-surface-variant">
@@ -450,8 +450,8 @@ function ForgotPassword() {
           </div>
         </section>
       </main>
-    </div>
-  );
+    </div>);
+
 }
 
 export default ForgotPassword;

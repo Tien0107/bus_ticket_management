@@ -2,23 +2,23 @@ import React, { useState } from "react";
 import { useToast } from "../context/ToastContext";
 
 const faqs = [
-  {
-    question: "Tôi có thể hủy vé và hoàn tiền như thế nào?",
-    answer: "Bạn có thể vào mục 'Vé của tôi' trong Hồ sơ cá nhân để yêu cầu hủy vé. Số tiền hoàn lại sẽ phụ thuộc vào chính sách của từng nhà xe và thời điểm bạn báo hủy."
-  },
-  {
-    question: "Làm sao để xuất hóa đơn VAT?",
-    answer: "Khi đặt vé, bạn hãy tick vào mục 'Yêu cầu xuất hóa đơn' và điền đầy đủ thông tin công ty. Hóa đơn điện tử sẽ được gửi về email của bạn sau khi chuyến đi hoàn tất."
-  },
-  {
-    question: "Tôi bị lỡ chuyến xe thì có được hỗ trợ đổi vé không?",
-    answer: "Trường hợp lỡ chuyến do lỗi chủ quan của hành khách, nhà xe thường không hỗ trợ đổi trả vé. Tuy nhiên, bạn vui lòng gọi ngay Hotline để chúng tôi tìm cách hỗ trợ tốt nhất có thể."
-  },
-  {
-    question: "BusGo có hỗ trợ đón trả tận nơi không?",
-    answer: "Nhiều nhà xe trên BusGo có dịch vụ xe trung chuyển đưa rước tận nơi miễn phí. Bạn vui lòng kiểm tra kỹ điểm đón/trả hoặc ghi chú yêu cầu trung chuyển khi đặt vé."
-  }
-];
+{
+  question: "Tôi có thể hủy vé và hoàn tiền như thế nào?",
+  answer: "Bạn có thể vào mục 'Vé của tôi' trong Hồ sơ cá nhân để yêu cầu hủy vé. Số tiền hoàn lại sẽ phụ thuộc vào chính sách của từng nhà xe và thời điểm bạn báo hủy."
+},
+{
+  question: "Làm sao để xuất hóa đơn VAT?",
+  answer: "Khi đặt vé, bạn hãy tick vào mục 'Yêu cầu xuất hóa đơn' và điền đầy đủ thông tin công ty. Hóa đơn điện tử sẽ được gửi về email của bạn sau khi chuyến đi hoàn tất."
+},
+{
+  question: "Tôi bị lỡ chuyến xe thì có được hỗ trợ đổi vé không?",
+  answer: "Trường hợp lỡ chuyến do lỗi chủ quan của hành khách, nhà xe thường không hỗ trợ đổi trả vé. Tuy nhiên, bạn vui lòng gọi ngay Hotline để chúng tôi tìm cách hỗ trợ tốt nhất có thể."
+},
+{
+  question: "BusGo có hỗ trợ đón trả tận nơi không?",
+  answer: "Nhiều nhà xe trên BusGo có dịch vụ xe trung chuyển đưa rước tận nơi miễn phí. Bạn vui lòng kiểm tra kỹ điểm đón/trả hoặc ghi chú yêu cầu trung chuyển khi đặt vé."
+}];
+
 
 export default function Contact() {
   const { addToast } = useToast();
@@ -39,7 +39,7 @@ export default function Contact() {
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Fake API call
+
     setTimeout(() => {
       setIsSubmitting(false);
       addToast("Cảm ơn bạn đã liên hệ! Tin nhắn của bạn đã được gửi thành công, chúng tôi sẽ phản hồi sớm nhất.", "success");
@@ -49,14 +49,14 @@ export default function Contact() {
 
   return (
     <div className="bg-surface min-h-screen pb-20">
-      {/* ===== HERO BANNER ===== */}
+      {}
       <section className="relative pt-32 pb-32 overflow-hidden bg-primary">
         <div className="absolute inset-0 z-0">
           <img
             className="w-full h-full object-cover opacity-30"
             src="https://images.unsplash.com/photo-1423666639041-f56000c27a9a?auto=format&fit=crop&q=80&w=2000"
-            alt="Contact us background"
-          />
+            alt="Contact us background" />
+          
           <div className="absolute inset-0 bg-gradient-to-t from-primary to-transparent opacity-90"></div>
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
@@ -70,7 +70,7 @@ export default function Contact() {
       </section>
 
       <div className="max-w-7xl mx-auto px-6 -mt-16 relative z-20">
-        {/* ===== CONTACT CARDS ===== */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           <div className="bg-white p-8 rounded-3xl shadow-editorial text-center transform hover:-translate-y-2 transition-transform duration-300">
             <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-primary">
@@ -101,10 +101,10 @@ export default function Contact() {
           </div>
         </div>
 
-        {/* ===== FORM & MAP SECTION ===== */}
+        {}
         <div className="bg-white rounded-3xl shadow-editorial overflow-hidden mb-16">
           <div className="grid grid-cols-1 lg:grid-cols-2">
-            {/* Form */}
+            {}
             <div className="p-10 lg:p-12 bg-surface-container-lowest">
               <div className="mb-8">
                 <h2 className="text-3xl font-black text-on-surface mb-2">Gửi tin nhắn cho chúng tôi</h2>
@@ -141,36 +141,36 @@ export default function Contact() {
                 </div>
 
                 <button disabled={isSubmitting} type="submit" className="w-full bg-primary text-white py-4 rounded-xl font-bold text-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
-                  {isSubmitting ? (
-                    <>
+                  {isSubmitting ?
+                  <>
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       Đang gửi...
-                    </>
-                  ) : (
-                    <>
+                    </> :
+
+                  <>
                       <span className="material-symbols-outlined">send</span>
                       Gửi tin nhắn ngay
                     </>
-                  )}
+                  }
                 </button>
               </form>
             </div>
 
-            {/* Google Maps */}
+            {}
             <div className="min-h-[400px] lg:min-h-full w-full bg-gray-200 relative">
-              <iframe 
+              <iframe
                 src="https://maps.google.com/maps?q=33%20X%C3%B4%20Vi%E1%BA%BFt%20Ngh%E1%BB%87%20T%C4%A9nh,%20H%C3%B2a%20C%C6%B0%E1%BB%9Dng,%20%C4%90%C3%A0%20N%E1%BA%B5ng%20550000,%20Vi%E1%BB%87t%20Nam&t=&z=16&ie=UTF8&iwloc=&output=embed"
                 className="absolute inset-0 w-full h-full border-0"
-                allowFullScreen="" 
-                loading="lazy" 
+                allowFullScreen=""
+                loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                title="Bản đồ văn phòng BusGo"
-              ></iframe>
+                title="Bản đồ văn phòng BusGo">
+              </iframe>
             </div>
           </div>
         </div>
 
-        {/* ===== FAQ SECTION ===== */}
+        {}
         <div className="bg-surface-container-low rounded-3xl p-10 lg:p-16 border border-surface-container/50">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-black text-on-surface mb-4">Các câu hỏi thường gặp (FAQ)</h2>
@@ -178,12 +178,12 @@ export default function Contact() {
           </div>
 
           <div className="max-w-3xl mx-auto space-y-4">
-            {faqs.map((faq, index) => (
-              <div key={index} className="bg-white border border-outline-variant/30 rounded-2xl overflow-hidden transition-all duration-300">
-                <button 
-                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                  className="w-full flex items-center justify-between p-6 text-left hover:bg-surface-container-lowest focus:outline-none"
-                >
+            {faqs.map((faq, index) =>
+            <div key={index} className="bg-white border border-outline-variant/30 rounded-2xl overflow-hidden transition-all duration-300">
+                <button
+                onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                className="w-full flex items-center justify-between p-6 text-left hover:bg-surface-container-lowest focus:outline-none">
+                
                   <span className="font-bold text-lg text-on-surface pr-4">{faq.question}</span>
                   <div className={`w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 transition-transform duration-300 ${openFaq === index ? 'rotate-180 bg-primary text-white' : 'text-primary'}`}>
                     <span className="material-symbols-outlined text-sm">expand_more</span>
@@ -193,11 +193,11 @@ export default function Contact() {
                   <p className="text-on-surface-variant border-t border-outline-variant/20 pt-4">{faq.answer}</p>
                 </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
       </div>
-    </div>
-  );
+    </div>);
+
 }

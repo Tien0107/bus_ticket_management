@@ -4,10 +4,10 @@ import { logout } from "../../api/auth";
 import OperatorProfileCard from "../../components/profile/OperatorProfileCard";
 
 const sidebarItems = [
-  { icon: "confirmation_number", label: "Quản lý vé", path: "/company-support/tickets" },
-  { icon: "sell", label: "Mã khuyến mãi", path: "/company-support/coupons" },
-  { icon: "person", label: "Hồ sơ", path: "/company-support/profile", active: true },
-];
+{ icon: "confirmation_number", label: "Quản lý vé", path: "/company-support/tickets" },
+{ icon: "sell", label: "Mã khuyến mãi", path: "/company-support/coupons" },
+{ icon: "person", label: "Hồ sơ", path: "/company-support/profile", active: true }];
+
 
 const getStoredUser = () => {
   try {
@@ -43,7 +43,7 @@ export default function SupportProfile() {
     try {
       await logout();
     } catch {
-      // Vẫn đăng xuất local nếu API logout thất bại.
+
     }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -59,20 +59,20 @@ export default function SupportProfile() {
         </div>
 
         <nav className="flex-1">
-          {sidebarItems.map((item) => (
-            <Link
-              key={item.label}
-              to={item.path}
-              className={`flex items-center gap-3 border-r-4 px-6 py-3 text-sm transition-colors ${
-                item.active
-                  ? "border-primary bg-primary/10 font-extrabold text-primary"
-                  : "border-transparent font-semibold text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-              }`}
-            >
+          {sidebarItems.map((item) =>
+          <Link
+            key={item.label}
+            to={item.path}
+            className={`flex items-center gap-3 border-r-4 px-6 py-3 text-sm transition-colors ${
+            item.active ?
+            "border-primary bg-primary/10 font-extrabold text-primary" :
+            "border-transparent font-semibold text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"}`
+            }>
+            
               <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
               {item.label}
             </Link>
-          ))}
+          )}
         </nav>
 
         <div className="border-t border-surface-container-high px-6 pt-4">
@@ -90,8 +90,8 @@ export default function SupportProfile() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex items-center gap-2 text-sm font-bold text-outline transition-colors hover:text-primary"
-          >
+            className="flex items-center gap-2 text-sm font-bold text-outline transition-colors hover:text-primary">
+            
             <span className="material-symbols-outlined text-[18px]">logout</span>
             Đăng xuất
           </button>
@@ -113,6 +113,6 @@ export default function SupportProfile() {
           <OperatorProfileCard roleLabel="Nhân viên hỗ trợ" onProfileUpdated={handleProfileUpdated} />
         </div>
       </main>
-    </div>
-  );
+    </div>);
+
 }

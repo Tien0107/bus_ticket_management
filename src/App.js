@@ -6,20 +6,20 @@ import Toast from "./components/Toast";
 import { CallProvider } from "./components/call/CallContext";
 import Home from "./pages/Home";
 
-// Auth & Public
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import StripeConnectCallback from "./pages/stripe/StripeConnectCallback";
 import PaymentResult from "./pages/customer/PaymentResult";
 
-// Layouts
+
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import MainLayout from "./components/layouts/MainLayout";
 import PrivateRoute from "./components/PrivateRoute";
 import { getRedirectUrl } from "./pages/login/authUtils";
 
-// Customer Pages
+
 import Booking from "./pages/customer/Booking";
 import CustomerMyTickets from "./pages/customer/MyTickets";
 import CustomerMyCoupons from "./pages/customer/MyCoupons";
@@ -31,12 +31,12 @@ import Contact from "./pages/Contact";
 import Companies from "./pages/customer/Companies";
 import Promotions from "./pages/customer/Promotions";
 
-// Driver Pages
+
 import DriverDashboard from "./pages/driver/DriverDashboard";
 import DriverProfile from "./pages/driver/DriverProfile";
 import TripDetail from "./pages/driver/TripDetail";
 
-// Company Pages
+
 import CompanyDashboard from "./pages/company/CompanyDashboard";
 import Vehicles from "./pages/company/Vehicles";
 import Drivers from "./pages/company/Drivers";
@@ -44,7 +44,7 @@ import Staff from "./pages/company/Staff";
 import CompanyProfile from "./pages/company/CompanyProfile";
 import CompanyPayments from "./pages/company/Payments";
 
-// Operator Pages
+
 import OperatorDashboard from "./pages/operator/OperatorDashboard";
 import OperatorRoutes from "./pages/operator/Routes";
 import Stations from "./pages/operator/Stations";
@@ -54,12 +54,12 @@ import StoppingPoints from "./pages/operator/StoppingPoints";
 import Trips from "./pages/operator/Trips";
 import OperatorProfile from "./pages/operator/OperatorProfile";
 
-// Company Support Pages
+
 import SupportTickets from "./pages/company-support/SupportTickets";
 import SupportCoupons from "./pages/company-support/SupportCoupons";
 import SupportProfile from "./pages/company-support/SupportProfile";
 
-// Super Admin Pages
+
 import SuperAdminDashboard from "./pages/super-admin/SuperAdminDashboard";
 import BusCompanies from "./pages/super-admin/BusCompanies";
 
@@ -81,7 +81,7 @@ function RootRedirect() {
 
   const target = getRedirectUrl(user);
 
-  // getRedirectUrl returns "/" for customers and unknown roles -> show public Home
+
   if (!target || target === "/") {
     return <Home />;
   }
@@ -90,7 +90,7 @@ function RootRedirect() {
 }
 
 function App() {
-  return (    
+  return (
     <ToastProvider>
       <Toast />
       <Toaster
@@ -106,62 +106,62 @@ function App() {
             color: "#0f172a",
             fontSize: "14px",
             fontWeight: 700,
-            padding: "12px 14px",
+            padding: "12px 14px"
           },
           success: {
             duration: 3200,
             iconTheme: {
               primary: "#059669",
-              secondary: "#ecfdf5",
-            },
+              secondary: "#ecfdf5"
+            }
           },
           error: {
             duration: 5500,
             iconTheme: {
               primary: "#dc2626",
-              secondary: "#fef2f2",
-            },
-          },
-        }}
-      />
+              secondary: "#fef2f2"
+            }
+          }
+        }} />
+      
 
       <CallProvider>
         <BrowserRouter>
           <Routes>
-          {/* Public (No Navbar/Footer) */}
+          {}
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/register" element={<Register />} />
           <Route path="/company-signup" element={<Navigate to="/register?type=company" replace />} />
           <Route path="/stripe/connect/callback" element={<StripeConnectCallback />} />
           <Route
-            path="/payment-result"
-            element={
+              path="/payment-result"
+              element={
               <PrivateRoute>
                 <PaymentResult />
               </PrivateRoute>
-            }
-          />
+              } />
+            
           
-          {/* Ticket Detail (Standalone Boarding Pass) */}
+          {}
           <Route
-            path="/profile/tickets/:ticketId"
-            element={
+              path="/profile/tickets/:ticketId"
+              element={
               <PrivateRoute>
                 <TicketDetail />
               </PrivateRoute>
-            }
-          />
+              } />
+            
           <Route
-            path="/my-tickets/:ticketId"
-            element={
+              path="/my-tickets/:ticketId"
+              element={
               <PrivateRoute>
                 <TicketDetail />
               </PrivateRoute>
-            }
-          />
+              } />
+            
 
-          {/* Main Layout (Home & Customer Pages) */}
+          {}
           <Route element={<MainLayout />}>
             <Route path="/" element={<RootRedirect />} />
             <Route path="/routes" element={<RoutesPage />} />
@@ -169,7 +169,7 @@ function App() {
             <Route path="/promotions" element={<Promotions />} />
             <Route path="/contact" element={<Contact />} />
             
-            {/* Customer */}
+            {}
             <Route path="/booking/:tripId" element={<Booking />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/tickets" element={<CustomerMyTickets />} />
@@ -180,50 +180,50 @@ function App() {
             <Route path="/my-payment-methods" element={<Navigate to="/profile/payment-methods" replace />} />
           </Route>
 
-          {/* Company Support */}
+          {}
           <Route
-            path="/company-support"
-            element={
+              path="/company-support"
+              element={
               <PrivateRoute>
                 <Navigate to="/company-support/tickets" replace />
               </PrivateRoute>
-            }
-          />
+              } />
+            
           <Route
-            path="/company-support/tickets"
-            element={
+              path="/company-support/tickets"
+              element={
               <PrivateRoute>
                 <SupportTickets />
               </PrivateRoute>
-            }
-          />
+              } />
+            
           <Route
-            path="/company-support/coupons"
-            element={
+              path="/company-support/coupons"
+              element={
               <PrivateRoute>
                 <SupportCoupons />
               </PrivateRoute>
-            }
-          />
+              } />
+            
           <Route
-            path="/company-support/profile"
-            element={
+              path="/company-support/profile"
+              element={
               <PrivateRoute>
                 <SupportProfile />
               </PrivateRoute>
-            }
-          />
+              } />
+            
 
-          {/* Dashboard Layout */}
+          {}
           <Route element={<DashboardLayout />}>
 
-            {/* Driver */}
+            {}
             <Route path="/driver" element={<Navigate to="/driver/dashboard" replace />} />
             <Route path="/driver/dashboard" element={<DriverDashboard />} />
             <Route path="/driver/trip/:tripId" element={<TripDetail />} />
             <Route path="/driver/profile" element={<DriverProfile />} />
 
-            {/* Company */}
+            {}
             <Route path="/company" element={<Navigate to="/company/dashboard" replace />} />
             <Route path="/company/dashboard" element={<CompanyDashboard />} />
             <Route path="/company/vehicles" element={<Vehicles />} />
@@ -233,7 +233,7 @@ function App() {
             <Route path="/company/profile" element={<CompanyProfile />} />
             <Route path="/company/staff-profile" element={<Navigate to="/company/profile" replace />} />
 
-            {/* Operator */}
+            {}
             <Route path="/operator" element={<Navigate to="/operator/dashboard" replace />} />
             <Route path="/operator/dashboard" element={<OperatorDashboard />} />
             <Route path="/operator/profile" element={<OperatorProfile />} />
@@ -244,17 +244,17 @@ function App() {
             <Route path="/operator/schedules/:scheduleId/stopping-points" element={<StoppingPoints />} />
             <Route path="/operator/schedules/:scheduleId/trips" element={<Trips />} />
 
-            {/* Super Admin */}
+            {}
             <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
             <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
             <Route path="/super-admin/companies" element={<BusCompanies />} />
 
           </Route>
 
-          {/* 404 */}
+          {}
           <Route
-            path="*"
-            element={
+              path="*"
+              element={
               <div className="flex h-screen flex-col items-center justify-center">
                 <h1 className="mb-4 text-6xl font-bold text-red-500">404</h1>
                 <p className="mb-6 text-xl font-medium text-gray-600">
@@ -262,18 +262,18 @@ function App() {
                 </p>
                 <a
                   href="/"
-                  className="rounded-lg bg-primary px-6 py-2 font-bold text-white hover:bg-primary/90"
-                >
+                  className="rounded-lg bg-primary px-6 py-2 font-bold text-white hover:bg-primary/90">
+                  
                   Về trang chủ
                 </a>
               </div>
-            }
-          />
+              } />
+            
           </Routes>
         </BrowserRouter>
       </CallProvider>
-    </ToastProvider>
-  );
+    </ToastProvider>);
+
 }
 
 export default App;

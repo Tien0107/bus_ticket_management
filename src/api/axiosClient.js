@@ -10,28 +10,28 @@ const axiosClient = axios.create({
 });
 
 const publicEndpoints = [
-  "/auth/send-otp",
-  "/auth/reset-password",
-  "/auth/sign-in",
-  "/auth/google/verify-token",
-  "/auth/facebook/verify-token",
-  "/customer/sign-in",
-  "/customer/sign-up",
-  "/customer/google/verify-token",
-  "/customer/facebook/verify-token",
-  "/driver/login",
-  "/driver/sign-up",
-];
+"/auth/send-otp",
+"/auth/reset-password",
+"/auth/sign-in",
+"/auth/google/verify-token",
+"/auth/facebook/verify-token",
+"/customer/sign-in",
+"/customer/sign-up",
+"/customer/google/verify-token",
+"/customer/facebook/verify-token",
+"/driver/login",
+"/driver/sign-up"];
+
 
 const isSessionExpiredError = (status, data) => {
   const message = [
-    data?.message,
-    data?.error,
-    data?.detail,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+  data?.message,
+  data?.error,
+  data?.detail].
+
+  filter(Boolean).
+  join(" ").
+  toLowerCase();
 
   return (
     status === 401 ||
@@ -39,8 +39,8 @@ const isSessionExpiredError = (status, data) => {
     message.includes("vui lòng đăng nhập lại") ||
     message.includes("token expired") ||
     message.includes("jwt expired") ||
-    message.includes("invalid token")
-  );
+    message.includes("invalid token"));
+
 };
 
 const redirectToLogin = () => {
@@ -56,7 +56,7 @@ const redirectToLogin = () => {
   window.location.replace("/login");
 };
 
-// Request interceptor - Gắn token tự động
+
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   const isPublicEndpoint = publicEndpoints.some((endpoint) => config.url?.startsWith(endpoint));
@@ -68,7 +68,7 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor - Xử lý lỗi
+
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -78,19 +78,19 @@ axiosClient.interceptors.response.use(
     const isLogoutRequest = requestUrl.includes("/auth/logout");
     const isLoggingOut = window.__isLoggingOut === true;
 
-    // lưu lỗi cuối để debug
+
     window.lastError = {
       status,
       url: error.response?.config?.url,
       data
     };
 
-    // Unauthorized
+
     if (!isLogoutRequest && !isLoggingOut && isSessionExpiredError(status, data)) {
       redirectToLogin();
     }
 
-    // --- Bắt đầu: Dịch lỗi sang Tiếng Việt ---
+
     const translateError = (msg) => {
       if (!msg) return msg;
       const lowerMsg = msg.toLowerCase();
@@ -108,7 +108,7 @@ axiosClient.interceptors.response.use(
       if (lowerMsg.includes("validation failed")) return "Dữ liệu không đúng định dạng.";
       if (lowerMsg.includes("not enough seats") || lowerMsg.includes("seat unavailable") || lowerMsg.includes("already booked")) return "Ghế này đã có người đặt, vui lòng chọn ghế khác.";
       if (lowerMsg.includes("invalid coupon") || lowerMsg.includes("coupon expired") || lowerMsg.includes("not valid")) return "Mã khuyến mãi không hợp lệ hoặc đã hết hạn.";
-      return msg; // giữ nguyên nếu không match
+      return msg;
     };
 
     if (error.response && error.response.data) {
@@ -122,7 +122,7 @@ axiosClient.interceptors.response.use(
     if (error.message) {
       error.message = translateError(error.message);
     }
-    // --- Kết thúc: Dịch lỗi ---
+
 
     return Promise.reject(error);
   }

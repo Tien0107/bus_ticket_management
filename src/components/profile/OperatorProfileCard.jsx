@@ -9,16 +9,16 @@ const emptyProfile = {
   companyId: "",
   staffCode: "",
   hireDate: "",
-  accountStripeId: "",
+  accountStripeId: ""
 };
 
 const statusOptions = [
-  { value: "active", label: "Hoạt động" },
-  { value: "inactive", label: "Tạm ngưng" },
-];
+{ value: "active", label: "Hoạt động" },
+{ value: "inactive", label: "Tạm ngưng" }];
+
 
 const getErrorMessage = (error, fallback) =>
-  error?.response?.data?.message || error?.response?.data?.error || error?.message || fallback;
+error?.response?.data?.message || error?.response?.data?.error || error?.message || fallback;
 
 const pickProfilePayload = (data) => {
   if (data?.user) return data.user;
@@ -31,19 +31,19 @@ const pickProfilePayload = (data) => {
 const hasProfileFields = (data) => {
   const profile = pickProfilePayload(data);
   return [
-    "fullName",
-    "status",
-    "staffProfileRole",
-    "staff_profile_role",
-    "staffprofilerole",
-    "companyId",
-    "company_id",
-    "staffCode",
-    "hireDate",
-    "hire_date",
-    "accountStripeId",
-    "account_stripe_id",
-  ].some((key) => profile?.[key] !== undefined);
+  "fullName",
+  "status",
+  "staffProfileRole",
+  "staff_profile_role",
+  "staffprofilerole",
+  "companyId",
+  "company_id",
+  "staffCode",
+  "hireDate",
+  "hire_date",
+  "accountStripeId",
+  "account_stripe_id"].
+  some((key) => profile?.[key] !== undefined);
 };
 
 const toDateInputValue = (value) => {
@@ -69,7 +69,7 @@ const normalizeOperatorProfile = (data = {}) => {
     staffProfileRole: profile.staffProfileRole || profile.staff_profile_role || profile.staffprofilerole || profile.staffRole || "",
     companyId: profile.companyId ?? profile.company_id ?? "",
     hireDate: profile.hireDate || profile.hire_date || "",
-    accountStripeId: profile.accountStripeId || profile.account_stripe_id || "",
+    accountStripeId: profile.accountStripeId || profile.account_stripe_id || ""
   };
 };
 
@@ -100,7 +100,7 @@ const buildFormState = (profile) => ({
   companyId: profile.companyId ?? "",
   staffCode: profile.staffCode || "",
   hireDate: toDateInputValue(profile.hireDate),
-  accountStripeId: profile.accountStripeId || "",
+  accountStripeId: profile.accountStripeId || ""
 });
 
 const buildPayload = (formData, currentProfile = {}) => {
@@ -108,7 +108,7 @@ const buildPayload = (formData, currentProfile = {}) => {
     fullName: formData.fullName.trim(),
     status: formData.status || "active",
     staffCode: formData.staffCode.trim(),
-    hireDate: formData.hireDate || "",
+    hireDate: formData.hireDate || ""
   };
 
   ["position", "department", "identityNumber"].forEach((key) => {
@@ -136,9 +136,9 @@ const getStatusLabel = (status) => {
 };
 
 const getStatusClass = (status) =>
-  status === "active"
-    ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-    : "bg-slate-100 text-slate-700 ring-slate-200";
+status === "active" ?
+"bg-emerald-50 text-emerald-700 ring-emerald-100" :
+"bg-slate-100 text-slate-700 ring-slate-200";
 
 const normalizeRoleText = (value) => String(value || "").replace(/[\s-]+/g, "_").toLowerCase();
 
@@ -151,7 +151,7 @@ const getStaffProfileRoleLabel = (role) => {
     operator_dispatcher: "Điều hành viên",
     support: "Nhân viên hỗ trợ",
     company_support: "Nhân viên hỗ trợ",
-    operator_support: "Nhân viên hỗ trợ",
+    operator_support: "Nhân viên hỗ trợ"
   };
 
   return labels[normalizeRoleText(role)] || role || "Chưa cập nhật";
@@ -171,8 +171,8 @@ const getStoredStaffProfileRole = () => {
       user.staff_profile?.role ||
       user.staff_profile?.staff_profile_role ||
       user.staff_profile?.staffprofilerole ||
-      ""
-    );
+      "");
+
   } catch {
     return "";
   }
@@ -190,7 +190,7 @@ const syncStoredUser = (profile) => {
       companyId: profile.companyId ?? currentUser.companyId,
       staffCode: profile.staffCode ?? currentUser.staffCode,
       hireDate: profile.hireDate ?? currentUser.hireDate,
-      accountStripeId: profile.accountStripeId ?? currentUser.accountStripeId,
+      accountStripeId: profile.accountStripeId ?? currentUser.accountStripeId
     };
     delete nextUser.position;
     delete nextUser.department;
@@ -201,7 +201,7 @@ const syncStoredUser = (profile) => {
       window.dispatchEvent(new CustomEvent("busgo:user-updated", { detail: nextUser }));
     }
   } catch {
-    // Bỏ qua lỗi cache local, dữ liệu server vẫn đã được cập nhật.
+
   }
 };
 
@@ -218,8 +218,8 @@ function InfoItem({ icon, label, value, compact = false }) {
           <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">{label}</p>
           <p className="mt-1 break-words text-sm font-extrabold text-on-surface">{displayValue}</p>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -231,8 +231,8 @@ function InfoItem({ icon, label, value, compact = false }) {
         <p className="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">{label}</p>
         <p className="mt-1 break-words text-base font-extrabold text-on-surface">{displayValue}</p>
       </div>
-    </div>
-  );
+    </div>);
+
 }
 
 function Field({ label, children }) {
@@ -240,12 +240,12 @@ function Field({ label, children }) {
     <label className="block">
       <span className="mb-2 block text-sm font-bold text-on-surface">{label}</span>
       {children}
-    </label>
-  );
+    </label>);
+
 }
 
 const inputClass =
-  "w-full rounded-lg border border-outline-variant/50 bg-white px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-surface-container-low disabled:text-on-surface-variant";
+"w-full rounded-lg border border-outline-variant/50 bg-white px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-surface-container-low disabled:text-on-surface-variant";
 
 export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfileUpdated, compact = false }) {
   const { addToast } = useToast();
@@ -264,7 +264,7 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
       const profileFromApi = normalizeOperatorProfile(response.data);
       const nextProfile = {
         ...profileFromApi,
-        staffProfileRole: profileFromApi.staffProfileRole || getStoredStaffProfileRole(),
+        staffProfileRole: profileFromApi.staffProfileRole || getStoredStaffProfileRole()
       };
       setProfile(nextProfile);
       setFormData(buildFormState(nextProfile));
@@ -313,7 +313,7 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
       const nextProfile = normalizeOperatorProfile({
         ...profile,
         ...payload,
-        ...responseProfile,
+        ...responseProfile
       });
 
       setProfile(nextProfile);
@@ -334,8 +334,8 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
       <section className={`rounded-xl border border-outline-variant/30 bg-white text-center shadow-sm ${compact ? "p-6" : "p-10"}`}>
         <div className={`${compact ? "h-9 w-9" : "h-11 w-11"} mx-auto animate-spin rounded-full border-4 border-primary/20 border-t-primary`} />
         <p className="mt-4 text-sm font-medium text-on-surface-variant">Đang tải hồ sơ...</p>
-      </section>
-    );
+      </section>);
+
   }
 
   if (error) {
@@ -346,25 +346,25 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
           <button
             type="button"
             onClick={fetchProfile}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-red-700 ring-1 ring-red-200 transition-colors hover:bg-red-100"
-          >
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-red-700 ring-1 ring-red-200 transition-colors hover:bg-red-100">
+            
             <span className="material-symbols-outlined text-[19px]">refresh</span>
             Thử lại
           </button>
         </div>
-      </section>
-    );
+      </section>);
+
   }
 
   const companyLabel =
-    profile?.companyId === undefined || profile?.companyId === null || profile?.companyId === ""
-      ? "Công ty N/A"
-      : `Công ty #${profile.companyId}`;
+  profile?.companyId === undefined || profile?.companyId === null || profile?.companyId === "" ?
+  "Công ty N/A" :
+  `Công ty #${profile.companyId}`;
 
   return (
     <section className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
-      {compact ? (
-        <div className="border-b border-outline-variant/20 p-5">
+      {compact ?
+      <div className="border-b border-outline-variant/20 p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl font-extrabold text-primary ring-1 ring-primary/10">
@@ -386,21 +386,21 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
                 </div>
               </div>
             </div>
-            {!isEditing && (
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary transition-colors hover:bg-primary hover:text-white"
-                aria-label="Chỉnh sửa hồ sơ cá nhân"
-                title="Chỉnh sửa hồ sơ cá nhân"
-              >
+            {!isEditing &&
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary transition-colors hover:bg-primary hover:text-white"
+            aria-label="Chỉnh sửa hồ sơ cá nhân"
+            title="Chỉnh sửa hồ sơ cá nhân">
+            
                 <span className="material-symbols-outlined text-[20px]">edit</span>
               </button>
-            )}
+          }
           </div>
-        </div>
-      ) : (
-        <div className="border-b border-outline-variant/20 bg-white p-5 lg:p-6">
+        </div> :
+
+      <div className="border-b border-outline-variant/20 bg-white p-5 lg:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 items-center gap-4">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-2xl font-extrabold text-primary ring-1 ring-primary/10">
@@ -422,49 +422,49 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
                 </div>
               </div>
             </div>
-            {!isEditing && (
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white transition-colors hover:bg-primary/90"
-              >
+            {!isEditing &&
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white transition-colors hover:bg-primary/90">
+            
                 <span className="material-symbols-outlined text-[20px]">edit</span>
                 Chỉnh sửa
               </button>
-            )}
+          }
           </div>
         </div>
-      )}
+      }
 
       <div className={compact ? "p-5" : "p-5 lg:p-6"}>
-        {isEditing ? (
-          <div className="space-y-5">
+        {isEditing ?
+        <div className="space-y-5">
             <div className={`grid grid-cols-1 gap-4 ${compact ? "" : "md:grid-cols-2"}`}>
               <Field label="Họ và tên">
                 <input
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  className={inputClass}
-                  placeholder="Nguyễn Văn A"
-                />
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                className={inputClass}
+                placeholder="Nguyễn Văn A" />
+              
               </Field>
               <Field label="Trạng thái">
                 <select name="status" value={formData.status} onChange={handleChange} className={inputClass}>
-                  {effectiveStatusOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
+                  {effectiveStatusOptions.map((option) =>
+                <option key={option.value} value={option.value}>{option.label}</option>
+                )}
                 </select>
               </Field>
               <Field label="ID công ty">
                 <input
-                  type="number"
-                  name="companyId"
-                  value={formData.companyId}
-                  onChange={handleChange}
-                  className={inputClass}
-                  min="0"
-                />
+                type="number"
+                name="companyId"
+                value={formData.companyId}
+                onChange={handleChange}
+                className={inputClass}
+                min="0" />
+              
               </Field>
               <Field label="Mã nhân viên">
                 <input name="staffCode" value={formData.staffCode} onChange={handleChange} className={inputClass} />
@@ -472,61 +472,61 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
               <Field label="Ngày vào làm">
                 <input type="date" name="hireDate" value={formData.hireDate} onChange={handleChange} className={inputClass} />
               </Field>
-              {formData.accountStripeId ? (
-                <div className="md:col-span-2">
+              {formData.accountStripeId ?
+            <div className="md:col-span-2">
                   <Field label="Stripe account">
                     <input value={formData.accountStripeId} className={inputClass} disabled readOnly />
                   </Field>
-                </div>
-              ) : null}
+                </div> :
+            null}
             </div>
 
             <div className="flex flex-col-reverse gap-3 border-t border-outline-variant/20 pt-5 sm:flex-row sm:justify-end">
               <button
-                type="button"
-                onClick={() => {
-                  setIsEditing(false);
-                  setFormData(buildFormState(profile));
-                }}
-                disabled={saving}
-                className="rounded-lg border border-outline-variant/50 px-5 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              type="button"
+              onClick={() => {
+                setIsEditing(false);
+                setFormData(buildFormState(profile));
+              }}
+              disabled={saving}
+              className="rounded-lg border border-outline-variant/50 px-5 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60">
+              
                 Hủy
               </button>
               <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving ? (
-                  <>
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60">
+              
+                {saving ?
+              <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                     Đang lưu...
-                  </>
-                ) : (
-                  <>
+                  </> :
+
+              <>
                     <span className="material-symbols-outlined text-[20px]">save</span>
                     Lưu thay đổi
                   </>
-                )}
+              }
               </button>
             </div>
-          </div>
-            ) : (
-          <div className="space-y-5">
-            {!compact && (
-              <div className="flex flex-wrap gap-2">
+          </div> :
+
+        <div className="space-y-5">
+            {!compact &&
+          <div className="flex flex-wrap gap-2">
               <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ring-1 ${getStatusClass(profile?.status)}`}>
                 {getStatusLabel(profile?.status)}
               </span>
-              {profile?.staffCode ? (
-                <span className="inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700 ring-1 ring-sky-100">
+              {profile?.staffCode ?
+            <span className="inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700 ring-1 ring-sky-100">
                   {profile.staffCode}
-                </span>
-              ) : null}
+                </span> :
+            null}
               </div>
-            )}
+          }
 
             <div className={`grid grid-cols-1 gap-3 ${compact ? "" : "md:grid-cols-2 xl:grid-cols-3 md:gap-4"}`}>
               <InfoItem compact={compact} icon="admin_panel_settings" label="Vai trò" value={getStaffProfileRoleLabel(profile?.staffProfileRole)} />
@@ -538,8 +538,8 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
               </div>
             </div>
           </div>
-        )}
+        }
       </div>
-    </section>
-  );
+    </section>);
+
 }

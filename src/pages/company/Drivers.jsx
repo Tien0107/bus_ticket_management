@@ -16,34 +16,34 @@ import {
   SelectControl,
   StatCard,
   StatusBadge,
-  ToolbarCard,
-} from "./CompanyUI";
+  ToolbarCard } from
+"./CompanyUI";
 
 const statusLabel = {
   active: "Hoạt động",
   inactive: "Không hoạt động",
-  banned: "Bị chặn",
+  banned: "Bị chặn"
 };
 
 const statusTone = {
   active: "emerald",
   inactive: "amber",
-  banned: "red",
+  banned: "red"
 };
 
 const accountStatusNotification = {
   active: {
     title: "Tài khoản tài xế đã được duyệt",
-    body: "Công ty đã duyệt tài khoản tài xế của bạn. Bạn có thể truy cập hệ thống.",
+    body: "Công ty đã duyệt tài khoản tài xế của bạn. Bạn có thể truy cập hệ thống."
   },
   inactive: {
     title: "Tài khoản tài xế đã bị tạm ngưng",
-    body: "Công ty đã tạm ngưng tài khoản tài xế của bạn.",
+    body: "Công ty đã tạm ngưng tài khoản tài xế của bạn."
   },
   banned: {
     title: "Tài khoản tài xế đã bị cấm",
-    body: "Công ty đã cấm tài khoản tài xế của bạn.",
-  },
+    body: "Công ty đã cấm tài khoản tài xế của bạn."
+  }
 };
 
 export default function Drivers() {
@@ -67,7 +67,7 @@ export default function Drivers() {
       const params = {
         status: filterStatus !== "all" ? filterStatus : undefined,
         phone: keyword || undefined,
-        limit: 10,
+        limit: 10
       };
       Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 
@@ -86,11 +86,11 @@ export default function Drivers() {
   }, [fetchDrivers]);
 
   const stats = useMemo(() => [
-    { icon: "badge", label: "Tổng tài xế", value: drivers.length, tone: "primary" },
-    { icon: "verified", label: "Hoạt động", value: drivers.filter((driver) => driver.status === "active").length, tone: "emerald" },
-    { icon: "pause_circle", label: "Không hoạt động", value: drivers.filter((driver) => driver.status === "inactive").length, tone: "amber" },
-    { icon: "block", label: "Bị chặn", value: drivers.filter((driver) => driver.status === "banned").length, tone: "red" },
-  ], [drivers]);
+  { icon: "badge", label: "Tổng tài xế", value: drivers.length, tone: "primary" },
+  { icon: "verified", label: "Hoạt động", value: drivers.filter((driver) => driver.status === "active").length, tone: "emerald" },
+  { icon: "pause_circle", label: "Không hoạt động", value: drivers.filter((driver) => driver.status === "inactive").length, tone: "amber" },
+  { icon: "block", label: "Bị chặn", value: drivers.filter((driver) => driver.status === "banned").length, tone: "red" }],
+  [drivers]);
 
   const getDriverId = (driver) => driver?.userId || driver?.id;
 
@@ -106,11 +106,11 @@ export default function Drivers() {
         data: JSON.stringify({
           type: "account_status",
           status,
-          path: "/driver/dashboard",
-        }),
+          path: "/driver/dashboard"
+        })
       });
     } catch {
-      // Không chặn thao tác chính nếu tạo thông báo thất bại.
+
     }
   };
 
@@ -147,12 +147,12 @@ export default function Drivers() {
     <CompanyPageShell
       eyebrow="Drivers"
       title="Quản lý tài xế"
-      description="Tra cứu tài xế theo số điện thoại, xem thông tin và cập nhật trạng thái tài khoản."
-    >
+      description="Tra cứu tài xế theo số điện thoại, xem thông tin và cập nhật trạng thái tài khoản.">
+      
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
-        ))}
+        {stats.map((stat) =>
+        <StatCard key={stat.label} {...stat} />
+        )}
       </div>
 
       <ToolbarCard>
@@ -160,8 +160,8 @@ export default function Drivers() {
           <SearchInput
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo số điện thoại"
-          />
+            placeholder="Tìm theo số điện thoại" />
+          
           <SelectControl value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
             <option value="all">Tất cả trạng thái</option>
             <option value="active">Hoạt động</option>
@@ -171,14 +171,14 @@ export default function Drivers() {
         </div>
       </ToolbarCard>
 
-      {loading ? (
-        <LoadingState />
-      ) : error ? (
-        <ErrorState message={error} />
-      ) : drivers.length === 0 ? (
-        <EmptyState icon="person_search" title="Không tìm thấy tài xế" description="Thử đổi số điện thoại hoặc bộ lọc trạng thái." />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
+      {loading ?
+      <LoadingState /> :
+      error ?
+      <ErrorState message={error} /> :
+      drivers.length === 0 ?
+      <EmptyState icon="person_search" title="Không tìm thấy tài xế" description="Thử đổi số điện thoại hoặc bộ lọc trạng thái." /> :
+
+      <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-sm">
               <thead className="bg-surface-container-low">
@@ -190,8 +190,8 @@ export default function Drivers() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
-                {drivers.map((driver) => (
-                  <tr key={getDriverId(driver)} className="hover:bg-surface-container-low/70">
+                {drivers.map((driver) =>
+              <tr key={getDriverId(driver)} className="hover:bg-surface-container-low/70">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -215,66 +215,66 @@ export default function Drivers() {
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
                         <IconButton
-                          icon="visibility"
-                          label="Xem chi tiết"
-                          onClick={() => {
-                            setSelectedDriver(driver);
-                            setShowDetailModal(true);
-                          }}
-                        />
+                      icon="visibility"
+                      label="Xem chi tiết"
+                      onClick={() => {
+                        setSelectedDriver(driver);
+                        setShowDetailModal(true);
+                      }} />
+                    
                         <IconButton icon="manage_accounts" label="Đổi trạng thái" variant="primary" onClick={() => handleOpenStatusModal(driver)} />
                       </div>
                     </td>
                   </tr>
-                ))}
+              )}
               </tbody>
             </table>
           </div>
         </div>
-      )}
+      }
 
-      {showDetailModal && selectedDriver && (
-        <ModalShell
-          title="Chi tiết tài xế"
-          subtitle={selectedDriver.fullName}
-          onClose={() => {
-            setShowDetailModal(false);
-            setSelectedDriver(null);
-          }}
-          footer={
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      {showDetailModal && selectedDriver &&
+      <ModalShell
+        title="Chi tiết tài xế"
+        subtitle={selectedDriver.fullName}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedDriver(null);
+        }}
+        footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <SecondaryButton
-                onClick={() => {
-                  setShowDetailModal(false);
-                  setSelectedDriver(null);
-                }}
-              >
+            onClick={() => {
+              setShowDetailModal(false);
+              setSelectedDriver(null);
+            }}>
+            
                 Đóng
               </SecondaryButton>
               <IconButton
-                icon="manage_accounts"
-                label="Đổi trạng thái"
-                variant="primary"
-                onClick={() => {
-                  setShowDetailModal(false);
-                  handleOpenStatusModal(selectedDriver);
-                }}
-              />
+            icon="manage_accounts"
+            label="Đổi trạng thái"
+            variant="primary"
+            onClick={() => {
+              setShowDetailModal(false);
+              handleOpenStatusModal(selectedDriver);
+            }} />
+          
             </div>
-          }
-        >
+        }>
+        
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[
-              ["Tên đầy đủ", selectedDriver.fullName],
-              ["Email", selectedDriver.email],
-              ["Số điện thoại", selectedDriver.phone],
-              ["Vai trò", selectedDriver.role || "driver"],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-lg bg-surface-container-low p-4">
+          ["Tên đầy đủ", selectedDriver.fullName],
+          ["Email", selectedDriver.email],
+          ["Số điện thoại", selectedDriver.phone],
+          ["Vai trò", selectedDriver.role || "driver"]].
+          map(([label, value]) =>
+          <div key={label} className="rounded-lg bg-surface-container-low p-4">
                 <p className="text-sm text-on-surface-variant">{label}</p>
                 <p className="mt-1 font-bold text-on-surface">{value || "—"}</p>
               </div>
-            ))}
+          )}
           </div>
           <div className="mt-4 rounded-lg bg-surface-container-low p-4">
             <p className="text-sm text-on-surface-variant">Trạng thái hiện tại</p>
@@ -285,22 +285,22 @@ export default function Drivers() {
             </div>
           </div>
         </ModalShell>
-      )}
+      }
 
-      {showStatusModal && selectedDriver && (
-        <ModalShell
-          title="Đổi trạng thái tài xế"
-          subtitle={selectedDriver.fullName}
-          onClose={() => setShowStatusModal(false)}
-          footer={
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      {showStatusModal && selectedDriver &&
+      <ModalShell
+        title="Đổi trạng thái tài xế"
+        subtitle={selectedDriver.fullName}
+        onClose={() => setShowStatusModal(false)}
+        footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <SecondaryButton onClick={() => setShowStatusModal(false)} disabled={statusLoading}>Hủy</SecondaryButton>
               <PrimaryButton onClick={handleSaveStatus} disabled={statusLoading} icon="save">
                 {statusLoading ? "Đang lưu..." : "Lưu trạng thái"}
               </PrimaryButton>
             </div>
-          }
-        >
+        }>
+        
           <Field label="Trạng thái tài khoản">
             <SelectControl value={statusForm} onChange={(e) => setStatusForm(e.target.value)}>
               <option value="active">Hoạt động</option>
@@ -309,7 +309,7 @@ export default function Drivers() {
             </SelectControl>
           </Field>
         </ModalShell>
-      )}
-    </CompanyPageShell>
-  );
+      }
+    </CompanyPageShell>);
+
 }

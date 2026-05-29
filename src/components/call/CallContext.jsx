@@ -1,10 +1,10 @@
-/**
- * CallContext.jsx
- * Context + Provider toàn cục cho tính năng gọi thoại/video
- * - Quản lý 1 instance useWebRTCCall duy nhất
- * - Render IncomingCallModal + Voice/Video screens ở cấp cao nhất
- * - Cung cấp API startCall() cho bất kỳ đâu trong app (Chat, danh sách, v.v.)
- */
+
+
+
+
+
+
+
 
 import React, { createContext, useContext, useCallback, useEffect, useMemo } from "react";
 import useWebRTCCall from "./useWebRTCCall";
@@ -15,12 +15,12 @@ import VoiceCallScreen from "./VoiceCallScreen";
 const CallContext = createContext(null);
 
 export function CallProvider({ children, externalSocket = null }) {
-  // externalSocket = socket chính của chat (từ useChatController)
-  // => Khuyến nghị truyền vào để tránh tạo nhiều connection WebSocket
+
+
   const call = useWebRTCCall({ externalSocket });
   const { callType, rejectCall, status } = call;
 
-  // API đơn giản để bắt đầu cuộc gọi từ bất kỳ đâu
+
   const startCall = useCallback((conversationId, callType = CALL_TYPE.VOICE, remoteUser = null, targetUserId = null) => {
     if (callType === CALL_TYPE.VIDEO) {
       console.warn("Video call đã được tắt");
@@ -41,7 +41,7 @@ export function CallProvider({ children, externalSocket = null }) {
 
   const value = useMemo(
     () => ({
-      // State
+
       status: call.status,
       callType: call.callType,
       callId: call.callId,
@@ -58,7 +58,7 @@ export function CallProvider({ children, externalSocket = null }) {
       isRequestingMedia: call.isRequestingMedia,
       isWebRTCSupported: call.isWebRTCSupported,
 
-      // Actions
+
       startCall,
       acceptCall: call.acceptCall,
       rejectCall: call.rejectCall,
@@ -66,7 +66,7 @@ export function CallProvider({ children, externalSocket = null }) {
       toggleMute: call.toggleMute,
       toggleVideo: call.toggleVideo,
       switchCamera: call.switchCamera,
-      resetCallState: call.resetCallState,
+      resetCallState: call.resetCallState
     }),
     [call, startCall]
   );
@@ -78,14 +78,14 @@ export function CallProvider({ children, externalSocket = null }) {
     <CallContext.Provider value={value}>
       {children}
 
-      {/* Global Call UIs - luôn ở trên cùng */}
+      {}
       <IncomingCallModal
         visible={showIncoming}
         caller={call.remoteUser}
         callType={call.callType}
         onAccept={call.acceptCall}
-        onReject={() => call.rejectCall()}
-      />
+        onReject={() => call.rejectCall()} />
+      
 
       <VoiceCallScreen
         visible={showVoice}
@@ -96,11 +96,11 @@ export function CallProvider({ children, externalSocket = null }) {
         isRequestingMedia={call.isRequestingMedia}
         remoteStream={call.remoteStream}
         onToggleMute={call.toggleMute}
-        onEndCall={() => call.endCall()}
-      />
+        onEndCall={() => call.endCall()} />
+      
 
-    </CallContext.Provider>
-  );
+    </CallContext.Provider>);
+
 }
 
 export function useCall() {
@@ -111,5 +111,5 @@ export function useCall() {
   return context;
 }
 
-// Export cả types để tiện import
+
 export { CALL_TYPE, CALL_STATUS } from "./callTypes";

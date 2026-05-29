@@ -6,8 +6,8 @@ import {
   getStations,
   getStoppingPoints,
   getTripSchedules,
-  updateStoppingPoint,
-} from "../../api/operator";
+  updateStoppingPoint } from
+"../../api/operator";
 import { useToast } from "../../context/ToastContext";
 import {
   EmptyState,
@@ -22,22 +22,22 @@ import {
   SelectControl,
   StatCard,
   StatusBadge,
-  inputClass,
-} from "./OperatorUI";
+  inputClass } from
+"./OperatorUI";
 
 const emptyForm = {
   stationId: "",
   allowPickup: true,
   allowDropoff: true,
-  stopOrder: "",
+  stopOrder: ""
 };
 
 const findRouteForSchedule = (schedule, routes) => {
   if (!schedule) return null;
   return routes.find(
     (route) =>
-      String(route.fromLocation || "").toLowerCase() === String(schedule.fromLocation || "").toLowerCase() &&
-      String(route.toLocation || "").toLowerCase() === String(schedule.toLocation || "").toLowerCase()
+    String(route.fromLocation || "").toLowerCase() === String(schedule.fromLocation || "").toLowerCase() &&
+    String(route.toLocation || "").toLowerCase() === String(schedule.toLocation || "").toLowerCase()
   );
 };
 
@@ -70,17 +70,17 @@ export default function StoppingPoints() {
     if (scheduleId) {
       fetchData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [scheduleId]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const [stationsRes, schedulesRes, routesRes] = await Promise.all([
-        getStations({ limit: 10 }),
-        getTripSchedules({ limit: 10, orderBy: "asc" }),
-        getRoutes({ limit: 10 }),
-      ]);
+      getStations({ limit: 10 }),
+      getTripSchedules({ limit: 10, orderBy: "asc" }),
+      getRoutes({ limit: 10 })]
+      );
 
       const stationList = Array.isArray(stationsRes.data?.stations) ? stationsRes.data.stations : [];
       const scheduleList = Array.isArray(schedulesRes.data?.trip) ? schedulesRes.data.trip : [];
@@ -107,10 +107,10 @@ export default function StoppingPoints() {
   };
 
   const stats = useMemo(() => [
-    { icon: "pin_drop", label: "Điểm dừng", value: stoppingPoints.length, tone: "primary" },
-    { icon: "hail", label: "Cho đón", value: stoppingPoints.filter((point) => point.allowPickup).length, tone: "emerald" },
-    { icon: "transfer_within_a_station", label: "Cho trả", value: stoppingPoints.filter((point) => point.allowDropoff).length, tone: "blue" },
-  ], [stoppingPoints]);
+  { icon: "pin_drop", label: "Điểm dừng", value: stoppingPoints.length, tone: "primary" },
+  { icon: "hail", label: "Cho đón", value: stoppingPoints.filter((point) => point.allowPickup).length, tone: "emerald" },
+  { icon: "transfer_within_a_station", label: "Cho trả", value: stoppingPoints.filter((point) => point.allowDropoff).length, tone: "blue" }],
+  [stoppingPoints]);
 
   const closeModal = () => {
     setShowModal(false);
@@ -122,7 +122,7 @@ export default function StoppingPoints() {
     setEditingPoint(null);
     setFormData({
       ...emptyForm,
-      stopOrder: stoppingPoints.length ? Math.max(...stoppingPoints.map((point) => Number(point.stopOrder || 0))) + 1 : 1,
+      stopOrder: stoppingPoints.length ? Math.max(...stoppingPoints.map((point) => Number(point.stopOrder || 0))) + 1 : 1
     });
     setShowModal(true);
   };
@@ -133,7 +133,7 @@ export default function StoppingPoints() {
       stationId: point.stationId || "",
       allowPickup: Boolean(point.allowPickup),
       allowDropoff: Boolean(point.allowDropoff),
-      stopOrder: point.stopOrder ?? "",
+      stopOrder: point.stopOrder ?? ""
     });
     setShowModal(true);
   };
@@ -166,7 +166,7 @@ export default function StoppingPoints() {
       allowDropoff: Boolean(formData.allowDropoff),
       routeId: Number(routeId),
       stopOrder: Number(formData.stopOrder),
-      stationId: Number(formData.stationId),
+      stationId: Number(formData.stationId)
     };
 
     try {
@@ -185,7 +185,7 @@ export default function StoppingPoints() {
       addToast({
         type: "error",
         title: "Không lưu được điểm dừng",
-        message: err.response?.data?.message || "Vui lòng kiểm tra thông tin điểm dừng.",
+        message: err.response?.data?.message || "Vui lòng kiểm tra thông tin điểm dừng."
       });
     }
   };
@@ -194,8 +194,8 @@ export default function StoppingPoints() {
     return (
       <OperatorPageShell title="Điểm dừng" description="Không tìm thấy lịch biểu.">
         <ErrorState message="Vui lòng chọn lịch biểu trước." />
-      </OperatorPageShell>
-    );
+      </OperatorPageShell>);
+
   }
 
   return (
@@ -204,26 +204,26 @@ export default function StoppingPoints() {
       title="Quản lý điểm dừng"
       description={schedule ? `${schedule.fromLocation} → ${schedule.toLocation}` : "Danh sách điểm dừng của lịch biểu."}
       actions={
-        <div className="flex gap-2">
+      <div className="flex gap-2">
           <IconButton icon="arrow_back" label="Quay lại lịch biểu" onClick={() => navigate("/operator/schedules")} />
           <IconButton icon="add" label="Thêm điểm dừng" variant="primary" onClick={openCreateModal} />
         </div>
-      }
-    >
+      }>
+      
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {stats.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
-        ))}
+        {stats.map((stat) =>
+        <StatCard key={stat.label} {...stat} />
+        )}
       </div>
 
-      {loading ? (
-        <LoadingState />
-      ) : error ? (
-        <ErrorState message={error} />
-      ) : stoppingPoints.length === 0 ? (
-        <EmptyState icon="pin_drop" title="Chưa có điểm dừng" description="Thêm điểm dừng đầu tiên cho lịch biểu này." />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
+      {loading ?
+      <LoadingState /> :
+      error ?
+      <ErrorState message={error} /> :
+      stoppingPoints.length === 0 ?
+      <EmptyState icon="pin_drop" title="Chưa có điểm dừng" description="Thêm điểm dừng đầu tiên cho lịch biểu này." /> :
+
+      <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[860px] text-sm">
               <thead className="bg-surface-container-low">
@@ -236,8 +236,8 @@ export default function StoppingPoints() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
-                {stoppingPoints.map((point) => (
-                  <tr key={point.id} className="hover:bg-surface-container-low/70">
+                {stoppingPoints.map((point) =>
+              <tr key={point.id} className="hover:bg-surface-container-low/70">
                     <td className="px-5 py-4 font-extrabold text-on-surface">#{point.stopOrder}</td>
                     <td className="px-5 py-4">
                       <p className="font-bold text-on-surface">{point.address || "—"}</p>
@@ -259,72 +259,72 @@ export default function StoppingPoints() {
                       </div>
                     </td>
                   </tr>
-                ))}
+              )}
               </tbody>
             </table>
           </div>
         </div>
-      )}
+      }
 
-      {showModal && (
-        <ModalShell
-          title={editingPoint ? "Sửa điểm dừng" : "Thêm điểm dừng"}
-          subtitle="Trạm và quyền đón trả."
-          onClose={closeModal}
-          footer={
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      {showModal &&
+      <ModalShell
+        title={editingPoint ? "Sửa điểm dừng" : "Thêm điểm dừng"}
+        subtitle="Trạm và quyền đón trả."
+        onClose={closeModal}
+        footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <SecondaryButton onClick={closeModal}>Hủy</SecondaryButton>
               <PrimaryButton icon={editingPoint ? "save" : "add"} onClick={handleSave}>
                 {editingPoint ? "Cập nhật" : "Thêm điểm dừng"}
               </PrimaryButton>
             </div>
-          }
-        >
+        }>
+        
           <div className="space-y-4">
             <Field label="Trạm">
               <SelectControl value={formData.stationId} onChange={(e) => handleChange("stationId", e.target.value)}>
                 <option value="">Chọn trạm</option>
-                {stations.map((station) => (
-                  <option key={station.id} value={station.id}>
+                {stations.map((station) =>
+              <option key={station.id} value={station.id}>
                     {station.address} - {station.city}
                   </option>
-                ))}
+              )}
               </SelectControl>
             </Field>
 
             <Field label="Thứ tự dừng">
               <input
-                type="number"
-                min="0"
-                value={formData.stopOrder}
-                onChange={(e) => handleChange("stopOrder", e.target.value)}
-                className={inputClass}
-              />
+              type="number"
+              min="0"
+              value={formData.stopOrder}
+              onChange={(e) => handleChange("stopOrder", e.target.value)}
+              className={inputClass} />
+            
             </Field>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="flex items-center gap-3 rounded-lg border border-outline-variant/40 p-4">
                 <input
-                  type="checkbox"
-                  checked={formData.allowPickup}
-                  onChange={(e) => handleChange("allowPickup", e.target.checked)}
-                  className="h-4 w-4 accent-primary"
-                />
+                type="checkbox"
+                checked={formData.allowPickup}
+                onChange={(e) => handleChange("allowPickup", e.target.checked)}
+                className="h-4 w-4 accent-primary" />
+              
                 <span className="text-sm font-bold text-on-surface">Cho phép đón khách</span>
               </label>
               <label className="flex items-center gap-3 rounded-lg border border-outline-variant/40 p-4">
                 <input
-                  type="checkbox"
-                  checked={formData.allowDropoff}
-                  onChange={(e) => handleChange("allowDropoff", e.target.checked)}
-                  className="h-4 w-4 accent-primary"
-                />
+                type="checkbox"
+                checked={formData.allowDropoff}
+                onChange={(e) => handleChange("allowDropoff", e.target.checked)}
+                className="h-4 w-4 accent-primary" />
+              
                 <span className="text-sm font-bold text-on-surface">Cho phép trả khách</span>
               </label>
             </div>
           </div>
         </ModalShell>
-      )}
-    </OperatorPageShell>
-  );
+      }
+    </OperatorPageShell>);
+
 }

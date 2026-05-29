@@ -4,21 +4,21 @@ const MainFooter = () => {
   return (
     <footer id="footer" className="w-full rounded-t-3xl mt-auto bg-gray-50">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-12 px-8 py-16 max-w-7xl mx-auto text-sm leading-6">
-        {/* Brand */}
+        {}
         <div className="md:col-span-1 pr-4">
           <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center gap-2">
               <img src="/img/busgo.jpg" alt="BusGo" className="h-14 mix-blend-multiply" />
             </div>
             <div className="w-px h-10 bg-outline-variant/30"></div>
-            <img 
-              src="/img/donga-logo.png" 
-              alt="Đại học Đông Á" 
-              className="h-12 object-contain"
-            />
+            <img
+              src="/img/donga-logo.png"
+              alt="Đại học Đông Á"
+              className="h-12 object-contain" />
+            
           </div>
           <p className="text-gray-500 mb-6 text-sm">
-            <span className="font-bold text-primary">Đối tác chiến lược: Đại học Đông Á.</span><br/>
+            <span className="font-bold text-primary">Đối tác chiến lược: Đại học Đông Á.</span><br />
             Nền tảng đặt vé xe khách trực tuyến, giúp bạn kết nối với hàng nghìn hành trình mỗi ngày.
           </p>
           <div className="flex space-x-4">
@@ -31,7 +31,7 @@ const MainFooter = () => {
           </div>
         </div>
 
-        {/* Dịch vụ */}
+        {}
         <div>
           <h4 className="font-bold text-on-surface mb-6">Dịch vụ</h4>
           <ul className="space-y-4">
@@ -47,7 +47,7 @@ const MainFooter = () => {
           </ul>
         </div>
 
-        {/* Pháp lý */}
+        {}
         <div>
           <h4 className="font-bold text-on-surface mb-6">Pháp lý</h4>
           <ul className="space-y-4">
@@ -63,7 +63,7 @@ const MainFooter = () => {
           </ul>
         </div>
 
-        {/* Liên hệ */}
+        {}
         <div>
           <h4 className="font-bold text-on-surface mb-6">Liên hệ</h4>
           <ul className="space-y-4 text-gray-500">
@@ -83,14 +83,14 @@ const MainFooter = () => {
         </div>
       </div>
 
-      {/* Copyright */}
+      {}
       <div className="max-w-7xl mx-auto px-8 pb-12 border-t border-outline-variant/20 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
         <p className="text-gray-500 text-sm">
           © 2024 BusGo. Tất cả quyền được bảo lưu.
         </p>
       </div>
-    </footer>
-  );
+    </footer>);
+
 };
 
 export default MainFooter;

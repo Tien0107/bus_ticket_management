@@ -6,67 +6,67 @@ import { createNotification, getNotifications, markNotificationRead } from "../.
 import { useToast } from "../../context/ToastContext";
 
 const accountActions = [
-  {
-    status: "active",
-    label: "Duyệt",
-    icon: "check_circle",
-    description: "Cho phép tài khoản hoạt động",
-    className: "border-primary bg-primary text-white hover:bg-primary/90",
-  },
-  {
-    status: "inactive",
-    label: "Tạm ngưng",
-    icon: "pause_circle",
-    description: "Tạm khóa tài khoản",
-    className: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
-  },
-  {
-    status: "banned",
-    label: "Cấm",
-    icon: "block",
-    description: "Chặn tài khoản khỏi hệ thống",
-    className: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100",
-  },
-];
+{
+  status: "active",
+  label: "Duyệt",
+  icon: "check_circle",
+  description: "Cho phép tài khoản hoạt động",
+  className: "border-primary bg-primary text-white hover:bg-primary/90"
+},
+{
+  status: "inactive",
+  label: "Tạm ngưng",
+  icon: "pause_circle",
+  description: "Tạm khóa tài khoản",
+  className: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+},
+{
+  status: "banned",
+  label: "Cấm",
+  icon: "block",
+  description: "Chặn tài khoản khỏi hệ thống",
+  className: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+}];
+
 
 const accountTypeLabel = {
   account: "Tài khoản mới",
   driver: "Tài xế",
-  staff: "Nhân viên điều hành",
+  staff: "Nhân viên điều hành"
 };
 
 const accountStatusNotification = {
   driver: {
     active: {
       title: "Tài khoản tài xế của bạn đã được duyệt",
-      body: "Công ty đã duyệt tài khoản tài xế của bạn. Bạn có thể truy cập hệ thống.",
+      body: "Công ty đã duyệt tài khoản tài xế của bạn. Bạn có thể truy cập hệ thống."
     },
     inactive: {
       title: "Tài khoản tài xế của bạn đã bị tạm ngưng",
-      body: "Công ty đã tạm ngưng tài khoản tài xế của bạn. Vui lòng liên hệ quản trị công ty nếu cần hỗ trợ.",
+      body: "Công ty đã tạm ngưng tài khoản tài xế của bạn. Vui lòng liên hệ quản trị công ty nếu cần hỗ trợ."
     },
     banned: {
       title: "Tài khoản tài xế của bạn đã bị cấm",
-      body: "Công ty đã cấm tài khoản tài xế của bạn. Vui lòng liên hệ quản trị công ty nếu cần hỗ trợ.",
-    },
+      body: "Công ty đã cấm tài khoản tài xế của bạn. Vui lòng liên hệ quản trị công ty nếu cần hỗ trợ."
+    }
   },
   operator: {
     active: {
       title: "Tài khoản điều hành của bạn đã được duyệt",
-      body: "Công ty đã duyệt tài khoản điều hành của bạn. Bạn có thể truy cập trang điều phối.",
+      body: "Công ty đã duyệt tài khoản điều hành của bạn. Bạn có thể truy cập trang điều phối."
     },
     inactive: {
       title: "Tài khoản điều hành của bạn đã bị tạm ngưng",
-      body: "Công ty đã tạm ngưng tài khoản điều hành của bạn. Vui lòng liên hệ quản trị công ty nếu cần hỗ trợ.",
+      body: "Công ty đã tạm ngưng tài khoản điều hành của bạn. Vui lòng liên hệ quản trị công ty nếu cần hỗ trợ."
     },
     banned: {
       title: "Tài khoản điều hành của bạn đã bị cấm",
-      body: "Công ty đã cấm tài khoản điều hành của bạn. Vui lòng liên hệ quản trị công ty nếu cần hỗ trợ.",
-    },
-  },
+      body: "Công ty đã cấm tài khoản điều hành của bạn. Vui lòng liên hệ quản trị công ty nếu cần hỗ trợ."
+    }
+  }
 };
 
-const getAccountHomePath = (accountType) => (accountType === "driver" ? "/driver/dashboard" : "/operator/dashboard");
+const getAccountHomePath = (accountType) => accountType === "driver" ? "/driver/dashboard" : "/operator/dashboard";
 
 const getAccountStatusNotification = (accountType, status) => {
   const group = accountType === "driver" ? accountStatusNotification.driver : accountStatusNotification.operator;
@@ -88,7 +88,7 @@ const parseNotificationData = (data) => {
       return parsed;
     }
   } catch (err) {
-    // Plain route strings are supported for old notifications.
+
   }
 
   return trimmed.startsWith("/") ? { path: trimmed } : { raw: trimmed };
@@ -107,7 +107,7 @@ const normalizeRole = (value) => String(value || "").replace(/[\s-]+/g, "_").toL
 const isCompanyAdminUser = (user) => {
   const role = normalizeRole(user?.role);
   const staffProfileRole = normalizeRole(user?.staffProfileRole);
-  return role === "admin" || (role === "operator" && ["company_admin", "operator_admin", "admin"].includes(staffProfileRole));
+  return role === "admin" || role === "operator" && ["company_admin", "operator_admin", "admin"].includes(staffProfileRole);
 };
 
 const isDispatcherUser = (user) => {
@@ -158,46 +158,46 @@ const resolveNotificationPath = (context, user) => {
 
 const getTargetUserId = (meta) => {
   const value =
-    meta.userNewAccountId ??
-    meta.targetUserId ??
-    meta.targetId ??
-    meta.accountId ??
-    meta.staffUserId ??
-    meta.driverUserId ??
-    meta.userId ??
-    meta.id;
+  meta.userNewAccountId ??
+  meta.targetUserId ??
+  meta.targetId ??
+  meta.accountId ??
+  meta.staffUserId ??
+  meta.driverUserId ??
+  meta.userId ??
+  meta.id;
   const id = Number(value);
   return Number.isFinite(id) && id > 0 ? id : null;
 };
 
 const inferAccountType = (meta, notification) => {
   const text = [
-    meta.type,
-    meta.accountType,
-    meta.targetType,
-    meta.role,
-    meta.path,
-    notification?.title,
-    notification?.body,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+  meta.type,
+  meta.accountType,
+  meta.targetType,
+  meta.role,
+  meta.path,
+  notification?.title,
+  notification?.body].
+
+  filter(Boolean).
+  join(" ").
+  toLowerCase();
 
   if (text.includes("driver") || text.includes("tài xế") || text.includes("tai xe")) {
     return "driver";
   }
 
   if (
-    text.includes("staff") ||
-    text.includes("operator") ||
-    text.includes("dispatcher") ||
-    text.includes("support") ||
-    text.includes("điều hành") ||
-    text.includes("dieu hanh") ||
-    text.includes("nhân viên") ||
-    text.includes("nhan vien")
-  ) {
+  text.includes("staff") ||
+  text.includes("operator") ||
+  text.includes("dispatcher") ||
+  text.includes("support") ||
+  text.includes("điều hành") ||
+  text.includes("dieu hanh") ||
+  text.includes("nhân viên") ||
+  text.includes("nhan vien"))
+  {
     return "staff";
   }
 
@@ -209,20 +209,20 @@ const getNotificationContext = (notification) => {
   const targetUserId = getTargetUserId(meta);
   const accountType = inferAccountType(meta, notification) || (targetUserId ? "account" : "");
   const path =
-    typeof meta.path === "string" && meta.path.startsWith("/")
-      ? meta.path
-      : accountType === "driver"
-      ? "/company/drivers"
-      : accountType === "staff"
-      ? "/company/staff"
-      : null;
+  typeof meta.path === "string" && meta.path.startsWith("/") ?
+  meta.path :
+  accountType === "driver" ?
+  "/company/drivers" :
+  accountType === "staff" ?
+  "/company/staff" :
+  null;
 
   return {
     meta,
     accountType,
     targetUserId,
     path,
-    isAccountAction: Boolean(targetUserId && ["account", "driver", "staff"].includes(accountType)),
+    isAccountAction: Boolean(targetUserId && ["account", "driver", "staff"].includes(accountType))
   };
 };
 
@@ -246,14 +246,14 @@ export default function NotificationBell({ align = "right" }) {
 
   const fetchNotifications = async () => {
     try {
-      // Just fetch recent 20 for the dropdown
+
       const res = await getNotifications({ limit: 20 });
       let list = res.data?.notifications || res.data || [];
       if (!Array.isArray(list)) list = [];
-      
-      // Sort by ID descending (newest first) assuming higher ID is newer
+
+
       list.sort((a, b) => b.id - a.id);
-      
+
       setNotifications(list);
     } catch {
       setNotifications([]);
@@ -265,19 +265,19 @@ export default function NotificationBell({ align = "right" }) {
     if (notification.isRead) return true;
 
     setNotifications((current) =>
-      current.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
+    current.map((item) => item.id === notification.id ? { ...item, isRead: true } : item)
     );
 
     try {
       const response = await markNotificationRead(notification.id);
       const updatedNotification = response.data;
       setNotifications((current) =>
-        current.map((item) => (item.id === notification.id ? { ...item, ...updatedNotification, isRead: true } : item))
+      current.map((item) => item.id === notification.id ? { ...item, ...updatedNotification, isRead: true } : item)
       );
       return true;
     } catch {
       setNotifications((current) =>
-        current.map((item) => (item.id === notification.id ? { ...item, isRead: false } : item))
+      current.map((item) => item.id === notification.id ? { ...item, isRead: false } : item)
       );
       return false;
     }
@@ -287,7 +287,7 @@ export default function NotificationBell({ align = "right" }) {
     const directPayload = {
       fullName: meta.fullName || meta.name || "",
       email: meta.email || "",
-      phone: meta.phone || "",
+      phone: meta.phone || ""
     };
 
     if (directPayload.fullName && directPayload.email && directPayload.phone) {
@@ -297,9 +297,9 @@ export default function NotificationBell({ align = "right" }) {
     const response = await getStaff({ limit: 10 });
     const staffList = Array.isArray(response.data?.staff) ? response.data.staff : [];
     const member = staffList.find((item) =>
-      [item?.userId, item?.id]
-        .map((value) => Number(value))
-        .some((value) => Number.isFinite(value) && value === targetUserId)
+    [item?.userId, item?.id].
+    map((value) => Number(value)).
+    some((value) => Number.isFinite(value) && value === targetUserId)
     );
 
     if (!member) {
@@ -309,7 +309,7 @@ export default function NotificationBell({ align = "right" }) {
     const payload = {
       fullName: member.fullName || "",
       email: member.email || "",
-      phone: member.phone || "",
+      phone: member.phone || ""
     };
 
     if (!payload.fullName || !payload.email || !payload.phone) {
@@ -349,8 +349,8 @@ export default function NotificationBell({ align = "right" }) {
           data: JSON.stringify({
             type: "account_status",
             status,
-            path: getAccountHomePath(context.accountType),
-          }),
+            path: getAccountHomePath(context.accountType)
+          })
         });
       }
 
@@ -358,11 +358,11 @@ export default function NotificationBell({ align = "right" }) {
       await fetchNotifications();
 
       addToast(
-        status === "active"
-          ? "Đã duyệt tài khoản"
-          : status === "inactive"
-          ? "Đã tạm ngưng tài khoản"
-          : "Đã cấm tài khoản",
+        status === "active" ?
+        "Đã duyệt tài khoản" :
+        status === "inactive" ?
+        "Đã tạm ngưng tài khoản" :
+        "Đã cấm tài khoản",
         "success"
       );
       setIsOpen(false);
@@ -375,10 +375,10 @@ export default function NotificationBell({ align = "right" }) {
   };
 
   useEffect(() => {
-    // Initial fetch
+
     fetchNotifications();
 
-    // Polling every 60 seconds
+
     const interval = setInterval(() => {
       fetchNotifications();
     }, 60000);
@@ -386,7 +386,7 @@ export default function NotificationBell({ align = "right" }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle clicking outside to close dropdown
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       const clickedTrigger = dropdownRef.current?.contains(event.target);
@@ -460,59 +460,59 @@ export default function NotificationBell({ align = "right" }) {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Bell Button */}
+      {}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-full hover:bg-surface-container-high transition-colors flex items-center justify-center text-on-surface-variant focus:outline-none"
-        title="Thông báo"
-      >
+        title="Thông báo">
+        
         <span className="material-symbols-outlined text-[24px]">notifications</span>
         
-        {/* Badge */}
-        {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] bg-error text-white text-[10px] font-bold rounded-full px-1 border-2 border-surface animate-in zoom-in">
+        {}
+        {unreadCount > 0 &&
+        <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] bg-error text-white text-[10px] font-bold rounded-full px-1 border-2 border-surface animate-in zoom-in">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
-        )}
+        }
       </button>
 
-      {/* Dropdown Menu */}
+      {}
       {isOpen && dropdownPosition && createPortal(
         <div
           ref={dropdownMenuRef}
           style={{
             left: dropdownPosition.left,
             top: dropdownPosition.top,
-            width: dropdownPosition.width,
+            width: dropdownPosition.width
           }}
-          className="fixed z-[120] overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container-lowest shadow-[0_18px_60px_rgba(15,23,42,0.22)] animate-in fade-in slide-in-from-top-2 duration-200"
-        >
+          className="fixed z-[120] overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container-lowest shadow-[0_18px_60px_rgba(15,23,42,0.22)] animate-in fade-in slide-in-from-top-2 duration-200">
+          
           <div className="px-4 py-3 border-b border-outline-variant/20 flex items-center justify-between bg-surface/50">
             <h3 className="font-bold text-lg text-on-surface">Thông báo</h3>
           </div>
           
           <div className="max-h-[400px] overflow-y-auto overscroll-contain">
-            {notifications.length === 0 ? (
-              <div className="py-12 text-center text-on-surface-variant flex flex-col items-center">
+            {notifications.length === 0 ?
+            <div className="py-12 text-center text-on-surface-variant flex flex-col items-center">
                 <span className="material-symbols-outlined text-4xl opacity-50 mb-2">notifications_paused</span>
                 <p className="text-sm font-medium">Bạn chưa có thông báo nào</p>
-              </div>
-            ) : (
-              <div className="flex flex-col">
+              </div> :
+
+            <div className="flex flex-col">
                 {notifications.map((notif) => {
-                  const isRead = Boolean(notif.isRead);
-                  const context = getNotificationContext(notif);
-                  const showAccountActions = canManageAccountActions && context.isAccountAction;
-                  return (
-                    <div
-                      key={notif.id}
-                      onClick={() => handleNotificationClick(notif)}
-                      className={`p-4 border-b border-outline-variant/10 cursor-pointer transition-colors flex gap-3 ${
-                        isRead 
-                          ? "bg-surface-container-lowest hover:bg-surface-container-lowest/80 opacity-70" 
-                          : "bg-primary/5 hover:bg-primary/10"
-                      }`}
-                    >
+                const isRead = Boolean(notif.isRead);
+                const context = getNotificationContext(notif);
+                const showAccountActions = canManageAccountActions && context.isAccountAction;
+                return (
+                  <div
+                    key={notif.id}
+                    onClick={() => handleNotificationClick(notif)}
+                    className={`p-4 border-b border-outline-variant/10 cursor-pointer transition-colors flex gap-3 ${
+                    isRead ?
+                    "bg-surface-container-lowest hover:bg-surface-container-lowest/80 opacity-70" :
+                    "bg-primary/5 hover:bg-primary/10"}`
+                    }>
+                    
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isRead ? "bg-surface-container-high text-on-surface-variant" : "bg-primary text-white"}`}>
                         <span className="material-symbols-outlined text-[20px]">
                           {notif.title?.toLowerCase().includes("thành công") ? "check_circle" : "notifications"}
@@ -523,53 +523,53 @@ export default function NotificationBell({ align = "right" }) {
                           <h4 className={`text-sm truncate ${isRead ? "font-medium text-on-surface-variant" : "font-bold text-on-surface"}`}>
                             {notif.title || "Thông báo"}
                           </h4>
-                          {!isRead && (
-                            <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5"></span>
-                          )}
+                          {!isRead &&
+                        <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5"></span>
+                        }
                         </div>
                         <p className={`text-xs line-clamp-2 ${isRead ? "text-on-surface-variant/80" : "text-on-surface-variant font-medium"}`}>
                           {notif.body}
                         </p>
-                        {showAccountActions && (
-                          <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
+                        {showAccountActions &&
+                      <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
                             <span className="material-symbols-outlined text-[14px]">manage_accounts</span>
                             Bấm để chọn trạng thái
                           </div>
-                        )}
+                      }
                       </div>
-                    </div>
-                  );
-                })}
+                    </div>);
+
+              })}
               </div>
-            )}
+            }
           </div>
           
-          {notifications.length > 0 && (
-            <div className="p-2 bg-surface border-t border-outline-variant/20 text-center">
-              <button 
-                onClick={() => setIsOpen(false)}
-                className="text-xs font-bold text-on-surface-variant hover:text-on-surface transition-colors w-full py-1"
-              >
+          {notifications.length > 0 &&
+          <div className="p-2 bg-surface border-t border-outline-variant/20 text-center">
+              <button
+              onClick={() => setIsOpen(false)}
+              className="text-xs font-bold text-on-surface-variant hover:text-on-surface transition-colors w-full py-1">
+              
                 Đóng
               </button>
             </div>
-          )}
-        </div>
-        ,
+          }
+        </div>,
+
         document.body
       )}
 
-      {accountDialogNotification && accountDialogContext?.isAccountAction && (
-        <div
-          className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-4"
-          onMouseDown={() => {
-            if (!actionLoading) setAccountDialogNotification(null);
-          }}
-        >
+      {accountDialogNotification && accountDialogContext?.isAccountAction &&
+      <div
+        className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-4"
+        onMouseDown={() => {
+          if (!actionLoading) setAccountDialogNotification(null);
+        }}>
+        
           <div
-            className="w-full max-w-md overflow-hidden rounded-2xl border border-outline-variant/20 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.24)]"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
+          className="w-full max-w-md overflow-hidden rounded-2xl border border-outline-variant/20 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.24)]"
+          onMouseDown={(event) => event.stopPropagation()}>
+          
             <div className="flex items-start justify-between gap-4 border-b border-outline-variant/20 px-5 py-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-primary">
@@ -578,12 +578,12 @@ export default function NotificationBell({ align = "right" }) {
                 <h3 className="mt-1 text-lg font-bold text-on-surface">Xử lý tài khoản</h3>
               </div>
               <button
-                type="button"
-                onClick={() => setAccountDialogNotification(null)}
-                disabled={Boolean(actionLoading)}
-                className="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label="Đóng"
-              >
+              type="button"
+              onClick={() => setAccountDialogNotification(null)}
+              disabled={Boolean(actionLoading)}
+              className="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="Đóng">
+              
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
@@ -603,52 +603,52 @@ export default function NotificationBell({ align = "right" }) {
                 <p className="mb-2 text-sm font-bold text-on-surface">Chọn trạng thái</p>
                 <div className="space-y-2">
                   {accountActions.map((action) => {
-                    const loading = actionLoading === `${accountDialogNotification.id}-${action.status}`;
+                  const loading = actionLoading === `${accountDialogNotification.id}-${action.status}`;
 
-                    return (
-                      <button
-                        key={action.status}
-                        type="button"
-                        onClick={(event) => handleAccountAction(event, accountDialogNotification, action.status)}
-                        disabled={Boolean(actionLoading)}
-                        className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${action.className}`}
-                      >
+                  return (
+                    <button
+                      key={action.status}
+                      type="button"
+                      onClick={(event) => handleAccountAction(event, accountDialogNotification, action.status)}
+                      disabled={Boolean(actionLoading)}
+                      className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${action.className}`}>
+                      
                         <span className="material-symbols-outlined text-[22px]">{action.icon}</span>
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm font-bold">{loading ? "Đang xử lý..." : action.label}</span>
                           <span className="block text-xs font-medium opacity-80">{action.description}</span>
                         </span>
-                      </button>
-                    );
-                  })}
+                      </button>);
+
+                })}
                 </div>
               </div>
             </div>
 
             <div className="flex flex-col-reverse gap-2 border-t border-outline-variant/20 bg-surface-container-low px-5 py-4 sm:flex-row sm:justify-end">
               <button
-                type="button"
-                onClick={() => {
-                  setAccountDialogNotification(null);
-                  if (accountDialogContext.path) navigate(accountDialogContext.path);
-                }}
-                disabled={Boolean(actionLoading)}
-                className="rounded-xl border border-outline-variant/30 bg-white px-4 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              type="button"
+              onClick={() => {
+                setAccountDialogNotification(null);
+                if (accountDialogContext.path) navigate(accountDialogContext.path);
+              }}
+              disabled={Boolean(actionLoading)}
+              className="rounded-xl border border-outline-variant/30 bg-white px-4 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60">
+              
                 Xem danh sách
               </button>
               <button
-                type="button"
-                onClick={() => setAccountDialogNotification(null)}
-                disabled={Boolean(actionLoading)}
-                className="rounded-xl px-4 py-2 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              type="button"
+              onClick={() => setAccountDialogNotification(null)}
+              disabled={Boolean(actionLoading)}
+              className="rounded-xl px-4 py-2 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60">
+              
                 Đóng
               </button>
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }

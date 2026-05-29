@@ -1,10 +1,10 @@
 export const PAGE_SIZE = 10;
 export const RECALLED_MESSAGE = "Tin nhắn đã được thu hồi";
 export const SOCKET_URL =
-  process.env.REACT_APP_SOCKET_SERVER_URL ||
-  process.env.REACT_APP_SOCKET_URL ||
-  process.env.VITE_SOCKET_URL ||
-  "https://socket-server-b5r4.onrender.com";
+process.env.REACT_APP_SOCKET_SERVER_URL ||
+process.env.REACT_APP_SOCKET_URL ||
+process.env.VITE_SOCKET_URL ||
+"https://socket-server-b5r4.onrender.com";
 
 export const getStoredUser = () => {
   try {
@@ -37,22 +37,22 @@ const isRecalledText = (value) => {
     text === RECALLED_MESSAGE.toLowerCase() ||
     text === "tin nhắn đã thu hồi" ||
     text === "message recalled" ||
-    text === "recalled"
-  );
+    text === "recalled");
+
 };
 
 export const isMessageRecalled = (message = {}) =>
-  Boolean(
-    message.recalled ||
-      message.isRecalled ||
-      message.is_recalled ||
-      message.status === "recalled" ||
-      message.messageStatus === "recalled" ||
-      message.deletedAt ||
-      message.recalledAt ||
-      isRecalledText(message.message) ||
-      isRecalledText(message.body)
-  );
+Boolean(
+  message.recalled ||
+  message.isRecalled ||
+  message.is_recalled ||
+  message.status === "recalled" ||
+  message.messageStatus === "recalled" ||
+  message.deletedAt ||
+  message.recalledAt ||
+  isRecalledText(message.message) ||
+  isRecalledText(message.body)
+);
 
 const normalizeBox = (box = {}) => ({
   ...box,
@@ -61,29 +61,29 @@ const normalizeBox = (box = {}) => ({
   receiverId: toNumber(box.receiverId),
   lastMessageSenderId: toNumber(box.lastMessageSenderId),
   lastMessageAt:
-    box.lastMessageAt ??
-    box.lastMessageCreatedAt ??
-    box.lastMessageTime ??
-    box.lastMessageDate ??
-    box.updatedAt ??
-    box.createdAt ??
-    null,
+  box.lastMessageAt ??
+  box.lastMessageCreatedAt ??
+  box.lastMessageTime ??
+  box.lastMessageDate ??
+  box.updatedAt ??
+  box.createdAt ??
+  null,
   unreadCount: Number(box.unreadCount ?? box.unread_count ?? 0),
   unreadReceiverCount: Number(box.unreadReceiverCount || 0),
   unreadSenderCount: Number(box.unreadSenderCount || 0),
   displayName: box.displayName || `Hội thoại #${box.id ?? box.boxId ?? ""}`,
-  lastMessage: box.lastMessage || "",
+  lastMessage: box.lastMessage || ""
 });
 
 const getBoxActivityTime = (box = {}) => {
   const candidates = [
-    box.lastMessageAt,
-    box.lastMessageCreatedAt,
-    box.lastMessageTime,
-    box.lastMessageDate,
-    box.updatedAt,
-    box.createdAt,
-  ];
+  box.lastMessageAt,
+  box.lastMessageCreatedAt,
+  box.lastMessageTime,
+  box.lastMessageDate,
+  box.updatedAt,
+  box.createdAt];
+
 
   for (const value of candidates) {
     const time = new Date(value).getTime();
@@ -94,25 +94,25 @@ const getBoxActivityTime = (box = {}) => {
 };
 
 export const sortBoxesByLatestActivity = (items = []) =>
-  items
-    .map((box, index) => ({ box, index, time: getBoxActivityTime(box) }))
-    .sort((left, right) => right.time - left.time || left.index - right.index)
-    .map(({ box }) => box);
+items.
+map((box, index) => ({ box, index, time: getBoxActivityTime(box) })).
+sort((left, right) => right.time - left.time || left.index - right.index).
+map(({ box }) => box);
 
 export const normalizeBoxesResponse = (data) => {
-  const boxes = Array.isArray(data?.boxes)
-    ? data.boxes
-    : Array.isArray(data?.data?.boxes)
-    ? data.data.boxes
-    : Array.isArray(data?.data)
-    ? data.data
-    : Array.isArray(data)
-    ? data
-    : [];
+  const boxes = Array.isArray(data?.boxes) ?
+  data.boxes :
+  Array.isArray(data?.data?.boxes) ?
+  data.data.boxes :
+  Array.isArray(data?.data) ?
+  data.data :
+  Array.isArray(data) ?
+  data :
+  [];
 
   return {
     boxes: sortBoxesByLatestActivity(boxes.map(normalizeBox).filter((box) => box.id)),
-    next: data?.next ?? data?.data?.next ?? null,
+    next: data?.next ?? data?.data?.next ?? null
   };
 };
 
@@ -124,25 +124,25 @@ export const normalizeMessage = (message = {}, boxId) => ({
   senderId: toNumber(message.senderId),
   fullName: message.fullName || message.senderName || "Người dùng",
   createdAt: message.createdAt || new Date().toISOString(),
-  recalled: isMessageRecalled(message),
+  recalled: isMessageRecalled(message)
 });
 
 export const normalizeMessagesResponse = (data, boxId) => {
-  const messages = Array.isArray(data?.messages)
-    ? data.messages
-    : Array.isArray(data?.data?.messages)
-    ? data.data.messages
-    : Array.isArray(data?.data)
-    ? data.data
-    : Array.isArray(data)
-    ? data
-    : [];
+  const messages = Array.isArray(data?.messages) ?
+  data.messages :
+  Array.isArray(data?.data?.messages) ?
+  data.data.messages :
+  Array.isArray(data?.data) ?
+  data.data :
+  Array.isArray(data) ?
+  data :
+  [];
 
   return {
-    messages: messages
-      .map((message) => normalizeMessage(message, boxId))
-      .filter((message) => message.message || message.id),
-    next: data?.next ?? data?.data?.next ?? null,
+    messages: messages.
+    map((message) => normalizeMessage(message, boxId)).
+    filter((message) => message.message || message.id),
+    next: data?.next ?? data?.data?.next ?? null
   };
 };
 
@@ -158,7 +158,7 @@ export const normalizeIncomingMessage = (payload = {}) => {
       message: body,
       senderId: payload.senderId,
       fullName: payload.fullName || payload.senderName,
-      createdAt: payload.createdAt,
+      createdAt: payload.createdAt
     },
     boxId
   );
@@ -198,19 +198,19 @@ export const getImageUrlFromText = (value) => {
 };
 
 export const getMessageImageUrl = (message = {}) =>
-  getImageUrlFromText(
-    message.imageUrl ??
-      message.image_url ??
-      message.fileUrl ??
-      message.file_url ??
-      message.attachmentUrl ??
-      message.attachment_url ??
-      message.mediaUrl ??
-      message.media_url ??
-      message.url ??
-      message.message ??
-      message.body
-  );
+getImageUrlFromText(
+  message.imageUrl ??
+  message.image_url ??
+  message.fileUrl ??
+  message.file_url ??
+  message.attachmentUrl ??
+  message.attachment_url ??
+  message.mediaUrl ??
+  message.media_url ??
+  message.url ??
+  message.message ??
+  message.body
+);
 
 export const appendUniqueMessages = (current, incoming) => {
   const items = Array.isArray(incoming) ? incoming : [incoming];
@@ -228,7 +228,7 @@ export const appendUniqueMessages = (current, incoming) => {
 };
 
 export const sortMessagesOldestFirst = (items = []) =>
-  [...items].sort((left, right) => new Date(left.createdAt) - new Date(right.createdAt));
+[...items].sort((left, right) => new Date(left.createdAt) - new Date(right.createdAt));
 
 export const getInitials = (name = "") => {
   const parts = name.trim().split(/\s+/).filter(Boolean);

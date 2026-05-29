@@ -5,9 +5,9 @@ import { useToast } from "../../context/ToastContext";
 
 const getApiMessage = (err, fallback) => err.response?.data?.message || err.message || fallback;
 
-export default function BookingSeatStep({ 
-  bookingData, 
-  setBookingData, 
+export default function BookingSeatStep({
+  bookingData,
+  setBookingData,
   onNext,
   isRoundTrip,
   setIsRoundTrip,
@@ -34,25 +34,25 @@ export default function BookingSeatStep({
   const [dropoffs, setDropoffs] = useState([]);
   const [seats, setSeats] = useState([]);
   const [companyRating, setCompanyRating] = useState("5.0");
-  
-  // Lấy schedule từ location state (passed từ Home)
+
+
   const schedule = location.state?.schedule || {};
   const companyName = schedule.company?.name || schedule.name || "Nhà xe BusGo";
-  const departureTime = schedule.departureTime ? schedule.departureTime.slice(0,5) : "--:--";
-  
-  // Tính toán thời gian thả
+  const departureTime = schedule.departureTime ? schedule.departureTime.slice(0, 5) : "--:--";
+
+
   let arrivalTime = "--:--";
   if (schedule.departureTime && schedule.durationMinutes) {
     let [h, m] = schedule.departureTime.split(":").map(Number);
     if (!isNaN(h) && !isNaN(m)) {
-      let d = new Date(); d.setHours(h); d.setMinutes(m + schedule.durationMinutes);
+      let d = new Date();d.setHours(h);d.setMinutes(m + schedule.durationMinutes);
       arrivalTime = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
     }
   }
 
-  const durationStr = schedule.durationMinutes ? `${Math.floor(schedule.durationMinutes/60)}h ${schedule.durationMinutes%60}m` : "Di chuyển";
-  
-  // 0. Fetch Company Rating
+  const durationStr = schedule.durationMinutes ? `${Math.floor(schedule.durationMinutes / 60)}h ${schedule.durationMinutes % 60}m` : "Di chuyển";
+
+
   useEffect(() => {
     let active = true;
     const fetchRating = async () => {
@@ -64,20 +64,20 @@ export default function BookingSeatStep({
         const comments = res.data?.comments || [];
         if (comments.length > 0) {
           let sum = 0;
-          comments.forEach(c => sum += (c.rating || 5));
+          comments.forEach((c) => sum += c.rating || 5);
           setCompanyRating((sum / comments.length).toFixed(1));
         } else {
-          setCompanyRating("5.0"); // Fallback if no reviews
+          setCompanyRating("5.0");
         }
       } catch (err) {
         console.error("Lỗi lấy rating:", err);
       }
     };
     fetchRating();
-    return () => { active = false; };
+    return () => {active = false;};
   }, [bookingData.companyId, schedule]);
 
-  // 1. Fetch PrepareTrip và Pickups
+
   useEffect(() => {
     let active = true;
     const fetchStep1 = async () => {
@@ -85,20 +85,20 @@ export default function BookingSeatStep({
         setLoading(true);
         setSeatError("");
         if (!bookingData.companyId || !bookingData.date) {
-           addToast("Thiếu định danh chuyến đi. Bạn sẽ được chuyển về trang chủ.", "error");
-           navigate("/");
-           return;
+          addToast("Thiếu định danh chuyến đi. Bạn sẽ được chuyển về trang chủ.", "error");
+          navigate("/");
+          return;
         }
 
         let realTripId = bookingData.tripId;
         if (!realTripId) {
-           const prepareRes = await prepareTrip({
-               scheduleId: Number(bookingData.scheduleId),
-               companyId: Number(bookingData.companyId),
-               departureDate: bookingData.date
-           });
-           const preparedData = prepareRes.data?.data || prepareRes.data;
-           realTripId = preparedData?.id || prepareRes.id;
+          const prepareRes = await prepareTrip({
+            scheduleId: Number(bookingData.scheduleId),
+            companyId: Number(bookingData.companyId),
+            departureDate: bookingData.date
+          });
+          const preparedData = prepareRes.data?.data || prepareRes.data;
+          realTripId = preparedData?.id || prepareRes.id;
         }
 
         const pickupRes = await getPickupPoints(bookingData.scheduleId);
@@ -107,11 +107,11 @@ export default function BookingSeatStep({
         const pickData = pickupRes.data?.tripStops || pickupRes.data || [];
         setPickups(pickData);
 
-        setBookingData(prev => {
+        setBookingData((prev) => {
           let nextState = { ...prev, tripId: realTripId };
           if (pickData.length > 0 && !prev.pickupId) {
-             nextState.pickupId = pickData[0].stationId;
-             nextState.pickupOrder = pickData[0].stopOrder;
+            nextState.pickupId = pickData[0].stationId;
+            nextState.pickupOrder = pickData[0].stopOrder;
           }
           return nextState;
         });
@@ -129,10 +129,10 @@ export default function BookingSeatStep({
       }
     };
     fetchStep1();
-    return () => { active = false; };
-  }, [bookingData.scheduleId, bookingData.companyId, bookingData.date]); 
+    return () => {active = false;};
+  }, [bookingData.scheduleId, bookingData.companyId, bookingData.date]);
 
-  // 2. Fetch Dropoffs khi có Pickup
+
   useEffect(() => {
     let active = true;
     const fetchStep2 = async () => {
@@ -146,17 +146,17 @@ export default function BookingSeatStep({
         const dropData = dropoffRes.data?.tripStops || dropoffRes.data || [];
         setDropoffs(dropData);
 
-        setBookingData(prev => {
+        setBookingData((prev) => {
           let nextState = { ...prev };
           if (dropData.length > 0) {
-             const d = dropData[dropData.length - 1];
-             nextState.dropoffId = d.stationId;
-             nextState.dropoffOrder = d.stopOrder;
-             nextState.unitPrice = d.price || 0;
+            const d = dropData[dropData.length - 1];
+            nextState.dropoffId = d.stationId;
+            nextState.dropoffOrder = d.stopOrder;
+            nextState.unitPrice = d.price || 0;
           } else {
-             nextState.dropoffId = null;
-             nextState.dropoffOrder = null;
-             nextState.unitPrice = 0;
+            nextState.dropoffId = null;
+            nextState.dropoffOrder = null;
+            nextState.unitPrice = 0;
           }
           return nextState;
         });
@@ -165,10 +165,10 @@ export default function BookingSeatStep({
       }
     };
     fetchStep2();
-    return () => { active = false; };
+    return () => {active = false;};
   }, [bookingData.scheduleId, bookingData.pickupId, bookingData.pickupOrder]);
 
-  // 2. Fetch Sơ đồ ghế (Chỉ chạy khi đã có tripId, pickupOrder, dropoffOrder)
+
   useEffect(() => {
     let active = true;
     const fetchSeats = async () => {
@@ -180,7 +180,7 @@ export default function BookingSeatStep({
         setLoadingSeats(true);
         setSeatError("");
         const seatsRes = await getTripSeats(bookingData.tripId, bookingData.pickupOrder, bookingData.dropoffOrder);
-        if (!active) { console.log("Aborted effect"); return; }
+        if (!active) {console.log("Aborted effect");return;}
         const seatData = seatsRes.data?.seats || seatsRes.data || [];
         setSeats(seatData);
       } catch (err) {
@@ -194,20 +194,20 @@ export default function BookingSeatStep({
       }
     };
     fetchSeats();
-    return () => { active = false; };
+    return () => {active = false;};
   }, [bookingData.tripId, bookingData.pickupOrder, bookingData.dropoffOrder]);
 
   const handleSeatClick = (seat) => {
     if (seat.status === "booked") return;
-    setBookingData(prev => {
-      const isSelected = prev.selectedSeats.some(s => s.seatNumber === seat.seatNumber);
-      
+    setBookingData((prev) => {
+      const isSelected = prev.selectedSeats.some((s) => s.seatNumber === seat.seatNumber);
+
       let newSeats;
       if (isSelected) {
-        // Nếu click lại ghế đang chọn -> Bỏ chọn
+
         newSeats = [];
       } else {
-        // Nếu click ghế khác -> Ghi đè (Chỉ cho phép 1 ghế duy nhất)
+
         newSeats = [{ id: seat.id, seatNumber: seat.seatNumber }];
       }
 
@@ -216,11 +216,11 @@ export default function BookingSeatStep({
   };
 
   const handlePickupChange = (p) => {
-    setBookingData(d => ({ ...d, pickupId: p.stationId, pickupOrder: p.stopOrder, selectedSeats: [], totalPrice: 0 }));
+    setBookingData((d) => ({ ...d, pickupId: p.stationId, pickupOrder: p.stopOrder, selectedSeats: [], totalPrice: 0 }));
   };
 
   const handleDropoffChange = (d) => {
-    setBookingData(prev => ({ ...prev, dropoffId: d.stationId, dropoffOrder: d.stopOrder, unitPrice: d.price || 0, selectedSeats: [], totalPrice: 0 }));
+    setBookingData((prev) => ({ ...prev, dropoffId: d.stationId, dropoffOrder: d.stopOrder, unitPrice: d.price || 0, selectedSeats: [], totalPrice: 0 }));
   };
 
   const isFloor2 = (seat) => {
@@ -229,25 +229,25 @@ export default function BookingSeatStep({
     return typeStr.includes("2") || typeStr.includes("upper") || typeStr.includes("t2") || typeStr.includes("trên");
   };
 
-  const floor1Seats = seats.filter(s => !isFloor2(s));
-  const floor2Seats = seats.filter(s => isFloor2(s));
+  const floor1Seats = seats.filter((s) => !isFloor2(s));
+  const floor2Seats = seats.filter((s) => isFloor2(s));
 
   const getSeatLabel = (seat) => seat.seatNumber || seat.name || "?";
   const isSeatBooked = (seat) => seat.status === "booked";
 
   const renderSleeperSeat = (seat) => {
-    const isSelected = bookingData.selectedSeats.some(s => s.seatNumber === seat.seatNumber);
+    const isSelected = bookingData.selectedSeats.some((s) => s.seatNumber === seat.seatNumber);
     const isBooked = isSeatBooked(seat);
-    const stateClass = isBooked
-      ? "cursor-not-allowed border-outline-variant/25 bg-surface-container-high/70 text-on-surface-variant/35 shadow-none"
-      : isSelected
-        ? "border-primary bg-primary/5 text-primary shadow-[0_14px_30px_rgba(0,110,28,0.16)] ring-4 ring-primary/10"
-        : "border-outline-variant/45 bg-white text-on-surface shadow-[0_8px_20px_rgba(26,28,28,0.06)] hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_14px_28px_rgba(26,28,28,0.10)]";
-    const pillowClass = isBooked
-      ? "border-outline-variant/15 bg-white/35"
-      : isSelected
-        ? "border-primary/25 bg-white"
-        : "border-outline-variant/35 bg-surface-container-lowest";
+    const stateClass = isBooked ?
+    "cursor-not-allowed border-outline-variant/25 bg-surface-container-high/70 text-on-surface-variant/35 shadow-none" :
+    isSelected ?
+    "border-primary bg-primary/5 text-primary shadow-[0_14px_30px_rgba(0,110,28,0.16)] ring-4 ring-primary/10" :
+    "border-outline-variant/45 bg-white text-on-surface shadow-[0_8px_20px_rgba(26,28,28,0.06)] hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_14px_28px_rgba(26,28,28,0.10)]";
+    const pillowClass = isBooked ?
+    "border-outline-variant/15 bg-white/35" :
+    isSelected ?
+    "border-primary/25 bg-white" :
+    "border-outline-variant/35 bg-surface-container-lowest";
     const lineClass = isSelected ? "bg-primary/20" : isBooked ? "bg-outline-variant/20" : "bg-outline-variant/25";
 
     return (
@@ -258,19 +258,19 @@ export default function BookingSeatStep({
         disabled={isBooked}
         onClick={() => handleSeatClick(seat)}
         aria-pressed={isSelected}
-        title={`Ghế ${getSeatLabel(seat)}`}
-      >
+        title={`Ghế ${getSeatLabel(seat)}`}>
+        
         <span className={`absolute left-2 right-2 top-2 h-5 rounded-xl border ${pillowClass}`} />
         <span className={`absolute left-3 right-3 top-10 h-px ${lineClass}`} />
         <span className="relative z-10 leading-none">{getSeatLabel(seat)}</span>
-      </button>
-    );
+      </button>);
+
   };
 
   const renderSeatDeck = (title, deckSeats, tone = "primary") => {
-    const titleClass = tone === "secondary"
-      ? "border-secondary/15 bg-secondary/5 text-secondary"
-      : "border-primary/15 bg-primary/5 text-primary";
+    const titleClass = tone === "secondary" ?
+    "border-secondary/15 bg-secondary/5 text-secondary" :
+    "border-primary/15 bg-primary/5 text-primary";
 
     return (
       <div className="rounded-3xl border border-outline-variant/25 bg-white p-4 shadow-[0_18px_42px_rgba(26,28,28,0.06)]">
@@ -280,26 +280,26 @@ export default function BookingSeatStep({
           </span>
           <span className="text-xs font-bold text-on-surface-variant/70">{deckSeats.length} ghế</span>
         </div>
-        {deckSeats.length === 0 ? (
-          <p className="rounded-2xl bg-surface-container-low px-4 py-6 text-center text-sm font-medium text-on-surface-variant">
+        {deckSeats.length === 0 ?
+        <p className="rounded-2xl bg-surface-container-low px-4 py-6 text-center text-sm font-medium text-on-surface-variant">
             Không có ghế tầng này
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 justify-items-center gap-x-7 gap-y-6 rounded-2xl bg-surface-container-low px-4 py-5">
+          </p> :
+
+        <div className="grid grid-cols-2 justify-items-center gap-x-7 gap-y-6 rounded-2xl bg-surface-container-low px-4 py-5">
             {deckSeats.map(renderSleeperSeat)}
           </div>
-        )}
-      </div>
-    );
+        }
+      </div>);
+
   };
 
   if (loading) {
-     return (
-       <div className="flex flex-col items-center justify-center min-h-[50vh]">
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
          <p className="text-on-surface-variant font-medium">Đang gọi Sơ đồ xe và Điểm dừng...</p>
-       </div>
-     );
+       </div>);
+
   }
 
   return (
@@ -310,34 +310,34 @@ export default function BookingSeatStep({
         <span className="font-semibold text-on-surface">Chi tiết chuyến {bookingPhase === 'returnSeats' ? '(Chiều về)' : '(Chiều đi)'}</span>
       </nav>
 
-      {bookingPhase === 'returnSeats' && (
-        <div className="bg-secondary/10 border border-secondary/20 p-4 rounded-xl mb-6 flex items-start gap-3">
+      {bookingPhase === 'returnSeats' &&
+      <div className="bg-secondary/10 border border-secondary/20 p-4 rounded-xl mb-6 flex items-start gap-3">
           <span className="material-symbols-outlined text-secondary">info</span>
           <div>
             <p className="font-bold text-secondary">Đang chọn ghế chuyến về</p>
             <p className="text-sm text-on-surface-variant">Vui lòng chọn 1 ghế cho chuyến về của bạn.</p>
           </div>
         </div>
-      )}
+      }
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-24">
-        {/* Left Column */}
+        {}
         <div className="lg:col-span-7 space-y-6">
           <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm border border-surface-container">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
               <div className="flex items-center gap-4">
-                {schedule.logoUrl ? (
-                  <img src={schedule.logoUrl} alt="Logo" className="w-16 h-16 rounded-xl object-contain bg-surface-container-low border border-surface-container p-2" />
-                ) : (
-                  <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center p-2 text-primary">
+                {schedule.logoUrl ?
+                <img src={schedule.logoUrl} alt="Logo" className="w-16 h-16 rounded-xl object-contain bg-surface-container-low border border-surface-container p-2" /> :
+
+                <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center p-2 text-primary">
                     <span className="material-symbols-outlined text-3xl">directions_bus</span>
                   </div>
-                )}
+                }
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight text-on-surface">{companyName}</h1>
                   <div className="flex items-center gap-2 mt-1">
                     <div className="flex items-center gap-0.5 text-[#FFB800]">
-                      <span className="material-symbols-outlined text-sm" style={{fontVariationSettings: "'FILL' 1"}}>star</span>
+                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                       <span className="font-bold text-on-surface">{companyRating}</span>
                     </div>
                   </div>
@@ -373,11 +373,11 @@ export default function BookingSeatStep({
             </div>
             
             <div className="flex flex-wrap gap-4 pt-6 border-t border-surface-container">
-              {['wifi', 'ac_unit', 'usb', 'local_drink'].map((icon, i) => (
-                <div key={i} className="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-lg">
+              {['wifi', 'ac_unit', 'usb', 'local_drink'].map((icon, i) =>
+              <div key={i} className="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-lg">
                   <span className="material-symbols-outlined text-primary text-lg">{icon}</span>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -387,19 +387,19 @@ export default function BookingSeatStep({
                 <span className="material-symbols-outlined text-primary">location_on</span>
                 Điểm đón
               </h3>
-              {pickups.length === 0 ? <p className="text-sm text-on-surface-variant italic">Không có điểm đón</p> : (
-                <ul className="space-y-4">
-                  {pickups.map(p => (
-                    <li key={p.stationId} className="flex gap-3 cursor-pointer items-start" onClick={() => handlePickupChange(p)}>
+              {pickups.length === 0 ? <p className="text-sm text-on-surface-variant italic">Không có điểm đón</p> :
+              <ul className="space-y-4">
+                  {pickups.map((p) =>
+                <li key={p.stationId} className="flex gap-3 cursor-pointer items-start" onClick={() => handlePickupChange(p)}>
                       <input type="radio" checked={bookingData.pickupId === p.stationId} readOnly className="mt-1 w-4 h-4 text-primary" />
                       <div>
                         <p className="font-semibold text-on-surface leading-tight mt-0.5">{p.address}</p>
                         <p className="text-sm text-on-surface-variant mt-1 italic">{p.city}</p>
                       </div>
                     </li>
-                  ))}
+                )}
                 </ul>
-              )}
+              }
             </div>
             
             <div className="bg-surface-container-low rounded-xl p-6 border border-surface-container/50">
@@ -407,24 +407,24 @@ export default function BookingSeatStep({
                 <span className="material-symbols-outlined text-secondary">flag</span>
                 Điểm trả
               </h3>
-              {dropoffs.length === 0 ? <p className="text-sm text-on-surface-variant italic">Không có điểm trả</p> : (
-                <ul className="space-y-4">
-                  {dropoffs.map(d => (
-                      <li key={d.stationId} className="flex gap-3 cursor-pointer items-start" onClick={() => handleDropoffChange(d)}>
+              {dropoffs.length === 0 ? <p className="text-sm text-on-surface-variant italic">Không có điểm trả</p> :
+              <ul className="space-y-4">
+                  {dropoffs.map((d) =>
+                <li key={d.stationId} className="flex gap-3 cursor-pointer items-start" onClick={() => handleDropoffChange(d)}>
                         <input type="radio" checked={bookingData.dropoffId === d.stationId} readOnly className="mt-1 w-4 h-4 text-secondary" />
                         <div className="flex-1">
                           <p className="font-semibold text-on-surface leading-tight mt-0.5">{d.address}</p>
-                          <p className="text-sm text-on-surface-variant mt-1 italic">{d.city} {d.price ? `- ${(d.price).toLocaleString()}đ` : ''}</p>
+                          <p className="text-sm text-on-surface-variant mt-1 italic">{d.city} {d.price ? `- ${d.price.toLocaleString()}đ` : ''}</p>
                         </div>
                       </li>
-                  ))}
+                )}
                 </ul>
-              )}
+              }
             </div>
           </div>
         </div>
 
-        {/* Right Column */}
+        {}
         <div className="lg:col-span-5 sticky top-24">
           <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-container overflow-hidden">
             <div className="bg-surface-container-low px-6 py-4 flex justify-between items-center border-b border-surface-container">
@@ -435,14 +435,14 @@ export default function BookingSeatStep({
             </div>
             
             <div className="p-8 relative min-h-[300px]">
-              {loadingSeats ? (
-                 <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-10">
+              {loadingSeats ?
+              <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-10">
                     <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-                 </div>
-              ) : null}
+                 </div> :
+              null}
 
-              {seatError && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
+              {seatError &&
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
                   <div className="flex items-start gap-3">
                     <span className="material-symbols-outlined mt-0.5 text-[22px]">error</span>
                     <div>
@@ -451,10 +451,10 @@ export default function BookingSeatStep({
                     </div>
                   </div>
                 </div>
-              )}
+              }
 
-              {!seatError && (
-                <>
+              {!seatError &&
+              <>
               <div className="mb-6 flex flex-wrap items-center justify-center gap-4 rounded-2xl border border-outline-variant/20 bg-white px-4 py-3 shadow-[0_10px_28px_rgba(26,28,28,0.05)]">
                 <div className="flex items-center gap-2">
                   <div className="h-9 w-7 rounded-xl border border-outline-variant/45 bg-white shadow-sm"></div>
@@ -466,22 +466,22 @@ export default function BookingSeatStep({
                 </div>
               </div>
 
-              {seats.length === 0 && !loadingSeats ? (
+              {seats.length === 0 && !loadingSeats ?
                 <p className="text-center text-sm text-on-surface-variant py-8 bg-surface-container-low rounded-2xl">
                   Sơ đồ trống (API chưa trả ghế)
-                </p>
-              ) : floor2Seats.length > 0 ? (
+                </p> :
+                floor2Seats.length > 0 ?
                 <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
                   {renderSeatDeck("Tầng 1", floor1Seats)}
                   {renderSeatDeck("Tầng 2", floor2Seats, "secondary")}
-                </div>
-              ) : (
+                </div> :
+
                 <div className="mx-auto max-w-sm">
                   {renderSeatDeck("Tầng 1", floor1Seats)}
                 </div>
-              )}
+                }
                 </>
-              )}
+              }
             </div>
           </div>
         </div>
@@ -492,7 +492,7 @@ export default function BookingSeatStep({
           <div className="flex items-center gap-6">
             <div className="hidden md:block">
               <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Ghế đang chọn</p>
-              <p className="font-bold text-on-surface">{bookingData.selectedSeats.length > 0 ? bookingData.selectedSeats.map(s => s.seatNumber).join(", ") : "Chưa chọn ghế"}</p>
+              <p className="font-bold text-on-surface">{bookingData.selectedSeats.length > 0 ? bookingData.selectedSeats.map((s) => s.seatNumber).join(", ") : "Chưa chọn ghế"}</p>
             </div>
             <div className="h-10 w-px bg-surface-container mx-2 hidden sm:block"></div>
             <div>
@@ -501,30 +501,30 @@ export default function BookingSeatStep({
             </div>
           </div>
           <div className="flex gap-4">
-            {bookingPhase === "outbound" && !isRoundTrip && (
-              <button 
-                disabled={bookingData.selectedSeats.length === 0 || !bookingData.pickupId || !bookingData.dropoffId}
-                onClick={() => {
-                   setIsRoundTrip(true);
-                   setBookingPhase("returnSelection");
-                }}
-                className="bg-secondary text-white px-6 py-3.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center gap-2"
-              >
+            {bookingPhase === "outbound" && !isRoundTrip &&
+            <button
+              disabled={bookingData.selectedSeats.length === 0 || !bookingData.pickupId || !bookingData.dropoffId}
+              onClick={() => {
+                setIsRoundTrip(true);
+                setBookingPhase("returnSelection");
+              }}
+              className="bg-secondary text-white px-6 py-3.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center gap-2">
+              
                 <span className="material-symbols-outlined text-sm">swap_horiz</span>
                 Khứ hồi
               </button>
-            )}
-            <button 
+            }
+            <button
               disabled={bookingData.selectedSeats.length === 0 || !bookingData.pickupId || !bookingData.dropoffId || isSubmitting}
               onClick={handleNextClick}
-              className="bg-gradient-to-r from-primary to-primary-container text-on-primary px-8 py-3.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center justify-center gap-2"
-            >
+              className="bg-gradient-to-r from-primary to-primary-container text-on-primary px-8 py-3.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center justify-center gap-2">
+              
               {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
               {isSubmitting ? "Đang giữ chỗ..." : "Tiếp tục"}
             </button>
           </div>
         </div>
       </div>
-    </>
-  );
+    </>);
+
 }

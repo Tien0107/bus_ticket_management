@@ -15,31 +15,31 @@ import {
   SelectControl,
   StatCard,
   StatusBadge,
-  inputClass,
-} from "./CompanyUI";
+  inputClass } from
+"./CompanyUI";
 
 const defaultForm = {
   vehicleNumber: "",
   type: "seat",
   capacity: 24,
-  status: "active",
+  status: "active"
 };
 
 const vehicleTypeLabel = {
   seat: "Ghế ngồi",
-  bed: "Giường nằm",
+  bed: "Giường nằm"
 };
 
 const vehicleStatusLabel = {
   active: "Hoạt động",
   maintenance: "Bảo trì",
-  inactive: "Tạm ngừng",
+  inactive: "Tạm ngừng"
 };
 
 const vehicleStatusTone = {
   active: "emerald",
   maintenance: "amber",
-  inactive: "red",
+  inactive: "red"
 };
 
 const getStoredCompanyId = () => {
@@ -75,7 +75,7 @@ export default function Vehicles() {
       const company = response.data?.company || response.data;
       if (company?.id) setCompanyId(company.id);
     } catch {
-      // Giữ companyId đã lưu local nếu API hồ sơ công ty không tải được.
+
     }
   };
 
@@ -97,11 +97,11 @@ export default function Vehicles() {
     const seats = vehicles.reduce((sum, vehicle) => sum + Number(vehicle.totalSeats ?? vehicle.capacity ?? 0), 0);
 
     return [
-      { icon: "directions_bus", label: "Tổng phương tiện", value: vehicles.length, tone: "primary" },
-      { icon: "verified", label: "Đang hoạt động", value: active, tone: "emerald" },
-      { icon: "event_busy", label: "Tạm ngừng", value: vehicles.length - active, tone: "amber" },
-      { icon: "airline_seat_recline_normal", label: "Tổng số ghế", value: seats, tone: "slate" },
-    ];
+    { icon: "directions_bus", label: "Tổng phương tiện", value: vehicles.length, tone: "primary" },
+    { icon: "verified", label: "Đang hoạt động", value: active, tone: "emerald" },
+    { icon: "event_busy", label: "Tạm ngừng", value: vehicles.length - active, tone: "amber" },
+    { icon: "airline_seat_recline_normal", label: "Tổng số ghế", value: seats, tone: "slate" }];
+
   }, [vehicles]);
 
   const resetForm = () => {
@@ -125,7 +125,7 @@ export default function Vehicles() {
       vehicleNumber: vehicle.plateNumber || vehicle.vehicleNumber || "",
       type: vehicle.type || "seat",
       capacity: vehicle.totalSeats ?? vehicle.capacity ?? 24,
-      status: vehicle.status || "active",
+      status: vehicle.status || "active"
     });
     setShowModal(true);
   };
@@ -155,7 +155,7 @@ export default function Vehicles() {
         type: formData.type,
         totalSeats: Number.parseInt(formData.capacity, 10) || 24,
         status: formData.status || "active",
-        companyId: resolvedCompanyId,
+        companyId: resolvedCompanyId
       };
 
       if (editingVehicle) {
@@ -169,10 +169,10 @@ export default function Vehicles() {
           try {
             await manageSeat({
               vehicleId,
-              seatCount: String(payload.totalSeats),
+              seatCount: String(payload.totalSeats)
             });
           } catch {
-            // Xe vẫn đã được tạo, ghế có thể cấu hình lại sau.
+
           }
         }
 
@@ -207,15 +207,15 @@ export default function Vehicles() {
         type: deletingVehicle.type || "seat",
         totalSeats: 0,
         status: deletingVehicle.status || "active",
-        companyId: deletingVehicle.companyId || companyId || getStoredCompanyId(),
+        companyId: deletingVehicle.companyId || companyId || getStoredCompanyId()
       });
 
       setVehicles((current) =>
-        current.map((vehicle) =>
-          Number(vehicle.id) === Number(deletingVehicle.id)
-            ? { ...vehicle, totalSeats: 0, capacity: 0 }
-            : vehicle
-        )
+      current.map((vehicle) =>
+      Number(vehicle.id) === Number(deletingVehicle.id) ?
+      { ...vehicle, totalSeats: 0, capacity: 0 } :
+      vehicle
+      )
       );
       addToast("Đã gỡ cấu hình ghế của xe", "success");
       setDeletingVehicle(null);
@@ -231,28 +231,28 @@ export default function Vehicles() {
       eyebrow="Fleet"
       title="Quản lý phương tiện"
       description="Theo dõi biển số, cấu hình ghế và trạng thái hoạt động của toàn bộ đội xe."
-      actions={<IconButton icon="add" label="Thêm xe" variant="primary" onClick={handleOpenCreate} />}
-    >
+      actions={<IconButton icon="add" label="Thêm xe" variant="primary" onClick={handleOpenCreate} />}>
+      
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
-        ))}
+        {stats.map((stat) =>
+        <StatCard key={stat.label} {...stat} />
+        )}
       </div>
 
-      {loading ? (
-        <LoadingState />
-      ) : error ? (
-        <ErrorState message={error} />
-      ) : vehicles.length === 0 ? (
-        <EmptyState icon="directions_bus" title="Chưa có phương tiện" description="Thêm xe đầu tiên để bắt đầu cấu hình đội xe." />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {vehicles.map((vehicle) => {
-            const seatCount = vehicle.totalSeats ?? vehicle.capacity ?? 0;
-            const status = vehicle.status || "inactive";
+      {loading ?
+      <LoadingState /> :
+      error ?
+      <ErrorState message={error} /> :
+      vehicles.length === 0 ?
+      <EmptyState icon="directions_bus" title="Chưa có phương tiện" description="Thêm xe đầu tiên để bắt đầu cấu hình đội xe." /> :
 
-            return (
-              <article key={vehicle.id} className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm transition-all hover:border-primary/40 hover:shadow-md">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {vehicles.map((vehicle) => {
+          const seatCount = vehicle.totalSeats ?? vehicle.capacity ?? 0;
+          const status = vehicle.status || "inactive";
+
+          return (
+            <article key={vehicle.id} className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm transition-all hover:border-primary/40 hover:shadow-md">
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p className="truncate text-2xl font-extrabold text-on-surface">
@@ -282,37 +282,37 @@ export default function Vehicles() {
                   <IconButton icon="edit" label="Sửa xe" onClick={() => handleEdit(vehicle)} />
                   <IconButton icon="delete_outline" label="Gỡ cấu hình ghế" variant="danger" onClick={() => handleOpenDeleteSeats(vehicle)} />
                 </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
+              </article>);
 
-      {showModal && (
-        <ModalShell
-          title={editingVehicle ? "Chỉnh sửa xe" : "Thêm xe mới"}
-          subtitle="Cấu hình thông tin nhận diện và số lượng ghế."
-          onClose={handleCloseModal}
-          footer={
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        })}
+        </div>
+      }
+
+      {showModal &&
+      <ModalShell
+        title={editingVehicle ? "Chỉnh sửa xe" : "Thêm xe mới"}
+        subtitle="Cấu hình thông tin nhận diện và số lượng ghế."
+        onClose={handleCloseModal}
+        footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <SecondaryButton onClick={handleCloseModal}>Hủy</SecondaryButton>
               <PrimaryButton onClick={handleSubmit} icon={editingVehicle ? "save" : "add"}>
                 {editingVehicle ? "Cập nhật" : "Thêm xe"}
               </PrimaryButton>
             </div>
-          }
-        >
+        }>
+        
           <form onSubmit={handleSubmit} className="space-y-4">
             <Field label="Biển số xe">
               <input
-                type="text"
-                name="vehicleNumber"
-                value={formData.vehicleNumber}
-                onChange={handleFormChange}
-                className={inputClass}
-                placeholder="47B-42489"
-                required
-              />
+              type="text"
+              name="vehicleNumber"
+              value={formData.vehicleNumber}
+              onChange={handleFormChange}
+              className={inputClass}
+              placeholder="47B-42489"
+              required />
+            
             </Field>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -324,13 +324,13 @@ export default function Vehicles() {
               </Field>
               <Field label="Sức chứa">
                 <input
-                  type="number"
-                  name="capacity"
-                  value={formData.capacity}
-                  onChange={handleFormChange}
-                  className={inputClass}
-                  min="1"
-                />
+                type="number"
+                name="capacity"
+                value={formData.capacity}
+                onChange={handleFormChange}
+                className={inputClass}
+                min="1" />
+              
               </Field>
             </div>
 
@@ -343,15 +343,15 @@ export default function Vehicles() {
             </Field>
           </form>
         </ModalShell>
-      )}
+      }
 
-      {deletingVehicle && (
-        <ModalShell
-          title="Gỡ cấu hình ghế"
-          subtitle={deletingVehicle.plateNumber || deletingVehicle.vehicleNumber || "Phương tiện"}
-          onClose={handleCloseDeleteSeats}
-          footer={
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      {deletingVehicle &&
+      <ModalShell
+        title="Gỡ cấu hình ghế"
+        subtitle={deletingVehicle.plateNumber || deletingVehicle.vehicleNumber || "Phương tiện"}
+        onClose={handleCloseDeleteSeats}
+        footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <SecondaryButton onClick={handleCloseDeleteSeats} disabled={deletingSeats}>
                 Hủy
               </SecondaryButton>
@@ -359,8 +359,8 @@ export default function Vehicles() {
                 {deletingSeats ? "Đang gỡ..." : "Gỡ cấu hình"}
               </DangerButton>
             </div>
-          }
-        >
+        }>
+        
           <div className="rounded-xl border border-red-100 bg-red-50 p-4">
             <div className="flex gap-3">
               <span className="material-symbols-outlined mt-0.5 text-red-700">warning</span>
@@ -373,7 +373,7 @@ export default function Vehicles() {
             </div>
           </div>
         </ModalShell>
-      )}
-    </CompanyPageShell>
-  );
+      }
+    </CompanyPageShell>);
+
 }

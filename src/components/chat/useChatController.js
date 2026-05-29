@@ -7,16 +7,16 @@ import {
   markChatBoxRead,
   recallChatMessage,
   sendChatMessage,
-  uploadChatFile,
-} from "../../api/chat";
+  uploadChatFile } from
+"../../api/chat";
 import { getUsers } from "../../api/auth";
 import { useToast } from "../../context/ToastContext";
 import {
   getChatRecipientSearchQueries,
   mergeUniqueUsers,
   normalizeSearchValue,
-  normalizeUsersResponse,
-} from "./chatRecipientUtils";
+  normalizeUsersResponse } from
+"./chatRecipientUtils";
 import {
   appendUniqueMessages,
   getRecallCacheKey,
@@ -31,33 +31,33 @@ import {
   sortBoxesByLatestActivity,
   sortMessagesOldestFirst,
   toNumber,
-  zeroUnreadForViewer,
-} from "./chatUtils";
+  zeroUnreadForViewer } from
+"./chatUtils";
 import useChatSocket from "./useChatSocket";
 
 const MAX_RECIPIENT_QUERY_PAGES = 8;
 
 const getSentMessagePayload = (data) => {
   const candidates = [
-    data?.message,
-    data?.chatMessage,
-    data?.data?.message,
-    data?.data?.chatMessage,
-    data?.data,
-  ];
+  data?.message,
+  data?.chatMessage,
+  data?.data?.message,
+  data?.data?.chatMessage,
+  data?.data];
+
 
   return candidates.find((candidate) => candidate && typeof candidate === "object" && !Array.isArray(candidate)) || null;
 };
 
 const getBoxActivityTime = (box = {}) => {
   const candidates = [
-    box.lastMessageAt,
-    box.lastMessageCreatedAt,
-    box.lastMessageTime,
-    box.lastMessageDate,
-    box.updatedAt,
-    box.createdAt,
-  ];
+  box.lastMessageAt,
+  box.lastMessageCreatedAt,
+  box.lastMessageTime,
+  box.lastMessageDate,
+  box.updatedAt,
+  box.createdAt];
+
 
   for (const value of candidates) {
     const time = new Date(value).getTime();
@@ -88,7 +88,7 @@ const mergeBoxesWithCurrentActivity = (incomingBoxes, currentBoxes) => {
         Number(box.unreadReceiverCount || 0),
         Number(currentBox.unreadReceiverCount || 0)
       ),
-      unreadSenderCount: Math.max(Number(box.unreadSenderCount || 0), Number(currentBox.unreadSenderCount || 0)),
+      unreadSenderCount: Math.max(Number(box.unreadSenderCount || 0), Number(currentBox.unreadSenderCount || 0))
     };
   });
 };
@@ -136,15 +136,15 @@ export default function useChatController() {
 
   const boxesWithRealtimeUnread = useMemo(
     () =>
-      boxes.map((box) => {
-        const realtimeUnread = Number(realtimeUnreadByBox[box.id] || 0);
-        if (realtimeUnread <= 0) return box;
+    boxes.map((box) => {
+      const realtimeUnread = Number(realtimeUnreadByBox[box.id] || 0);
+      if (realtimeUnread <= 0) return box;
 
-        return {
-          ...box,
-          unreadCount: Math.max(getUnreadForViewer(box, viewerId), realtimeUnread),
-        };
-      }),
+      return {
+        ...box,
+        unreadCount: Math.max(getUnreadForViewer(box, viewerId), realtimeUnread)
+      };
+    }),
     [boxes, realtimeUnreadByBox, viewerId]
   );
 
@@ -165,9 +165,9 @@ export default function useChatController() {
 
   const selectedPeerId = useMemo(() => {
     if (!selectedBox || !viewerId) return null;
-    return Number(selectedBox.senderId) === Number(viewerId)
-      ? selectedBox.receiverId
-      : selectedBox.senderId;
+    return Number(selectedBox.senderId) === Number(viewerId) ?
+    selectedBox.receiverId :
+    selectedBox.senderId;
   }, [selectedBox, viewerId]);
 
   const selectedPeerOnline = selectedPeerId ? onlineUserIds.has(Number(selectedPeerId)) : false;
@@ -177,9 +177,9 @@ export default function useChatController() {
     if (!keyword) return recipientUsers;
 
     return recipientUsers.filter((user) =>
-      [user.fullName, user.email, user.phone, user.role, user.staffProfileRole, user.username, user.id]
-        .filter(Boolean)
-        .some((value) => normalizeSearchValue(value).includes(keyword))
+    [user.fullName, user.email, user.phone, user.role, user.staffProfileRole, user.username, user.id].
+    filter(Boolean).
+    some((value) => normalizeSearchValue(value).includes(keyword))
     );
   }, [recipientSearch, recipientUsers]);
 
@@ -207,11 +207,11 @@ export default function useChatController() {
 
   const applyRecallCache = useCallback(
     (items) =>
-      items.map((message) =>
-        recalledMessageIds.has(String(message.id))
-          ? { ...message, message: RECALLED_MESSAGE, recalled: true }
-          : message
-      ),
+    items.map((message) =>
+    recalledMessageIds.has(String(message.id)) ?
+    { ...message, message: RECALLED_MESSAGE, recalled: true } :
+    message
+    ),
     [recalledMessageIds]
   );
 
@@ -234,9 +234,9 @@ export default function useChatController() {
           if (reset) return sortBoxesByLatestActivity(boxesWithCurrentActivity);
           const known = new Set(current.map((box) => String(box.id)));
           return sortBoxesByLatestActivity([
-            ...current,
-            ...boxesWithCurrentActivity.filter((box) => !known.has(String(box.id))),
-          ]);
+          ...current,
+          ...boxesWithCurrentActivity.filter((box) => !known.has(String(box.id)))]
+          );
         });
         setBoxNext(data.next);
       } catch (err) {
@@ -281,7 +281,7 @@ export default function useChatController() {
           loadedUsers.push(
             ...data.users.map((user) => ({
               ...user,
-              companyId: user.companyId ?? scopedCompanyId,
+              companyId: user.companyId ?? scopedCompanyId
             }))
           );
 
@@ -315,7 +315,7 @@ export default function useChatController() {
 
       setRecipientUsers(users);
       setReceiverId((currentReceiverId) =>
-        users.some((user) => String(user.id) === String(currentReceiverId)) ? currentReceiverId : ""
+      users.some((user) => String(user.id) === String(currentReceiverId)) ? currentReceiverId : ""
       );
     } catch (err) {
       console.error("Lỗi tải danh sách người nhận:", err);
@@ -336,9 +336,9 @@ export default function useChatController() {
         const messagesWithRecallState = applyRecallCache(data.messages);
 
         setMessages((current) =>
-          reset
-            ? sortMessagesOldestFirst(messagesWithRecallState)
-            : appendUniqueMessages(messagesWithRecallState, current)
+        reset ?
+        sortMessagesOldestFirst(messagesWithRecallState) :
+        appendUniqueMessages(messagesWithRecallState, current)
         );
         setMessageNext(data.next);
       } catch (err) {
@@ -361,7 +361,7 @@ export default function useChatController() {
         return next;
       });
       setBoxes((current) =>
-        current.map((box) => (Number(box.id) === Number(boxId) ? zeroUnreadForViewer(box, viewerId) : box))
+      current.map((box) => Number(box.id) === Number(boxId) ? zeroUnreadForViewer(box, viewerId) : box)
       );
 
       try {
@@ -388,7 +388,7 @@ export default function useChatController() {
     setTypingByBox,
     socketRef,
     viewerId,
-    enabled: isAuthenticated,
+    enabled: isAuthenticated
   });
 
   useEffect(() => {
@@ -400,9 +400,9 @@ export default function useChatController() {
     loadBoxes({ reset: true });
   }, [isAuthenticated, loadBoxes]);
 
-  // Không còn tự động join tất cả các box khi load danh sách nữa.
-  // Chỉ join khi user thực sự bấm vào 1 hộp thoại cụ thể (xem useEffect selectedBoxId bên dưới)
-  // và re-join khi socket reconnect (xử lý ở useChatSocket.js)
+
+
+
 
   useEffect(() => {
     if (!open || !showCreate) {
@@ -488,20 +488,20 @@ export default function useChatController() {
           senderId: currentUser.id,
           fullName: currentUser.fullName || "Người dùng",
           createdAt,
-          optimistic: true,
+          optimistic: true
         },
         selectedBoxId
       );
 
       setMessages((current) => appendUniqueMessages(current, optimisticMessage));
       setBoxes((current) =>
-        sortBoxesByLatestActivity(
-          current.map((box) =>
-            Number(box.id) === Number(selectedBoxId)
-              ? { ...box, lastMessage: text, lastMessageSenderId: currentUser.id, lastMessageAt: createdAt }
-              : box
-          )
+      sortBoxesByLatestActivity(
+        current.map((box) =>
+        Number(box.id) === Number(selectedBoxId) ?
+        { ...box, lastMessage: text, lastMessageSenderId: currentUser.id, lastMessageAt: createdAt } :
+        box
         )
+      )
       );
 
       const realtimePayload = {
@@ -514,7 +514,7 @@ export default function useChatController() {
         createdAt,
         fullName: currentUser.fullName || "Người dùng",
         senderName: currentUser.fullName || "Người dùng",
-        senderId: currentUser.id,
+        senderId: currentUser.id
       };
 
       socketRef.current?.emit("chat:message:send", realtimePayload);
@@ -530,13 +530,13 @@ export default function useChatController() {
               message: sentMessagePayload.message ?? sentMessagePayload.body ?? text,
               senderId: sentMessagePayload.senderId ?? currentUser.id,
               fullName: sentMessagePayload.fullName || sentMessagePayload.senderName || currentUser.fullName,
-              createdAt: sentMessagePayload.createdAt || createdAt,
+              createdAt: sentMessagePayload.createdAt || createdAt
             },
             selectedBoxId
           );
 
           setMessages((current) =>
-            current.map((message) => (String(message.id) === String(optimisticMessage.id) ? sentMessage : message))
+          current.map((message) => String(message.id) === String(optimisticMessage.id) ? sentMessage : message)
           );
         }
 
@@ -585,9 +585,9 @@ export default function useChatController() {
         setUploadingImage(true);
         const presignedResponse = await getChatUploadPresigned(selectedBoxId);
         const presignedConfig = presignedResponse.data?.data || presignedResponse.data;
-        const acceptedMimeTypes = Array.isArray(presignedConfig?.acceptedMimeTypes)
-          ? presignedConfig.acceptedMimeTypes
-          : [];
+        const acceptedMimeTypes = Array.isArray(presignedConfig?.acceptedMimeTypes) ?
+        presignedConfig.acceptedMimeTypes :
+        [];
 
         if (acceptedMimeTypes.length && !acceptedMimeTypes.includes(file.type)) {
           addToast(`Định dạng ảnh không được hỗ trợ. Cho phép: ${acceptedMimeTypes.join(", ")}`, "error");
@@ -646,24 +646,24 @@ export default function useChatController() {
       try {
         await recallChatMessage(selectedBoxId, message.id);
         setMessages((current) =>
-          current.map((item) =>
-            String(item.id) === String(message.id)
-              ? { ...item, message: RECALLED_MESSAGE, recalled: true }
-              : item
-          )
+        current.map((item) =>
+        String(item.id) === String(message.id) ?
+        { ...item, message: RECALLED_MESSAGE, recalled: true } :
+        item
+        )
         );
         rememberRecalledMessageId(message.id);
         setBoxes((current) =>
-          current.map((box) => {
-            if (Number(box.id) !== Number(selectedBoxId)) return box;
-            if (box.lastMessage && box.lastMessage !== message.message) return box;
+        current.map((box) => {
+          if (Number(box.id) !== Number(selectedBoxId)) return box;
+          if (box.lastMessage && box.lastMessage !== message.message) return box;
 
-            return {
-              ...box,
-              lastMessage: RECALLED_MESSAGE,
-              lastMessageSenderId: message.senderId,
-            };
-          })
+          return {
+            ...box,
+            lastMessage: RECALLED_MESSAGE,
+            lastMessageSenderId: message.senderId
+          };
+        })
         );
       } catch (err) {
         console.error("Lỗi thu hồi tin nhắn:", err);
@@ -704,7 +704,7 @@ export default function useChatController() {
     if (scroller) {
       olderScrollSnapshotRef.current = {
         scrollHeight: scroller.scrollHeight,
-        scrollTop: scroller.scrollTop,
+        scrollTop: scroller.scrollTop
       };
       skipNextAutoScrollRef.current = true;
     }
@@ -760,6 +760,6 @@ export default function useChatController() {
     stopTyping,
     totalUnread,
     uploadingImage,
-    viewerId,
+    viewerId
   };
 }

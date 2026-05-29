@@ -10,17 +10,17 @@ const extractReviews = (data) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(nested)) return nested;
   const list =
-    data?.comments ||
-    data?.reviews ||
-    data?.ratings ||
-    data?.items ||
-    data?.records ||
-    nested?.comments ||
-    nested?.reviews ||
-    nested?.ratings ||
-    nested?.items ||
-    nested?.records ||
-    [];
+  data?.comments ||
+  data?.reviews ||
+  data?.ratings ||
+  data?.items ||
+  data?.records ||
+  nested?.comments ||
+  nested?.reviews ||
+  nested?.ratings ||
+  nested?.items ||
+  nested?.records ||
+  [];
   return Array.isArray(list) ? list : [];
 };
 
@@ -35,8 +35,8 @@ const extractNextCursor = (data) => {
     nested?.nextCursor ||
     nested?.cursor?.next ||
     nested?.pagination?.next ||
-    null
-  );
+    null);
+
 };
 
 const getRatingValue = (review) => {
@@ -58,17 +58,17 @@ const buildStatsFromReviews = (items, hasMore = false) => {
   return {
     average: total > 0 ? (sum / total).toFixed(1) : "0.0",
     total,
-    hasMore,
+    hasMore
   };
 };
 
 const getReviewerName = (review) =>
-  review?.reviewerName ||
-  review?.customerName ||
-  review?.userName ||
-  review?.customer?.name ||
-  review?.user?.name ||
-  "Khách hàng";
+review?.reviewerName ||
+review?.customerName ||
+review?.userName ||
+review?.customer?.name ||
+review?.user?.name ||
+"Khách hàng";
 
 const getReviewerInitial = (review) => getReviewerName(review).trim().charAt(0) || "K";
 
@@ -110,10 +110,10 @@ const getReviewTags = (review) => {
   if (comment.includes("êm") || comment.includes("an toàn")) tags.push("Di chuyển êm");
 
   if (tags.length === 0) {
-    if (rating >= 5) tags.push("Dịch vụ tốt", "Sẵn sàng giới thiệu");
-    else if (rating === 4) tags.push("Trải nghiệm ổn định", "Phù hợp nhu cầu");
-    else if (rating === 3) tags.push("Mức trung bình", "Cần cải thiện nhẹ");
-    else tags.push("Cần cải thiện", "Chưa đạt kỳ vọng");
+    if (rating >= 5) tags.push("Dịch vụ tốt", "Sẵn sàng giới thiệu");else
+    if (rating === 4) tags.push("Trải nghiệm ổn định", "Phù hợp nhu cầu");else
+    if (rating === 3) tags.push("Mức trung bình", "Cần cải thiện nhẹ");else
+    tags.push("Cần cải thiện", "Chưa đạt kỳ vọng");
   }
 
   return tags.slice(0, 3);
@@ -166,7 +166,7 @@ const CompanyReviewsModal = ({ isOpen, onClose, companyId, companyName }) => {
         const response = await getTripScheduleRatings({
           companyId,
           limit: SUMMARY_LIMIT,
-          ...(cursor ? { next: cursor } : {}),
+          ...(cursor ? { next: cursor } : {})
         });
         const data = response.data || {};
         allReviews = [...allReviews, ...extractReviews(data)];
@@ -213,7 +213,7 @@ const CompanyReviewsModal = ({ isOpen, onClose, companyId, companyName }) => {
         companyId,
         limit: PAGE_LIMIT,
         ...(starFilter ? { star: starFilter } : {}),
-        ...(append && cursor ? { next: cursor } : {}),
+        ...(append && cursor ? { next: cursor } : {})
       };
 
       const response = await getTripScheduleRatings(params);
@@ -284,16 +284,16 @@ const CompanyReviewsModal = ({ isOpen, onClose, companyId, companyName }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      {/* Backdrop */}
+      {}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      ></div>
+        onClick={onClose}>
+      </div>
 
-      {/* Modal Panel */}
+      {}
       <div className="relative bg-white rounded-3xl shadow-[0_24px_80px_rgba(15,23,42,0.22)] w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
-        {/* Header */}
+        {}
         <div className="px-6 py-5 border-b border-outline-variant/20 flex items-center justify-between bg-white sticky top-0 z-10">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -307,16 +307,16 @@ const CompanyReviewsModal = ({ isOpen, onClose, companyId, companyName }) => {
           <button
             onClick={onClose}
             className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-on-surface-variant"
-            aria-label="Đóng đánh giá"
-          >
+            aria-label="Đóng đánh giá">
+            
             <span className="material-symbols-outlined text-[22px]">close</span>
           </button>
         </div>
 
-        {/* Content */}
+        {}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 bg-surface-container-lowest">
           
-          {/* Overview Section */}
+          {}
           <div className="mb-6 overflow-hidden rounded-3xl border border-outline-variant/25 bg-white shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
             <div className="flex items-center justify-between gap-3 border-b border-outline-variant/20 px-5 py-4">
               <div>
@@ -331,72 +331,72 @@ const CompanyReviewsModal = ({ isOpen, onClose, companyId, companyName }) => {
               </div>
             </div>
 
-            {summaryLoading ? (
-              <div className="p-5">
+            {summaryLoading ?
+            <div className="p-5">
                 <div className="h-40 rounded-2xl bg-surface-container-low animate-pulse"></div>
-              </div>
-            ) : (
-              <div className="p-5">
+              </div> :
+
+            <div className="p-5">
               <div className="flex flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 via-white to-yellow-50 px-5 py-6 text-center">
                 <div className="text-6xl font-black tracking-normal text-on-surface mb-1">{stats.average}</div>
                 <div className="flex gap-1 mb-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <span key={star} className="material-symbols-outlined text-yellow-400 text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  {[1, 2, 3, 4, 5].map((star) =>
+                  <span key={star} className="material-symbols-outlined text-yellow-400 text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                       star
                     </span>
-                  ))}
+                  )}
                 </div>
                 <div className="text-sm font-bold text-on-surface-variant">{stats.total}{stats.hasMore ? "+" : ""} đánh giá</div>
               </div>
               </div>
-            )}
+            }
           </div>
 
-          {/* Filter Tabs */}
+          {}
           <div className="flex flex-wrap gap-2 mb-6">
             <button
               onClick={() => setStarFilter(null)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${!starFilter ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-white border-outline-variant text-on-surface-variant hover:bg-surface-container'}`}
-            >
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${!starFilter ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-white border-outline-variant text-on-surface-variant hover:bg-surface-container'}`}>
+              
               <span className="material-symbols-outlined text-[17px]">grid_view</span>
               Tất cả
             </button>
-            {[5, 4, 3, 2, 1].map(star => (
-              <button
-                key={star}
-                onClick={() => setStarFilter(star)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${starFilter === star ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-white border-outline-variant text-on-surface-variant hover:bg-surface-container'}`}
-              >
+            {[5, 4, 3, 2, 1].map((star) =>
+            <button
+              key={star}
+              onClick={() => setStarFilter(star)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${starFilter === star ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-white border-outline-variant text-on-surface-variant hover:bg-surface-container'}`}>
+              
                 {star} <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
               </button>
-            ))}
+            )}
           </div>
 
-          {/* Reviews List */}
+          {}
           <div className="relative min-h-[360px]">
-            {loading && reviews.length === 0 ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((key) => (
-                  <div key={key} className="h-[132px] rounded-2xl bg-surface-container-low animate-pulse"></div>
-                ))}
-              </div>
-            ) : error ? (
-              <div className="text-center text-red-500 py-8 font-medium bg-red-50 rounded-xl">{error}</div>
-            ) : reviews.length === 0 ? (
-              <div className="text-center py-12 text-on-surface-variant">
+            {loading && reviews.length === 0 ?
+            <div className="space-y-4">
+                {[1, 2, 3].map((key) =>
+              <div key={key} className="h-[132px] rounded-2xl bg-surface-container-low animate-pulse"></div>
+              )}
+              </div> :
+            error ?
+            <div className="text-center text-red-500 py-8 font-medium bg-red-50 rounded-xl">{error}</div> :
+            reviews.length === 0 ?
+            <div className="text-center py-12 text-on-surface-variant">
                 <span className="material-symbols-outlined text-4xl mb-2 opacity-50">speaker_notes_off</span>
                 <p>{starFilter ? `Chưa có đánh giá ${starFilter} sao.` : "Chưa có đánh giá nào."}</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {reviews.map((review, index) => {
-                  const rating = getRatingBucket(review);
-                  const ratingMeta = getRatingMeta(review);
-                  const commentText = getDisplayComment(review);
-                  const tags = getReviewTags(review);
+              </div> :
 
-                  return (
-                    <div key={review.id || review._id || review.ratingId || index} className="p-5 rounded-2xl bg-white border border-outline-variant/25 shadow-[0_8px_28px_rgba(15,23,42,0.05)]">
+            <div className="space-y-4">
+                {reviews.map((review, index) => {
+                const rating = getRatingBucket(review);
+                const ratingMeta = getRatingMeta(review);
+                const commentText = getDisplayComment(review);
+                const tags = getReviewTags(review);
+
+                return (
+                  <div key={review.id || review._id || review.ratingId || index} className="p-5 rounded-2xl bg-white border border-outline-variant/25 shadow-[0_8px_28px_rgba(15,23,42,0.05)]">
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex items-center gap-3">
                           <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary font-black flex items-center justify-center uppercase">
@@ -404,21 +404,21 @@ const CompanyReviewsModal = ({ isOpen, onClose, companyId, companyName }) => {
                           </div>
                           <div className="min-w-0">
                             <div className="font-black text-on-surface text-sm truncate">{getReviewerName(review)}</div>
-                            {getReviewDate(review) && (
-                              <div className="mt-0.5 text-xs font-medium text-on-surface-variant">{getReviewDate(review)}</div>
-                            )}
+                            {getReviewDate(review) &&
+                          <div className="mt-0.5 text-xs font-medium text-on-surface-variant">{getReviewDate(review)}</div>
+                          }
                           </div>
                         </div>
                         <div className="flex shrink-0 gap-0.5 rounded-full bg-yellow-50 px-2.5 py-1">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <span
-                              key={i}
-                              className={`material-symbols-outlined text-[16px] ${i < rating ? 'text-yellow-400' : 'text-outline-variant'}`}
-                              style={{ fontVariationSettings: i < rating ? "'FILL' 1" : "'FILL' 0" }}
-                            >
+                          {Array.from({ length: 5 }).map((_, i) =>
+                        <span
+                          key={i}
+                          className={`material-symbols-outlined text-[16px] ${i < rating ? 'text-yellow-400' : 'text-outline-variant'}`}
+                          style={{ fontVariationSettings: i < rating ? "'FILL' 1" : "'FILL' 0" }}>
+                          
                               star
                             </span>
-                          ))}
+                        )}
                         </div>
                       </div>
                       <div className="mb-3 flex items-center gap-2">
@@ -434,46 +434,46 @@ const CompanyReviewsModal = ({ isOpen, onClose, companyId, companyName }) => {
                         </p>
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="inline-flex items-center rounded-full bg-surface-container-high px-2.5 py-1 text-[11px] font-bold text-on-surface-variant"
-                          >
+                        {tags.map((tag) =>
+                      <span
+                        key={tag}
+                        className="inline-flex items-center rounded-full bg-surface-container-high px-2.5 py-1 text-[11px] font-bold text-on-surface-variant">
+                        
                             {tag}
                           </span>
-                        ))}
+                      )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    </div>);
 
-            {filterRefreshing && (
-              <div className="absolute inset-0 z-10 rounded-2xl bg-white/65 backdrop-blur-[1px] flex items-start justify-center pt-12">
+              })}
+              </div>
+            }
+
+            {filterRefreshing &&
+            <div className="absolute inset-0 z-10 rounded-2xl bg-white/65 backdrop-blur-[1px] flex items-start justify-center pt-12">
                 <div className="inline-flex items-center gap-2 rounded-full bg-white border border-outline-variant/30 px-4 py-2 text-sm font-bold text-on-surface-variant shadow-sm">
                   <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                   Đang lọc đánh giá...
                 </div>
               </div>
-            )}
+            }
           </div>
 
           <div ref={loadMoreRef} className="h-1"></div>
 
-          {loadingMore && (
-            <div className="mt-6 flex justify-center">
+          {loadingMore &&
+          <div className="mt-6 flex justify-center">
               <div className="inline-flex items-center gap-2 rounded-full bg-white border border-outline-variant/30 px-4 py-2 text-sm font-bold text-on-surface-variant shadow-sm">
                 <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                 Đang tải thêm đánh giá...
               </div>
             </div>
-          )}
+          }
 
         </div>
       </div>
-    </div>
-  );
+    </div>);
+
 };
 
 export default CompanyReviewsModal;

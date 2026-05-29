@@ -5,8 +5,8 @@ import {
   getRoutes,
   getStations,
   getTripPrices,
-  updateTripPrice,
-} from "../../api/operator";
+  updateTripPrice } from
+"../../api/operator";
 import { useToast } from "../../context/ToastContext";
 import {
   EmptyState,
@@ -23,15 +23,15 @@ import {
   StatusBadge,
   ToolbarCard,
   formatCurrency,
-  inputClass,
-} from "./OperatorUI";
+  inputClass } from
+"./OperatorUI";
 
 const emptyForm = {
   routeId: "",
   fromStationId: "",
   toStationId: "",
   price: "",
-  status: true,
+  status: true
 };
 
 const getStoredCompanyId = () => {
@@ -58,20 +58,20 @@ export default function Prices() {
 
   useEffect(() => {
     fetchBaseData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   useEffect(() => {
     fetchPrices();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [appliedRouteId]);
 
   const fetchBaseData = async () => {
     try {
       const [routesRes, stationsRes] = await Promise.all([
-        getRoutes({ limit: 10 }),
-        getStations({ limit: 10 }),
-      ]);
+      getRoutes({ limit: 10 }),
+      getStations({ limit: 10 })]
+      );
       setRoutes(Array.isArray(routesRes.data?.routes) ? routesRes.data.routes : []);
       setStations(Array.isArray(stationsRes.data?.stations) ? stationsRes.data.stations : []);
     } catch (err) {
@@ -85,7 +85,7 @@ export default function Prices() {
       setLoading(true);
       const params = {
         routeId: appliedRouteId !== "all" ? Number(appliedRouteId) : undefined,
-        limit: 10,
+        limit: 10
       };
       Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 
@@ -103,15 +103,15 @@ export default function Prices() {
 
   const stats = useMemo(() => {
     const active = prices.filter((price) => Boolean(price.status)).length;
-    const average = prices.length
-      ? prices.reduce((sum, price) => sum + Number(price.price || 0), 0) / prices.length
-      : 0;
+    const average = prices.length ?
+    prices.reduce((sum, price) => sum + Number(price.price || 0), 0) / prices.length :
+    0;
 
     return [
-      { icon: "local_offer", label: "Bảng giá", value: prices.length, tone: "primary" },
-      { icon: "check_circle", label: "Đang áp dụng", value: active, tone: "emerald" },
-      { icon: "payments", label: "Giá trung bình", value: formatCurrency(average), tone: "amber" },
-    ];
+    { icon: "local_offer", label: "Bảng giá", value: prices.length, tone: "primary" },
+    { icon: "check_circle", label: "Đang áp dụng", value: active, tone: "emerald" },
+    { icon: "payments", label: "Giá trung bình", value: formatCurrency(average), tone: "amber" }];
+
   }, [prices]);
 
   const routeLabel = (routeId) => {
@@ -138,7 +138,7 @@ export default function Prices() {
       fromStationId: price.fromStationId || "",
       toStationId: price.toStationId || "",
       price: price.price ?? "",
-      status: Boolean(price.status),
+      status: Boolean(price.status)
     });
     setShowModal(true);
   };
@@ -170,7 +170,7 @@ export default function Prices() {
       fromStationId: Number(formData.fromStationId),
       toStationId: Number(formData.toStationId),
       price: Number(formData.price),
-      status: Boolean(formData.status),
+      status: Boolean(formData.status)
     };
 
     try {
@@ -188,7 +188,7 @@ export default function Prices() {
       addToast({
         type: "error",
         title: "Không lưu được bảng giá",
-        message: err.response?.data?.message || "Vui lòng kiểm tra dữ liệu giá vé.",
+        message: err.response?.data?.message || "Vui lòng kiểm tra dữ liệu giá vé."
       });
     }
   };
@@ -205,7 +205,7 @@ export default function Prices() {
       addToast({
         type: "error",
         title: "Không xóa được bảng giá",
-        message: err.response?.data?.message || "Bảng giá có thể đang được sử dụng.",
+        message: err.response?.data?.message || "Bảng giá có thể đang được sử dụng."
       });
     }
   };
@@ -215,23 +215,23 @@ export default function Prices() {
       eyebrow="Prices"
       title="Quản lý bảng giá"
       description="Thiết lập giá vé theo tuyến và cặp trạm đón trả."
-      actions={<IconButton icon="add" label="Thêm bảng giá" variant="primary" onClick={openCreateModal} />}
-    >
+      actions={<IconButton icon="add" label="Thêm bảng giá" variant="primary" onClick={openCreateModal} />}>
+      
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {stats.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
-        ))}
+        {stats.map((stat) =>
+        <StatCard key={stat.label} {...stat} />
+        )}
       </div>
 
       <ToolbarCard>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto_auto]">
           <SelectControl value={filterRouteId} onChange={(e) => setFilterRouteId(e.target.value)}>
             <option value="all">Tất cả tuyến</option>
-            {routes.map((route) => (
-              <option key={route.id} value={route.id}>
+            {routes.map((route) =>
+            <option key={route.id} value={route.id}>
                 {route.fromLocation} → {route.toLocation}
               </option>
-            ))}
+            )}
           </SelectControl>
           <PrimaryButton icon="filter_alt" onClick={() => setAppliedRouteId(filterRouteId)}>Lọc</PrimaryButton>
           <SecondaryButton
@@ -239,21 +239,21 @@ export default function Prices() {
             onClick={() => {
               setFilterRouteId("all");
               setAppliedRouteId("all");
-            }}
-          >
+            }}>
+            
             Đặt lại
           </SecondaryButton>
         </div>
       </ToolbarCard>
 
-      {loading ? (
-        <LoadingState />
-      ) : error ? (
-        <ErrorState message={error} />
-      ) : prices.length === 0 ? (
-        <EmptyState icon="local_offer" title="Chưa có bảng giá" description="Tạo bảng giá đầu tiên cho tuyến và cặp trạm." />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
+      {loading ?
+      <LoadingState /> :
+      error ?
+      <ErrorState message={error} /> :
+      prices.length === 0 ?
+      <EmptyState icon="local_offer" title="Chưa có bảng giá" description="Tạo bảng giá đầu tiên cho tuyến và cặp trạm." /> :
+
+      <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] text-sm">
               <thead className="bg-surface-container-low">
@@ -267,13 +267,13 @@ export default function Prices() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
-                {prices.map((price) => (
-                  <tr key={price.id} className="hover:bg-surface-container-low/70">
+                {prices.map((price) =>
+              <tr key={price.id} className="hover:bg-surface-container-low/70">
                     <td className="px-5 py-4">
                       <p className="font-bold text-on-surface">
-                        {price.routeFromLocation && price.routeToLocation
-                          ? `${price.routeFromLocation} → ${price.routeToLocation}`
-                          : routeLabel(price.routeId)}
+                        {price.routeFromLocation && price.routeToLocation ?
+                    `${price.routeFromLocation} → ${price.routeToLocation}` :
+                    routeLabel(price.routeId)}
                       </p>
                       <p className="mt-1 text-xs text-on-surface-variant">ID: {price.id}</p>
                     </td>
@@ -298,36 +298,36 @@ export default function Prices() {
                       </div>
                     </td>
                   </tr>
-                ))}
+              )}
               </tbody>
             </table>
           </div>
         </div>
-      )}
+      }
 
-      {showModal && (
-        <ModalShell
-          title={editingPrice ? "Sửa bảng giá" : "Thêm bảng giá"}
-          subtitle="Giá vé theo tuyến và trạm."
-          onClose={closeModal}
-          footer={
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      {showModal &&
+      <ModalShell
+        title={editingPrice ? "Sửa bảng giá" : "Thêm bảng giá"}
+        subtitle="Giá vé theo tuyến và trạm."
+        onClose={closeModal}
+        footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <SecondaryButton onClick={closeModal}>Hủy</SecondaryButton>
               <PrimaryButton icon={editingPrice ? "save" : "add"} onClick={handleSave}>
                 {editingPrice ? "Cập nhật" : "Tạo bảng giá"}
               </PrimaryButton>
             </div>
-          }
-        >
+        }>
+        
           <div className="space-y-4">
             <Field label="Tuyến đường">
               <SelectControl value={formData.routeId} onChange={(e) => handleChange("routeId", e.target.value)}>
                 <option value="">Chọn tuyến</option>
-                {routes.map((route) => (
-                  <option key={route.id} value={route.id}>
+                {routes.map((route) =>
+              <option key={route.id} value={route.id}>
                     {route.fromLocation} → {route.toLocation}
                   </option>
-                ))}
+              )}
               </SelectControl>
             </Field>
 
@@ -335,21 +335,21 @@ export default function Prices() {
               <Field label="Từ trạm">
                 <SelectControl value={formData.fromStationId} onChange={(e) => handleChange("fromStationId", e.target.value)}>
                   <option value="">Chọn trạm đi</option>
-                  {stations.map((station) => (
-                    <option key={station.id} value={station.id}>
+                  {stations.map((station) =>
+                <option key={station.id} value={station.id}>
                       {station.address} - {station.city}
                     </option>
-                  ))}
+                )}
                 </SelectControl>
               </Field>
               <Field label="Đến trạm">
                 <SelectControl value={formData.toStationId} onChange={(e) => handleChange("toStationId", e.target.value)}>
                   <option value="">Chọn trạm đến</option>
-                  {stations.map((station) => (
-                    <option key={station.id} value={station.id}>
+                  {stations.map((station) =>
+                <option key={station.id} value={station.id}>
                       {station.address} - {station.city}
                     </option>
-                  ))}
+                )}
                 </SelectControl>
               </Field>
             </div>
@@ -357,19 +357,19 @@ export default function Prices() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Giá vé">
                 <input
-                  type="number"
-                  min="0"
-                  value={formData.price}
-                  onChange={(e) => handleChange("price", e.target.value)}
-                  className={inputClass}
-                  placeholder="250000"
-                />
+                type="number"
+                min="0"
+                value={formData.price}
+                onChange={(e) => handleChange("price", e.target.value)}
+                className={inputClass}
+                placeholder="250000" />
+              
               </Field>
               <Field label="Trạng thái">
                 <SelectControl
-                  value={formData.status ? "true" : "false"}
-                  onChange={(e) => handleChange("status", e.target.value === "true")}
-                >
+                value={formData.status ? "true" : "false"}
+                onChange={(e) => handleChange("status", e.target.value === "true")}>
+                
                   <option value="true">Áp dụng</option>
                   <option value="false">Tạm tắt</option>
                 </SelectControl>
@@ -377,7 +377,7 @@ export default function Prices() {
             </div>
           </div>
         </ModalShell>
-      )}
-    </OperatorPageShell>
-  );
+      }
+    </OperatorPageShell>);
+
 }

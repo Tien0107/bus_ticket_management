@@ -3,13 +3,13 @@ import { jwtDecode } from "jwt-decode";
 export const MIN_LOGIN_LOADING_MS = 2000;
 
 export const waitForLoginLoading = (startedAt = Date.now()) =>
-  new Promise((resolve) => {
-    const elapsed = Date.now() - startedAt;
-    window.setTimeout(resolve, Math.max(0, MIN_LOGIN_LOADING_MS - elapsed));
-  });
+new Promise((resolve) => {
+  const elapsed = Date.now() - startedAt;
+  window.setTimeout(resolve, Math.max(0, MIN_LOGIN_LOADING_MS - elapsed));
+});
 
 export const firstValue = (...values) =>
-  values.find((value) => value !== undefined && value !== null && value !== "");
+values.find((value) => value !== undefined && value !== null && value !== "");
 
 const getField = (source, keys) => {
   if (!source || typeof source !== "object") return undefined;
@@ -24,10 +24,10 @@ const getField = (source, keys) => {
   for (const key of keys) {
     const matchedEntry = entries.find(
       ([entryKey, entryValue]) =>
-        entryKey.toLowerCase() === key.toLowerCase() &&
-        entryValue !== undefined &&
-        entryValue !== null &&
-        entryValue !== ""
+      entryKey.toLowerCase() === key.toLowerCase() &&
+      entryValue !== undefined &&
+      entryValue !== null &&
+      entryValue !== ""
     );
 
     if (matchedEntry) {
@@ -63,67 +63,67 @@ const normalizeStaffProfileRole = (value) => {
     support: "support",
     company_support: "support",
     operator_support: "support",
-    company_admin_support: "support",
+    company_admin_support: "support"
   };
 
   return aliases[normalized] || normalized;
 };
 
 const getRoleValue = (source) =>
-  firstValue(
-    getField(source, ["role", "userRole", "accountRole"]),
-    getField(source?.user, ["role", "userRole", "accountRole"]),
-    getField(source?.data, ["role", "userRole", "accountRole"]),
-    getField(source?.account, ["role", "userRole", "accountRole"])
-  );
+firstValue(
+  getField(source, ["role", "userRole", "accountRole"]),
+  getField(source?.user, ["role", "userRole", "accountRole"]),
+  getField(source?.data, ["role", "userRole", "accountRole"]),
+  getField(source?.account, ["role", "userRole", "accountRole"])
+);
 
 const getStaffProfileRoleValue = (source) =>
-  firstValue(
-    getField(source, [
-      "staffProfileRole",
-      "staff_profile_role",
-      "staffRole",
-      "profileRole",
-      "roleProfile",
-      "operatorRole",
-      "operatorProfileRole",
-    ]),
-    getField(source?.staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.operatorProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.operator_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.user, ["staffProfileRole", "staff_profile_role", "staffRole", "profileRole", "roleProfile"]),
-    getField(source?.user?.staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.user?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.data, ["staffProfileRole", "staff_profile_role", "staffRole", "profileRole", "roleProfile"]),
-    getField(source?.data?.user, ["staffProfileRole", "staff_profile_role", "staffRole", "profileRole", "roleProfile"]),
-    getField(source?.data?.user?.staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
-    getField(source?.data?.user?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"])
-  );
+firstValue(
+  getField(source, [
+  "staffProfileRole",
+  "staff_profile_role",
+  "staffRole",
+  "profileRole",
+  "roleProfile",
+  "operatorRole",
+  "operatorProfileRole"]
+  ),
+  getField(source?.staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+  getField(source?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+  getField(source?.operatorProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+  getField(source?.operator_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+  getField(source?.user, ["staffProfileRole", "staff_profile_role", "staffRole", "profileRole", "roleProfile"]),
+  getField(source?.user?.staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+  getField(source?.user?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+  getField(source?.data, ["staffProfileRole", "staff_profile_role", "staffRole", "profileRole", "roleProfile"]),
+  getField(source?.data?.user, ["staffProfileRole", "staff_profile_role", "staffRole", "profileRole", "roleProfile"]),
+  getField(source?.data?.user?.staffProfile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"]),
+  getField(source?.data?.user?.staff_profile, ["role", "staffProfileRole", "staff_profile_role", "staffRole"])
+);
 
 const getCompanyIdValue = (source) =>
-  firstValue(
-    getField(source, ["companyId", "company_id", "driverCompanyId", "driver_company_id", "operatorCompanyId", "operator_company_id"]),
-    getField(source?.user, ["companyId", "company_id", "driverCompanyId", "driver_company_id", "operatorCompanyId", "operator_company_id"]),
-    getField(source?.data, ["companyId", "company_id", "driverCompanyId", "driver_company_id", "operatorCompanyId", "operator_company_id"]),
-    getField(source?.data?.user, ["companyId", "company_id", "driverCompanyId", "driver_company_id", "operatorCompanyId", "operator_company_id"]),
-    getField(source?.driverProfile, ["companyId", "company_id", "driverCompanyId", "driver_company_id"]),
-    getField(source?.driver_profile, ["companyId", "company_id", "driverCompanyId", "driver_company_id"]),
-    getField(source?.operatorProfile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"]),
-    getField(source?.operator_profile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"]),
-    getField(source?.staffProfile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"]),
-    getField(source?.staff_profile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"])
-  );
+firstValue(
+  getField(source, ["companyId", "company_id", "driverCompanyId", "driver_company_id", "operatorCompanyId", "operator_company_id"]),
+  getField(source?.user, ["companyId", "company_id", "driverCompanyId", "driver_company_id", "operatorCompanyId", "operator_company_id"]),
+  getField(source?.data, ["companyId", "company_id", "driverCompanyId", "driver_company_id", "operatorCompanyId", "operator_company_id"]),
+  getField(source?.data?.user, ["companyId", "company_id", "driverCompanyId", "driver_company_id", "operatorCompanyId", "operator_company_id"]),
+  getField(source?.driverProfile, ["companyId", "company_id", "driverCompanyId", "driver_company_id"]),
+  getField(source?.driver_profile, ["companyId", "company_id", "driverCompanyId", "driver_company_id"]),
+  getField(source?.operatorProfile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"]),
+  getField(source?.operator_profile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"]),
+  getField(source?.staffProfile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"]),
+  getField(source?.staff_profile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"])
+);
 
 const getStaffProfileValue = (source) =>
-  firstValue(
-    getField(source, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
-    getField(source?.user, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
-    getField(source?.data, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
-    getField(source?.data?.user, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
-    getField(source?.profile, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
-    getField(source?.data?.profile, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"])
-  );
+firstValue(
+  getField(source, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
+  getField(source?.user, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
+  getField(source?.data, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
+  getField(source?.data?.user, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
+  getField(source?.profile, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
+  getField(source?.data?.profile, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"])
+);
 
 const mergeStaffProfileFields = (user, staffProfile) => {
   if (!staffProfile || typeof staffProfile !== "object") return user;
@@ -194,18 +194,18 @@ export const buildAuthenticatedUser = (data) => {
   try {
     const decoded = jwtDecode(token);
     [
-      decoded,
-      decoded?.user,
-      decoded?.data,
-      decoded?.data?.user,
-      decoded?.staffProfile,
-      decoded?.staff_profile,
-    ].forEach((source) => {
+    decoded,
+    decoded?.user,
+    decoded?.data,
+    decoded?.data?.user,
+    decoded?.staffProfile,
+    decoded?.staff_profile].
+    forEach((source) => {
       user = mergeAuthClaims(user, source);
     });
     user = mergeAuthClaims(user, decoded);
   } catch {
-    // Tiếp tục dùng payload backend nếu token không decode được ở client.
+
   }
 
   [user, data, data?.user, data?.data, data?.data?.user, data?.profile, data?.data?.profile].forEach((source) => {

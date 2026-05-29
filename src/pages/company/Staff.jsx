@@ -17,21 +17,21 @@ import {
   StatCard,
   StatusBadge,
   ToolbarCard,
-  inputClass,
-} from "./CompanyUI";
+  inputClass } from
+"./CompanyUI";
 
 const roleLabel = {
   support: "Hỗ trợ",
   staff: "Nhân viên",
   dispatcher: "Điều phối",
-  company_admin: "Quản trị công ty",
+  company_admin: "Quản trị công ty"
 };
 
 const roleTone = {
   dispatcher: "blue",
   support: "violet",
   staff: "slate",
-  company_admin: "amber",
+  company_admin: "amber"
 };
 
 const editableRoles = ["dispatcher", "support", "company_admin"];
@@ -39,28 +39,28 @@ const editableRoles = ["dispatcher", "support", "company_admin"];
 const statusTone = {
   active: "emerald",
   inactive: "amber",
-  banned: "red",
+  banned: "red"
 };
 
 const statusLabel = {
   active: "Hoạt động",
   inactive: "Không hoạt động",
-  banned: "Bị chặn",
+  banned: "Bị chặn"
 };
 
 const accountStatusNotification = {
   active: {
     title: "Tài khoản điều hành đã được duyệt",
-    body: "Công ty đã duyệt tài khoản của bạn. Bạn có thể truy cập hệ thống điều hành.",
+    body: "Công ty đã duyệt tài khoản của bạn. Bạn có thể truy cập hệ thống điều hành."
   },
   inactive: {
     title: "Tài khoản điều hành đã bị tạm ngưng",
-    body: "Công ty đã tạm ngưng tài khoản của bạn.",
+    body: "Công ty đã tạm ngưng tài khoản của bạn."
   },
   banned: {
     title: "Tài khoản điều hành đã bị cấm",
-    body: "Công ty đã cấm tài khoản của bạn.",
-  },
+    body: "Công ty đã cấm tài khoản của bạn."
+  }
 };
 
 export default function Staff() {
@@ -79,7 +79,7 @@ export default function Staff() {
     fullName: "",
     email: "",
     phone: "",
-    status: "active",
+    status: "active"
   });
 
   useEffect(() => {
@@ -117,10 +117,10 @@ export default function Staff() {
         userId,
         title,
         body,
-        data,
+        data
       });
     } catch {
-      // Không chặn thao tác chính nếu tạo thông báo thất bại.
+
     }
   };
 
@@ -129,18 +129,18 @@ export default function Staff() {
     if (!keyword) return staff;
 
     return staff.filter((member) =>
-      [member.fullName, member.email, member.phone, member.role, member.staffProfileRole]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(keyword))
+    [member.fullName, member.email, member.phone, member.role, member.staffProfileRole].
+    filter(Boolean).
+    some((value) => String(value).toLowerCase().includes(keyword))
     );
   }, [staff, searchTerm]);
 
   const stats = useMemo(() => [
-    { icon: "groups", label: "Tổng nhân viên", value: staff.length, tone: "primary" },
-    { icon: "verified", label: "Hoạt động", value: staff.filter((member) => member.status === "active").length, tone: "emerald" },
-    { icon: "admin_panel_settings", label: "Quản trị", value: staff.filter((member) => getRole(member) === "company_admin").length, tone: "amber" },
-    { icon: "support_agent", label: "Vận hành", value: staff.filter((member) => ["dispatcher", "support"].includes(getRole(member))).length, tone: "blue" },
-  ], [staff]);
+  { icon: "groups", label: "Tổng nhân viên", value: staff.length, tone: "primary" },
+  { icon: "verified", label: "Hoạt động", value: staff.filter((member) => member.status === "active").length, tone: "emerald" },
+  { icon: "admin_panel_settings", label: "Quản trị", value: staff.filter((member) => getRole(member) === "company_admin").length, tone: "amber" },
+  { icon: "support_agent", label: "Vận hành", value: staff.filter((member) => ["dispatcher", "support"].includes(getRole(member))).length, tone: "blue" }],
+  [staff]);
 
   const handleOpenRoleModal = (member) => {
     const role = getRole(member);
@@ -159,7 +159,7 @@ export default function Staff() {
         userId: staffUserId,
         title: "Vai trò của bạn đã được cập nhật",
         body: `Vai trò mới của bạn là ${roleLabel[newRole] || newRole}.`,
-        data: getStaffHomePath({ ...selectedStaff, role: newRole, staffProfileRole: newRole }),
+        data: getStaffHomePath({ ...selectedStaff, role: newRole, staffProfileRole: newRole })
       });
       addToast("Cập nhật chức vụ thành công", "success");
       setShowRoleModal(false);
@@ -176,7 +176,7 @@ export default function Staff() {
       fullName: member.fullName || "",
       email: member.email || "",
       phone: member.phone || "",
-      status: member.status || "active",
+      status: member.status || "active"
     });
     setShowEditModal(true);
   };
@@ -198,7 +198,7 @@ export default function Staff() {
       const staffPayload = {
         fullName: editFormData.fullName,
         email: editFormData.email,
-        phone: editFormData.phone,
+        phone: editFormData.phone
       };
 
       await updateStaff(staffUserId, staffPayload);
@@ -213,21 +213,21 @@ export default function Staff() {
         title: statusChanged && statusNotification ? statusNotification.title : "Thông tin tài khoản đã được cập nhật",
         body: statusChanged && statusNotification ? statusNotification.body : "Công ty vừa cập nhật thông tin tài khoản nhân viên của bạn.",
         data:
-          statusChanged && statusNotification
-            ? JSON.stringify({
-                type: "account_status",
-                status: editFormData.status,
-                path: getStaffHomePath(editingStaff),
-              })
-            : "/company/dashboard",
+        statusChanged && statusNotification ?
+        JSON.stringify({
+          type: "account_status",
+          status: editFormData.status,
+          path: getStaffHomePath(editingStaff)
+        }) :
+        "/company/dashboard"
       });
       addToast("Cập nhật nhân viên thành công", "success");
       setStaff((current) =>
-        current.map((member) =>
-          getStaffId(member) === staffUserId
-            ? { ...member, ...staffPayload, status: editFormData.status }
-            : member
-        )
+      current.map((member) =>
+      getStaffId(member) === staffUserId ?
+      { ...member, ...staffPayload, status: editFormData.status } :
+      member
+      )
       );
       setShowEditModal(false);
       setEditingStaff(null);
@@ -241,30 +241,30 @@ export default function Staff() {
     <CompanyPageShell
       eyebrow="Staff"
       title="Quản lý nhân viên"
-      description="Theo dõi nhân sự nội bộ, trạng thái tài khoản và vai trò vận hành."
-    >
+      description="Theo dõi nhân sự nội bộ, trạng thái tài khoản và vai trò vận hành.">
+      
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
-        ))}
+        {stats.map((stat) =>
+        <StatCard key={stat.label} {...stat} />
+        )}
       </div>
 
       <ToolbarCard>
         <SearchInput
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Tìm theo tên, email, số điện thoại hoặc chức vụ"
-        />
+          placeholder="Tìm theo tên, email, số điện thoại hoặc chức vụ" />
+        
       </ToolbarCard>
 
-      {loading ? (
-        <LoadingState />
-      ) : error ? (
-        <ErrorState message={error} />
-      ) : filteredStaff.length === 0 ? (
-        <EmptyState icon="group_search" title="Không tìm thấy nhân viên" description="Thử đổi từ khóa tìm kiếm." />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
+      {loading ?
+      <LoadingState /> :
+      error ?
+      <ErrorState message={error} /> :
+      filteredStaff.length === 0 ?
+      <EmptyState icon="group_search" title="Không tìm thấy nhân viên" description="Thử đổi từ khóa tìm kiếm." /> :
+
+      <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[860px] text-sm">
               <thead className="bg-surface-container-low">
@@ -278,10 +278,10 @@ export default function Staff() {
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
                 {filteredStaff.map((member) => {
-                  const role = getRole(member);
+                const role = getRole(member);
 
-                  return (
-                    <tr key={getStaffId(member)} className="hover:bg-surface-container-low/70">
+                return (
+                  <tr key={getStaffId(member)} className="hover:bg-surface-container-low/70">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -311,27 +311,27 @@ export default function Staff() {
                           <IconButton icon="edit" label="Sửa nhân viên" variant="primary" onClick={() => handleOpenEditModal(member)} />
                         </div>
                       </td>
-                    </tr>
-                  );
-                })}
+                    </tr>);
+
+              })}
               </tbody>
             </table>
           </div>
         </div>
-      )}
+      }
 
-      {showRoleModal && selectedStaff && (
-        <ModalShell
-          title="Đổi vai trò nhân viên"
-          subtitle={selectedStaff.fullName}
-          onClose={() => setShowRoleModal(false)}
-          footer={
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      {showRoleModal && selectedStaff &&
+      <ModalShell
+        title="Đổi vai trò nhân viên"
+        subtitle={selectedStaff.fullName}
+        onClose={() => setShowRoleModal(false)}
+        footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <SecondaryButton onClick={() => setShowRoleModal(false)}>Hủy</SecondaryButton>
               <PrimaryButton icon="save" onClick={handleRoleChange}>Cập nhật</PrimaryButton>
             </div>
-          }
-        >
+        }>
+        
           <div className="space-y-4">
             <Field label="Vai trò mới">
               <SelectControl value={newRole} onChange={(e) => setNewRole(e.target.value)}>
@@ -345,47 +345,47 @@ export default function Staff() {
             </div>
           </div>
         </ModalShell>
-      )}
+      }
 
-      {showEditModal && editingStaff && (
-        <ModalShell
-          title="Sửa thông tin nhân viên"
-          subtitle={editingStaff.fullName}
-          onClose={() => setShowEditModal(false)}
-          footer={
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      {showEditModal && editingStaff &&
+      <ModalShell
+        title="Sửa thông tin nhân viên"
+        subtitle={editingStaff.fullName}
+        onClose={() => setShowEditModal(false)}
+        footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <SecondaryButton onClick={() => setShowEditModal(false)}>Hủy</SecondaryButton>
               <PrimaryButton icon="save" onClick={handleSaveEdit}>Lưu</PrimaryButton>
             </div>
-          }
-        >
+        }>
+        
           <div className="space-y-4">
             <Field label="Tên đầy đủ">
               <input
-                type="text"
-                name="fullName"
-                value={editFormData.fullName}
-                onChange={handleEditChange}
-                className={inputClass}
-              />
+              type="text"
+              name="fullName"
+              value={editFormData.fullName}
+              onChange={handleEditChange}
+              className={inputClass} />
+            
             </Field>
             <Field label="Email">
               <input
-                type="email"
-                name="email"
-                value={editFormData.email}
-                onChange={handleEditChange}
-                className={inputClass}
-              />
+              type="email"
+              name="email"
+              value={editFormData.email}
+              onChange={handleEditChange}
+              className={inputClass} />
+            
             </Field>
             <Field label="Số điện thoại">
               <input
-                type="tel"
-                name="phone"
-                value={editFormData.phone}
-                onChange={handleEditChange}
-                className={inputClass}
-              />
+              type="tel"
+              name="phone"
+              value={editFormData.phone}
+              onChange={handleEditChange}
+              className={inputClass} />
+            
             </Field>
             <Field label="Trạng thái">
               <SelectControl name="status" value={editFormData.status} onChange={handleEditChange}>
@@ -396,7 +396,7 @@ export default function Staff() {
             </Field>
           </div>
         </ModalShell>
-      )}
-    </CompanyPageShell>
-  );
+      }
+    </CompanyPageShell>);
+
 }

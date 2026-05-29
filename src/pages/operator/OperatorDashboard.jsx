@@ -5,31 +5,31 @@ import { useToast } from "../../context/ToastContext";
 import { ErrorState, LoadingState, OperatorPageShell, StatCard } from "./OperatorUI";
 
 const quickLinks = [
-  {
-    to: "/operator/routes",
-    icon: "route",
-    title: "Tuyến đường",
-    description: "Tạo và cập nhật tuyến khai thác.",
-  },
-  {
-    to: "/operator/stations",
-    icon: "pin_drop",
-    title: "Trạm",
-    description: "Tạo trạm đón trả theo địa chỉ và thành phố.",
-  },
-  {
-    to: "/operator/prices",
-    icon: "local_offer",
-    title: "Bảng giá",
-    description: "Quản lý giá vé theo tuyến và trạm.",
-  },
-  {
-    to: "/operator/schedules",
-    icon: "calendar_month",
-    title: "Lịch biểu",
-    description: "Tạo lịch chạy, điểm dừng và chuyến.",
-  },
-];
+{
+  to: "/operator/routes",
+  icon: "route",
+  title: "Tuyến đường",
+  description: "Tạo và cập nhật tuyến khai thác."
+},
+{
+  to: "/operator/stations",
+  icon: "pin_drop",
+  title: "Trạm",
+  description: "Tạo trạm đón trả theo địa chỉ và thành phố."
+},
+{
+  to: "/operator/prices",
+  icon: "local_offer",
+  title: "Bảng giá",
+  description: "Quản lý giá vé theo tuyến và trạm."
+},
+{
+  to: "/operator/schedules",
+  icon: "calendar_month",
+  title: "Lịch biểu",
+  description: "Tạo lịch chạy, điểm dừng và chuyến."
+}];
+
 
 export default function OperatorDashboard() {
   const { addToast } = useToast();
@@ -40,7 +40,7 @@ export default function OperatorDashboard() {
     schedules: [],
     prices: [],
     drivers: [],
-    vehicles: [],
+    vehicles: []
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -53,20 +53,20 @@ export default function OperatorDashboard() {
       setUser(null);
     }
     fetchDashboardData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       const [routesRes, stationsRes, schedulesRes, pricesRes, driversRes, vehiclesRes] = await Promise.allSettled([
-        getRoutes({ limit: 10 }),
-        getStations({ limit: 10 }),
-        getTripSchedules({ limit: 10, orderBy: "asc" }),
-        getTripPrices({ limit: 10 }),
-        getDrivers({ limit: 10 }),
-        getVehicles({ limit: 10, status: "active" }),
-      ]);
+      getRoutes({ limit: 10 }),
+      getStations({ limit: 10 }),
+      getTripSchedules({ limit: 10, orderBy: "asc" }),
+      getTripPrices({ limit: 10 }),
+      getDrivers({ limit: 10 }),
+      getVehicles({ limit: 10, status: "active" })]
+      );
 
       setData({
         routes: routesRes.status === "fulfilled" ? routesRes.value.data?.routes || [] : [],
@@ -74,7 +74,7 @@ export default function OperatorDashboard() {
         schedules: schedulesRes.status === "fulfilled" ? schedulesRes.value.data?.trip || [] : [],
         prices: pricesRes.status === "fulfilled" ? pricesRes.value.data?.prices || [] : [],
         drivers: driversRes.status === "fulfilled" ? driversRes.value.data?.drivers || [] : [],
-        vehicles: vehiclesRes.status === "fulfilled" ? vehiclesRes.value.data?.vehicles || [] : [],
+        vehicles: vehiclesRes.status === "fulfilled" ? vehiclesRes.value.data?.vehicles || [] : []
       });
       setError("");
     } catch (err) {
@@ -98,37 +98,37 @@ export default function OperatorDashboard() {
     );
 
     return [
-      { icon: "route", label: "Tuyến đường", value: data.routes.length, tone: "primary" },
-      { icon: "pin_drop", label: "Trạm", value: data.stations.length, tone: "blue" },
-      { icon: "calendar_month", label: "Lịch biểu", value: data.schedules.length, tone: "amber" },
-      { icon: "local_offer", label: "Bảng giá", value: data.prices.length, tone: "emerald" },
-      { icon: "badge", label: "Tài xế sẵn sàng", value: activeDrivers, tone: "slate" },
-      { icon: "directions_bus", label: "Xe hoạt động", value: data.vehicles.length, tone: "violet" },
-      { icon: "task_alt", label: "Chuyến hoàn thành", value: completedTrips, tone: "emerald" },
-      { icon: "cancel", label: "Chuyến đã hủy", value: cancelledTrips, tone: "red" },
-    ];
+    { icon: "route", label: "Tuyến đường", value: data.routes.length, tone: "primary" },
+    { icon: "pin_drop", label: "Trạm", value: data.stations.length, tone: "blue" },
+    { icon: "calendar_month", label: "Lịch biểu", value: data.schedules.length, tone: "amber" },
+    { icon: "local_offer", label: "Bảng giá", value: data.prices.length, tone: "emerald" },
+    { icon: "badge", label: "Tài xế sẵn sàng", value: activeDrivers, tone: "slate" },
+    { icon: "directions_bus", label: "Xe hoạt động", value: data.vehicles.length, tone: "violet" },
+    { icon: "task_alt", label: "Chuyến hoàn thành", value: completedTrips, tone: "emerald" },
+    { icon: "cancel", label: "Chuyến đã hủy", value: cancelledTrips, tone: "red" }];
+
   }, [data]);
 
   if (loading) {
     return (
       <OperatorPageShell title="Tổng quan điều hành" description="Đang tải dữ liệu vận hành.">
         <LoadingState />
-      </OperatorPageShell>
-    );
+      </OperatorPageShell>);
+
   }
 
   return (
     <OperatorPageShell
       eyebrow="Dispatcher"
       title={`Xin chào, ${user?.fullName || "điều hành viên"}`}
-      description="Tổng quan tuyến, trạm, lịch biểu, giá vé và nguồn lực đang sẵn sàng."
-    >
+      description="Tổng quan tuyến, trạm, lịch biểu, giá vé và nguồn lực đang sẵn sàng.">
+      
       {error && <div className="mb-6"><ErrorState message={error} /></div>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
-        ))}
+        {stats.map((stat) =>
+        <StatCard key={stat.label} {...stat} />
+        )}
       </div>
 
       <section className="mt-6 rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
@@ -140,21 +140,21 @@ export default function OperatorDashboard() {
           <span className="material-symbols-outlined text-primary">apps</span>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {quickLinks.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="group rounded-xl border border-outline-variant/30 p-4 transition-all hover:border-primary/50 hover:bg-primary/5"
-            >
+          {quickLinks.map((item) =>
+          <Link
+            key={item.to}
+            to={item.to}
+            className="group rounded-xl border border-outline-variant/30 p-4 transition-all hover:border-primary/50 hover:bg-primary/5">
+            
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
               </div>
               <h3 className="font-bold text-on-surface group-hover:text-primary">{item.title}</h3>
               <p className="mt-1 text-sm leading-6 text-on-surface-variant">{item.description}</p>
             </Link>
-          ))}
+          )}
         </div>
       </section>
-    </OperatorPageShell>
-  );
+    </OperatorPageShell>);
+
 }

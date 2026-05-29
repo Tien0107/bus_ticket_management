@@ -12,14 +12,14 @@ import {
   PrimaryButton,
   SecondaryButton,
   StatCard,
-  inputClass,
-} from "./OperatorUI";
+  inputClass } from
+"./OperatorUI";
 
 const emptyForm = {
   fromLocation: "",
   toLocation: "",
   distanceKm: "",
-  durationMinutes: "",
+  durationMinutes: ""
 };
 
 export default function Routes() {
@@ -48,7 +48,7 @@ export default function Routes() {
 
   useEffect(() => {
     fetchRoutes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   const stats = useMemo(() => {
@@ -56,10 +56,10 @@ export default function Routes() {
     const totalDuration = routes.reduce((sum, route) => sum + Number(route.durationMinutes || 0), 0);
 
     return [
-      { icon: "route", label: "Tổng tuyến", value: routes.length, tone: "primary" },
-      { icon: "straighten", label: "Tổng km", value: totalDistance.toLocaleString("vi-VN"), tone: "blue" },
-      { icon: "schedule", label: "Tổng phút", value: totalDuration.toLocaleString("vi-VN"), tone: "amber" },
-    ];
+    { icon: "route", label: "Tổng tuyến", value: routes.length, tone: "primary" },
+    { icon: "straighten", label: "Tổng km", value: totalDistance.toLocaleString("vi-VN"), tone: "blue" },
+    { icon: "schedule", label: "Tổng phút", value: totalDuration.toLocaleString("vi-VN"), tone: "amber" }];
+
   }, [routes]);
 
   const openCreateModal = () => {
@@ -74,7 +74,7 @@ export default function Routes() {
       fromLocation: route.fromLocation || "",
       toLocation: route.toLocation || "",
       distanceKm: route.distanceKm ?? "",
-      durationMinutes: route.durationMinutes ?? "",
+      durationMinutes: route.durationMinutes ?? ""
     });
     setShowModal(true);
   };
@@ -99,7 +99,7 @@ export default function Routes() {
       fromLocation: formData.fromLocation.trim(),
       toLocation: formData.toLocation.trim(),
       distanceKm: Number(formData.distanceKm || 0),
-      durationMinutes: Number(formData.durationMinutes || 0),
+      durationMinutes: Number(formData.durationMinutes || 0)
     };
 
     try {
@@ -118,7 +118,7 @@ export default function Routes() {
       addToast({
         type: "error",
         title: "Không lưu được tuyến",
-        message: err.response?.data?.message || "Vui lòng kiểm tra dữ liệu tuyến.",
+        message: err.response?.data?.message || "Vui lòng kiểm tra dữ liệu tuyến."
       });
     }
   };
@@ -128,22 +128,22 @@ export default function Routes() {
       eyebrow="Routes"
       title="Quản lý tuyến đường"
       description="Tạo và cập nhật tuyến khai thác theo đúng API điều phối."
-      actions={<IconButton icon="add" label="Thêm tuyến" variant="primary" onClick={openCreateModal} />}
-    >
+      actions={<IconButton icon="add" label="Thêm tuyến" variant="primary" onClick={openCreateModal} />}>
+      
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {stats.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
-        ))}
+        {stats.map((stat) =>
+        <StatCard key={stat.label} {...stat} />
+        )}
       </div>
 
-      {loading ? (
-        <LoadingState />
-      ) : error ? (
-        <ErrorState message={error} />
-      ) : routes.length === 0 ? (
-        <EmptyState icon="route" title="Chưa có tuyến đường" description="Tạo tuyến đầu tiên để cấu hình lịch biểu và bảng giá." />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
+      {loading ?
+      <LoadingState /> :
+      error ?
+      <ErrorState message={error} /> :
+      routes.length === 0 ?
+      <EmptyState icon="route" title="Chưa có tuyến đường" description="Tạo tuyến đầu tiên để cấu hình lịch biểu và bảng giá." /> :
+
+      <div className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-sm">
               <thead className="bg-surface-container-low">
@@ -155,8 +155,8 @@ export default function Routes() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
-                {routes.map((route) => (
-                  <tr key={route.id} className="hover:bg-surface-container-low/70">
+                {routes.map((route) =>
+              <tr key={route.id} className="hover:bg-surface-container-low/70">
                     <td className="px-5 py-4">
                       <p className="font-bold text-on-surface">{route.fromLocation} → {route.toLocation}</p>
                       <p className="mt-1 text-xs text-on-surface-variant">ID: {route.id}</p>
@@ -169,71 +169,71 @@ export default function Routes() {
                       </div>
                     </td>
                   </tr>
-                ))}
+              )}
               </tbody>
             </table>
           </div>
         </div>
-      )}
+      }
 
-      {showModal && (
-        <ModalShell
-          title={editingRoute ? "Sửa tuyến đường" : "Thêm tuyến đường"}
-          subtitle="Thông tin tuyến khai thác."
-          onClose={closeModal}
-          footer={
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      {showModal &&
+      <ModalShell
+        title={editingRoute ? "Sửa tuyến đường" : "Thêm tuyến đường"}
+        subtitle="Thông tin tuyến khai thác."
+        onClose={closeModal}
+        footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <SecondaryButton onClick={closeModal}>Hủy</SecondaryButton>
               <PrimaryButton icon={editingRoute ? "save" : "add"} onClick={handleSave}>
                 {editingRoute ? "Cập nhật" : "Tạo tuyến"}
               </PrimaryButton>
             </div>
-          }
-        >
+        }>
+        
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Từ địa điểm">
                 <input
-                  type="text"
-                  value={formData.fromLocation}
-                  onChange={(e) => handleChange("fromLocation", e.target.value)}
-                  className={inputClass}
-                  placeholder="Đồng Nai"
-                />
+                type="text"
+                value={formData.fromLocation}
+                onChange={(e) => handleChange("fromLocation", e.target.value)}
+                className={inputClass}
+                placeholder="Đồng Nai" />
+              
               </Field>
               <Field label="Đến địa điểm">
                 <input
-                  type="text"
-                  value={formData.toLocation}
-                  onChange={(e) => handleChange("toLocation", e.target.value)}
-                  className={inputClass}
-                  placeholder="Đắk Lắk"
-                />
+                type="text"
+                value={formData.toLocation}
+                onChange={(e) => handleChange("toLocation", e.target.value)}
+                className={inputClass}
+                placeholder="Đắk Lắk" />
+              
               </Field>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Khoảng cách (km)">
                 <input
-                  type="number"
-                  min="0"
-                  value={formData.distanceKm}
-                  onChange={(e) => handleChange("distanceKm", e.target.value)}
-                  className={inputClass}
-                />
+                type="number"
+                min="0"
+                value={formData.distanceKm}
+                onChange={(e) => handleChange("distanceKm", e.target.value)}
+                className={inputClass} />
+              
               </Field>
               <Field label="Thời gian (phút)">
                 <input
-                  type="number"
-                  min="0"
-                  value={formData.durationMinutes}
-                  onChange={(e) => handleChange("durationMinutes", e.target.value)}
-                  className={inputClass}
-                />
+                type="number"
+                min="0"
+                value={formData.durationMinutes}
+                onChange={(e) => handleChange("durationMinutes", e.target.value)}
+                className={inputClass} />
+              
               </Field>
             </div>
           </div>
         </ModalShell>
-      )}
-    </OperatorPageShell>
-  );
+      }
+    </OperatorPageShell>);
+
 }

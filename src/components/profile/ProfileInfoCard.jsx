@@ -43,11 +43,11 @@ const getLastChangeTimestamp = (user, field) => {
     const raw = source[key];
     if (raw === undefined || raw === null || raw === "") continue;
     const ts =
-      typeof raw === "number"
-        ? raw > 1e12
-          ? raw
-          : raw * 1000
-        : new Date(raw).getTime();
+    typeof raw === "number" ?
+    raw > 1e12 ?
+    raw :
+    raw * 1000 :
+    new Date(raw).getTime();
     if (!Number.isNaN(ts) && ts > 0) return ts;
   }
   return null;
@@ -76,7 +76,7 @@ const formatCooldownMessage = (field, info) => {
   return `Bạn vừa cập nhật thông tin liên hệ. Vui lòng thử lại sau ${info.remainingHours} giờ ${info.remainingMinutes} phút.`;
 };
 
-// Component OTP Input với 6 ô
+
 const OTPInput = ({ value, onChange, disabled }) => {
   const [otp, setOtp] = React.useState(Array(6).fill(""));
 
@@ -95,7 +95,7 @@ const OTPInput = ({ value, onChange, disabled }) => {
     const otpString = newOtp.join("");
     onChange(otpString);
 
-    // Tự động chuyển sang ô tiếp theo nếu nhập chữ số
+
     if (val && index < 5) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       nextInput?.focus();
@@ -111,23 +111,23 @@ const OTPInput = ({ value, onChange, disabled }) => {
 
   return (
     <div className="flex gap-2 justify-center">
-      {Array(6)
-        .fill(0)
-        .map((_, i) => (
-          <input
-            key={i}
-            id={`otp-${i}`}
-            type="password"
-            maxLength="1"
-            value={otp[i]}
-            onChange={(e) => handleChange(i, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(i, e)}
-            disabled={disabled}
-            className="w-12 h-12 text-center text-lg font-bold rounded-lg border border-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
-          />
-        ))}
-    </div>
-  );
+      {Array(6).
+      fill(0).
+      map((_, i) =>
+      <input
+        key={i}
+        id={`otp-${i}`}
+        type="password"
+        maxLength="1"
+        value={otp[i]}
+        onChange={(e) => handleChange(i, e.target.value)}
+        onKeyDown={(e) => handleKeyDown(i, e)}
+        disabled={disabled}
+        className="w-12 h-12 text-center text-lg font-bold rounded-lg border border-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:bg-gray-100 disabled:cursor-not-allowed" />
+
+      )}
+    </div>);
+
 };
 
 export default function ProfileInfoCard({ user, onProfileUpdated }) {
@@ -170,7 +170,7 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
   };
 
   const validateCurrentValue = (field, value) => {
-    // Nếu phone null, cho phép skip verify (không validate)
+
     if (field === "phone" && !value) {
       return "";
     }
@@ -236,7 +236,7 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
       newOtp: "",
       newOtpSent: false,
       error: "",
-      sendingOldOtp: !isPhoneNull, 
+      sendingOldOtp: !isPhoneNull,
       verifyingOldOtp: false,
       sendingOtp: false,
       submitting: false
@@ -264,8 +264,8 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
   const handleVerifyOldContact = async () => {
     const field = modalState.field;
     const value = currentValueByField[field];
-    
-    // Nếu phone null, skip verify bước này
+
+
     if (field === "phone" && !value) {
       setModalState((prev) => ({
         ...prev,
@@ -274,7 +274,7 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
       }));
       return;
     }
-    
+
     const currentValueError = validateCurrentValue(field, value);
     if (currentValueError) {
       setModalState((prev) => ({ ...prev, error: currentValueError }));
@@ -308,8 +308,8 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
   const handleSendOtpNewContact = async () => {
     const field = modalState.field;
     const newValue = modalState.newValue.trim();
-    
-    // Nếu phone null, không cần validate giá trị cũ
+
+
     const isPhoneNull = field === "phone" && !currentValueByField[field];
     if (!isPhoneNull) {
       const currentValueError = validateCurrentValue(field, currentValueByField[field]);
@@ -318,14 +318,14 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
         return;
       }
     }
-    
+
     const validationError = validateNewValue(field, newValue);
     if (validationError) {
       setModalState((prev) => ({ ...prev, error: validationError }));
       return;
     }
-    
-    // Nếu phone null, không cần check khác giá trị cũ
+
+
     if (!isPhoneNull && newValue === currentValueByField[field]) {
       setModalState((prev) => ({
         ...prev,
@@ -417,9 +417,9 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
   const renderContactField = (field, label, icon, value) => {
     const cooldown = getCooldownInfo(user, field);
     const isCooldownBlocked = cooldown.blocked;
-    const cooldownMessage = isCooldownBlocked
-      ? formatCooldownMessage(field, cooldown)
-      : "";
+    const cooldownMessage = isCooldownBlocked ?
+    formatCooldownMessage(field, cooldown) :
+    "";
 
     return (
       <div className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/20">
@@ -435,18 +435,18 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
             onClick={() => handleStartVerify(field)}
             disabled={isCooldownBlocked}
             title={cooldownMessage}
-            className="px-4 py-2 text-sm font-bold rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-          >
+            className="px-4 py-2 text-sm font-bold rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
+            
             Xác thực để cập nhật
           </button>
 
-          {isCooldownBlocked && (
-            <p className="text-xs text-amber-700 font-medium">{cooldownMessage}</p>
-          )}
+          {isCooldownBlocked &&
+          <p className="text-xs text-amber-700 font-medium">{cooldownMessage}</p>
+          }
 
         </div>
-      </div>
-    );
+      </div>);
+
   };
 
   const isPhoneNull = modalState.field === "phone" && !currentValueByField["phone"];
@@ -473,8 +473,8 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
               label="Họ và tên"
               value={user?.fullName}
               icon="person"
-              emphasized
-            />
+              emphasized />
+            
             <p className="text-xs text-on-surface-variant mt-2 ml-1">
               Họ và tên được khóa, không thể chỉnh sửa trên giao diện này.
             </p>
@@ -484,8 +484,8 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
         </div>
       </section>
 
-      {modalState.isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      {modalState.isOpen &&
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6 space-y-4">
               <h3 className="text-xl font-bold text-on-surface">
@@ -497,108 +497,108 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
                 {isStepVerifyNew && (isPhoneNull ? "Bước 2/2: Nhập OTP để cập nhật số điện thoại." : "Bước 3/3: Nhập OTP liên hệ mới để hoàn tất cập nhật.")}
               </p>
 
-              {isStepVerifyOld && (
-                <div className="space-y-2">
+              {isStepVerifyOld &&
+            <div className="space-y-2">
                   <label className="text-sm font-semibold text-on-surface-variant">
                     OTP liên hệ hiện tại
                   </label>
                   <OTPInput
-                    value={modalState.oldOtp}
-                    onChange={(val) =>
-                      setModalState((prev) => ({
-                        ...prev,
-                        oldOtp: val,
-                        error: ""
-                      }))
-                    }
-                    disabled={modalState.verifyingOldOtp || modalState.submitting}
-                  />
+                value={modalState.oldOtp}
+                onChange={(val) =>
+                setModalState((prev) => ({
+                  ...prev,
+                  oldOtp: val,
+                  error: ""
+                }))
+                }
+                disabled={modalState.verifyingOldOtp || modalState.submitting} />
+              
                 </div>
-              )}
+            }
 
-              {isStepEnterNew && (
-                <div className="space-y-2">
+              {isStepEnterNew &&
+            <div className="space-y-2">
                   <label className="text-sm font-semibold text-on-surface-variant">
                     {FIELD_LABELS[modalState.field]} mới
                   </label>
                   <input
-                    type={modalState.field === "email" ? "email" : "text"}
-                    value={modalState.newValue}
-                    onChange={(event) =>
-                      setModalState((prev) => ({
-                        ...prev,
-                        newValue: event.target.value,
-                        error: ""
-                      }))
-                    }
-                    placeholder={`Nhập ${FIELD_LABELS[modalState.field]?.toLowerCase()} mới`}
-                    className="w-full rounded-xl border border-outline-variant/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    disabled={modalState.sendingOtp || modalState.submitting}
-                  />
+                type={modalState.field === "email" ? "email" : "text"}
+                value={modalState.newValue}
+                onChange={(event) =>
+                setModalState((prev) => ({
+                  ...prev,
+                  newValue: event.target.value,
+                  error: ""
+                }))
+                }
+                placeholder={`Nhập ${FIELD_LABELS[modalState.field]?.toLowerCase()} mới`}
+                className="w-full rounded-xl border border-outline-variant/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                disabled={modalState.sendingOtp || modalState.submitting} />
+              
                 </div>
-              )}
+            }
 
-              {isStepVerifyNew && (
-                <div className="space-y-2">
+              {isStepVerifyNew &&
+            <div className="space-y-2">
                   <label className="text-sm font-semibold text-on-surface-variant">
                     OTP liên hệ mới
                   </label>
                   <OTPInput
-                    value={modalState.newOtp}
-                    onChange={(val) =>
-                      setModalState((prev) => ({
-                        ...prev,
-                        newOtp: val,
-                        error: ""
-                      }))
-                    }
-                    disabled={modalState.submitting}
-                  />
+                value={modalState.newOtp}
+                onChange={(val) =>
+                setModalState((prev) => ({
+                  ...prev,
+                  newOtp: val,
+                  error: ""
+                }))
+                }
+                disabled={modalState.submitting} />
+              
                 </div>
-              )}
+            }
 
-              {modalState.error && (
-                <p className="text-sm text-red-600 font-medium">{modalState.error}</p>
-              )}
+              {modalState.error &&
+            <p className="text-sm text-red-600 font-medium">{modalState.error}</p>
+            }
             </div>
 
             <div className="px-6 py-4 bg-surface-container-lowest border-t flex justify-end gap-3">
               <button
-                type="button"
-                onClick={closeModal}
-                disabled={modalState.submitting || modalState.sendingOtp}
-                className="px-5 py-2.5 text-sm font-bold text-on-surface-variant hover:bg-surface-container rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              type="button"
+              onClick={closeModal}
+              disabled={modalState.submitting || modalState.sendingOtp}
+              className="px-5 py-2.5 text-sm font-bold text-on-surface-variant hover:bg-surface-container rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              
                 Hủy
               </button>
               <button
-                type="button"
-                onClick={
-                  isStepVerifyOld
-                    ? handleVerifyOldContact
-                    : isStepEnterNew
-                    ? handleSendOtpNewContact
-                    : handleConfirmUpdate
-                }
-                disabled={
-                  modalState.submitting ||
-                  modalState.sendingOtp ||
-                  modalState.verifyingOldOtp ||
-                  modalState.sendingOldOtp
-                }
-                className="px-5 py-2.5 text-sm font-bold text-on-primary rounded-xl shadow-md bg-primary hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isStepVerifyOld &&
-                  (modalState.verifyingOldOtp ? "Đang xác thực..." : "Xác thực OTP hiện tại")}
-                {isStepEnterNew &&
-                  (modalState.sendingOtp ? "Đang gửi OTP..." : (isPhoneNull ? "Gửi OTP" : "Gửi OTP liên hệ mới"))}
-                {isStepVerifyNew &&
-                  (modalState.submitting ? "Đang cập nhật..." : "Xác nhận cập nhật")}
+              type="button"
+              onClick={
+              isStepVerifyOld ?
+              handleVerifyOldContact :
+              isStepEnterNew ?
+              handleSendOtpNewContact :
+              handleConfirmUpdate
+              }
+              disabled={
+              modalState.submitting ||
+              modalState.sendingOtp ||
+              modalState.verifyingOldOtp ||
+              modalState.sendingOldOtp
+              }
+              className="px-5 py-2.5 text-sm font-bold text-on-primary rounded-xl shadow-md bg-primary hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              
+                {isStepVerifyOld && (
+              modalState.verifyingOldOtp ? "Đang xác thực..." : "Xác thực OTP hiện tại")}
+                {isStepEnterNew && (
+              modalState.sendingOtp ? "Đang gửi OTP..." : isPhoneNull ? "Gửi OTP" : "Gửi OTP liên hệ mới")}
+                {isStepVerifyNew && (
+              modalState.submitting ? "Đang cập nhật..." : "Xác nhận cập nhật")}
               </button>
             </div>
           </div>
         </div>
-      )}
-    </>
-  );
+      }
+    </>);
+
 }
