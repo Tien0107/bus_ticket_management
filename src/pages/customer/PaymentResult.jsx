@@ -38,8 +38,21 @@ export default function PaymentResult() {
     }
   }, [isSuccess, addToast]);
 
+  useEffect(() => {
+    if (!isSuccess) return undefined;
+
+    const timeoutId = setTimeout(() => {
+      navigate("/profile/tickets", {
+        replace: true,
+        state: { refreshTickets: Date.now() },
+      });
+    }, 1200);
+
+    return () => clearTimeout(timeoutId);
+  }, [isSuccess, navigate]);
+
   const handleGoToTickets = () => {
-    navigate("/profile/tickets");
+    navigate("/profile/tickets", { state: { refreshTickets: Date.now() } });
   };
 
   const handleGoHome = () => {

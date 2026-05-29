@@ -17,6 +17,7 @@ import PaymentResult from "./pages/customer/PaymentResult";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import MainLayout from "./components/layouts/MainLayout";
 import PrivateRoute from "./components/PrivateRoute";
+import { getRedirectUrl } from "./pages/login/authUtils";
 
 // Customer Pages
 import Booking from "./pages/customer/Booking";
@@ -61,6 +62,32 @@ import SupportProfile from "./pages/company-support/SupportProfile";
 // Super Admin Pages
 import SuperAdminDashboard from "./pages/super-admin/SuperAdminDashboard";
 import BusCompanies from "./pages/super-admin/BusCompanies";
+
+function RootRedirect() {
+  const token = localStorage.getItem("token")?.trim();
+  if (!token) {
+    return <Home />;
+  }
+
+  let user = {};
+  try {
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      user = JSON.parse(raw);
+    }
+  } catch {
+    user = {};
+  }
+
+  const target = getRedirectUrl(user);
+
+  // getRedirectUrl returns "/" for customers and unknown roles -> show public Home
+  if (!target || target === "/") {
+    return <Home />;
+  }
+
+  return <Navigate to={target} replace />;
+}
 
 function App() {
   return (    
@@ -136,7 +163,7 @@ function App() {
 
           {/* Main Layout (Home & Customer Pages) */}
           <Route element={<MainLayout />}>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<RootRedirect />} />
             <Route path="/routes" element={<RoutesPage />} />
             <Route path="/companies" element={<Companies />} />
             <Route path="/promotions" element={<Promotions />} />

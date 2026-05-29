@@ -23,6 +23,39 @@ const publicEndpoints = [
   "/driver/sign-up",
 ];
 
+const isSessionExpiredError = (status, data) => {
+  const message = [
+    data?.message,
+    data?.error,
+    data?.detail,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    status === 401 ||
+    message.includes("phiên đăng nhập đã hết hạn") ||
+    message.includes("vui lòng đăng nhập lại") ||
+    message.includes("token expired") ||
+    message.includes("jwt expired") ||
+    message.includes("invalid token")
+  );
+};
+
+const redirectToLogin = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  if (window.__isLoggingOut === true || window.__sessionExpiredRedirecting === true) return;
+  if (window.location.pathname === "/login") return;
+
+  window.__sessionExpiredRedirecting = true;
+
+  toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", { duration: 5500 });
+  window.location.replace("/login");
+};
+
 // Request interceptor - Gắn token tự động
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
@@ -53,19 +86,8 @@ axiosClient.interceptors.response.use(
     };
 
     // Unauthorized
-    if (status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-
-      // Không tự động alert và redirect nếu đang ở trang chủ (để khách vãng lai có thể xem trang chủ)
-      const isHomePage = window.location.pathname === "/" || window.location.pathname === "";
-
-      if (!isLogoutRequest && !isLoggingOut && window.location.pathname !== "/login" && !isHomePage) {
-        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", { duration: 5500 });
-        setTimeout(() => {
-          window.location.href = "/login";
-        }, 1500);
-      }
+    if (!isLogoutRequest && !isLoggingOut && isSessionExpiredError(status, data)) {
+      redirectToLogin();
     }
 
     // --- Bắt đầu: Dịch lỗi sang Tiếng Việt ---
