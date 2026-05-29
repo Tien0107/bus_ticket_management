@@ -115,7 +115,7 @@ export default function OperatorRegisterForm() {
       data.issues.map((item) => item.reason || item.field).join(". ") :
       data?.message || "Đăng ký thất bại";
       setError(errorMessage);
-      addToast("Đăng ký thất bại", "error");
+      addToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }

@@ -105,8 +105,9 @@ export default function CompanyRegisterForm() {
 
     try {
       setLoading(true);
-      await companySignUp(payload);
-      addToast("Đăng ký công ty thành công", "success");
+      const res = await companySignUp(payload);
+      const successMessage = res.data?.message || "Đăng ký công ty thành công";
+      addToast(successMessage, "success");
       setTimeout(() => navigate("/login"), 500);
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Đăng ký thất bại";

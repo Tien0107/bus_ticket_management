@@ -60,11 +60,13 @@ export default function CustomerRegisterForm() {
         const { token, user } = buildAuthenticatedUser(res.data);
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(user));
-        addToast("Đăng ký thành công! Chào mừng bạn đến với BusGo.", "success");
+        const successMessage = res.data?.message || "Đăng ký thành công! Chào mừng bạn đến với BusGo.";
+        addToast(successMessage, "success");
         const redirectUrl = getRedirectUrl(user);
         setTimeout(() => navigate(redirectUrl, { replace: true }), 500);
       } else {
-        addToast("Đăng ký khách hàng thành công", "success");
+        const successMessage = res.data?.message || "Đăng ký khách hàng thành công";
+        addToast(successMessage, "success");
         setTimeout(() => navigate("/login"), 500);
       }
     } catch (err) {
@@ -73,7 +75,7 @@ export default function CustomerRegisterForm() {
         ? data.issues.map((item) => item.reason || item.field).join(". ")
         : data?.message || "Đăng ký thất bại";
       setError(errorMessage);
-      addToast("Đăng ký thất bại", "error");
+      addToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }
