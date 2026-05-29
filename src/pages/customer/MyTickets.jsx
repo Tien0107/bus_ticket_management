@@ -251,7 +251,7 @@ export default function MyTickets() {
         addStoredTicketId(EXPIRED_TICKETS_STORAGE_KEY, id);
       }
       await cancelTicket(id);
-      if (!isAuto) addToast("Hủy vé thành công!", "success");
+      if (!isAuto) addToast("Hủy vé thành công!", "success", 2600);
       try {
         const userStr = localStorage.getItem("user");
         if (userStr) {
@@ -314,7 +314,7 @@ export default function MyTickets() {
           } catch (notifErr) {
             console.warn("Failed to create cash notification:", notifErr);
           }
-          addToast(res.data?.message || "Đã ghi nhận yêu cầu thanh toán Tiền mặt! Vui lòng thanh toán tại quầy trước giờ xuất bến.", "success");
+          addToast(res.data?.message || "Đã ghi nhận yêu cầu thanh toán Tiền mặt! Vui lòng thanh toán tại quầy trước giờ xuất bến.", "success", 3200);
           fetchTickets();
         } catch (err) {
           addToast("Không thể ghi nhận thanh toán tiền mặt: " + (err.response?.data?.message || err.message), "error");
@@ -358,7 +358,7 @@ export default function MyTickets() {
         }
 
         if (paymentIntent?.status === "succeeded") {
-          addToast(`Thanh toán thành công!`, "success");
+          addToast(`Thanh toán thành công!`, "success", 2800);
           fetchTickets();
           return;
         }

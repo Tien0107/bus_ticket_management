@@ -242,7 +242,7 @@ export default function Booking() {
     try {
       const ids = await createBookingsForCurrentSelection();
       setOrderIds(ids);
-      addToast("Đã giữ chỗ thành công! Vui lòng chọn phương thức thanh toán trong 10 phút.", "success");
+      addToast("Đã giữ chỗ thành công! Vui lòng chọn phương thức thanh toán trong 10 phút.", "success", 3200);
       setStep(2);
       return true;
     } catch (err) {
@@ -316,7 +316,7 @@ export default function Booking() {
         return;
       }
 
-      addToast("Thanh toán thành công! Bạn sẽ được chuyển sang trang quản lý vé.", "success");
+      addToast("Thanh toán thành công! Bạn sẽ được chuyển sang trang quản lý vé.", "success", 2800);
       navigateToTickets();
     } catch (err) {
       console.error("Payment Error:", err);

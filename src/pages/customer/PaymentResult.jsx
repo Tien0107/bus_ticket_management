@@ -32,7 +32,7 @@ export default function PaymentResult() {
 
   useEffect(() => {
     if (isSuccess) {
-      addToast("Thanh toán vé xe thành công!", "success");
+      addToast("Thanh toán vé xe thành công!", "success", 2800);
     } else {
       addToast("Thanh toán không thành công. Vui lòng kiểm tra lại!", "error");
     }

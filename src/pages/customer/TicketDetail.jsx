@@ -32,7 +32,7 @@ export default function TicketDetail() {
   const executeCancel = async () => {
     try {
       await cancelTicket(ticketId);
-      addToast("Hủy vé thành công!", "success");
+      addToast("Hủy vé thành công!", "success", 2600);
       navigate("/profile/tickets");
     } catch (err) {
       addToast("Hủy vé thất bại: " + (err.response?.data?.message || err.message), "error");

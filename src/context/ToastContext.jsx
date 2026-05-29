@@ -3,10 +3,10 @@ import React, { createContext, useContext, useState, useCallback } from "react";
 const ToastContext = createContext();
 
 const TOAST_DURATIONS = {
-  success: 3200,
-  info: 3600,
-  warning: 4500,
-  error: 5500,
+  success: 1800,   // ngắn để không vướng, quan trọng thì truyền duration dài hơn
+  info: 2400,
+  warning: 4200,
+  error: 5200,
 };
 
 const normalizeToastType = (type = "info") => {
