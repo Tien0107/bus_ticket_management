@@ -177,6 +177,56 @@ export default function Booking() {
 
   const [orderIds, setOrderIds] = useState([]);
 
+  // Tách logic tạo booking (giữ chỗ thật) thành hàm riêng để tái sử dụng
+  const createBookingsForCurrentSelection = async () => {
+    const bookingPromises = bookingData.selectedSeats.map((seat, index) => {
+      const payload = {
+          type: isRoundTrip ? "round_trip" : "one_way",
+          outBound: {
+             tripId: Number(bookingData.tripId),
+             seatId: Number(seat.id),
+             fromStationId: Number(bookingData.pickupId),
+             toStationId: Number(bookingData.dropoffId),
+             companyId: Number(bookingData.companyId)
+          }
+      };
+      
+      if (isRoundTrip && returnBookingData && returnBookingData.selectedSeats[index]) {
+          payload.returnBound = {
+             tripId: Number(returnBookingData.tripId),
+             seatId: Number(returnBookingData.selectedSeats[index].id),
+             fromStationId: Number(returnBookingData.pickupId),
+             toStationId: Number(returnBookingData.dropoffId),
+             companyId: Number(returnBookingData.companyId)
+          };
+      }
+      
+      if (bookingData.coupon?.id) {
+          payload.couponId = Number(bookingData.coupon.id);
+      }
+
+      return createBooking(payload);
+    });
+
+    const bookingResponses = await Promise.all(bookingPromises);
+    const generatedOrderIds = Array.from(
+      new Set(
+        bookingResponses
+          .map((res) => {
+            const data = res?.data || {};
+            return data.bookingId || data.id || data.ticket?.bookingId || data.ticket?.id || null;
+          })
+          .filter(Boolean),
+      ),
+    );
+
+    if (generatedOrderIds.length === 0) {
+      throw new Error("Không thể khởi tạo đặt vé trên Backend.");
+    }
+
+    return generatedOrderIds;
+  };
+
   const handleProceedToCheckout = async () => {
     if (bookingData.selectedSeats.length === 0) {
       addToast("Vui lòng chọn ít nhất 1 ghế chiều đi.", "error");
@@ -186,62 +236,39 @@ export default function Booking() {
       addToast("Vui lòng chọn ít nhất 1 ghế chiều về.", "error");
       return false;
     }
-    setStep(2);
-    return true;
+
+    // QUAN TRỌNG: Phải gọi createBooking (API /customer/booking) TRƯỚC KHI sang trang thanh toán (step 2)
+    // để thực sự giữ chỗ (lock ghế) trên backend.
+    try {
+      const ids = await createBookingsForCurrentSelection();
+      setOrderIds(ids);
+      addToast("Đã giữ chỗ thành công! Vui lòng chọn phương thức thanh toán trong 10 phút.", "success");
+      setStep(2);
+      return true;
+    } catch (err) {
+      console.error("Booking creation error before payment page:", err);
+      if (err.response?.data?.issues) {
+        const msgs = err.response.data.issues.map(i => `${i.field}: ${i.reason}`).join(" | ");
+        addToast("Lỗi khi giữ chỗ: " + msgs, "error");
+      } else {
+        addToast("Lỗi khi giữ chỗ: " + (err.response?.data?.message || err.message || "Không thể tạo đơn đặt vé."), "error");
+      }
+      return false;
+    }
   };
 
   const handleProcessPayment = async () => {
-    try {   
-      const bookingPromises = bookingData.selectedSeats.map((seat, index) => {
-        const payload = {
-            type: isRoundTrip ? "round_trip" : "one_way",
-            outBound: {
-               tripId: Number(bookingData.tripId),
-               seatId: Number(seat.id),
-               fromStationId: Number(bookingData.pickupId),
-               toStationId: Number(bookingData.dropoffId),
-               companyId: Number(bookingData.companyId)
-            }
-        };
-        
-        if (isRoundTrip && returnBookingData && returnBookingData.selectedSeats[index]) {
-            payload.returnBound = {
-               tripId: Number(returnBookingData.tripId),
-               seatId: Number(returnBookingData.selectedSeats[index].id),
-               fromStationId: Number(returnBookingData.pickupId),
-               toStationId: Number(returnBookingData.dropoffId),
-               companyId: Number(returnBookingData.companyId)
-            };
-        }
-        
-        if (bookingData.coupon?.id) {
-            payload.couponId = Number(bookingData.coupon.id);
-        }
-
-        return createBooking(payload);
-      });
-
-      const bookingResponses = await Promise.all(bookingPromises);
-      const generatedOrderIds = Array.from(
-        new Set(
-          bookingResponses
-            .map((res) => {
-              const data = res?.data || {};
-              return data.bookingId || data.id || data.ticket?.bookingId || data.ticket?.id || null;
-            })
-            .filter(Boolean),
-        ),
-      );
-
-      if (generatedOrderIds.length === 0) {
-        addToast("Lỗi: Không thể khởi tạo đặt vé trên Backend.", "error");
+    try {
+      // Booking đã được tạo trước đó (khi bấm "Tiếp tục" từ màn chọn ghế -> sang trang thanh toán)
+      // Nên ở đây CHỈ gọi createPaymentMethod để khởi tạo thanh toán cho order đã có sẵn.
+      if (!orderIds || orderIds.length === 0) {
+        addToast("Không tìm thấy thông tin đơn hàng đã đặt trước. Vui lòng quay lại chọn ghế.", "error");
+        setStep(1);
         return;
       }
+      const activeOrderId = orderIds[0];
 
-      setOrderIds(generatedOrderIds);
-      const activeOrderId = generatedOrderIds[0];
-
-      // 2. Tiến hành thanh toán
+      // Tiến hành thanh toán cho booking đã tạo sẵn
       if (bookingData.paymentMethod === "stripe") {
         await openCardPaymentModal(activeOrderId);
         return;
@@ -258,6 +285,8 @@ export default function Booking() {
           window.location.href = url;
           return;
         }
+        addToast("Không nhận được link thanh toán VNPay từ hệ thống.", "error");
+        return;
       }
 
       if (bookingData.paymentMethod === "cash") {
@@ -290,12 +319,12 @@ export default function Booking() {
       addToast("Thanh toán thành công! Bạn sẽ được chuyển sang trang quản lý vé.", "success");
       navigateToTickets();
     } catch (err) {
-      console.error("Booking & Payment Error:", err);
+      console.error("Payment Error:", err);
       if (err.response?.data?.issues) {
          const msgs = err.response.data.issues.map(i => `${i.field}: ${i.reason}`).join(" | ");
-         addToast("Lỗi khi chốt đặt vé: " + msgs, "error");
+         addToast("Lỗi khi thanh toán: " + msgs, "error");
       } else {
-         addToast("Lỗi khi chốt đặt vé: " + (err.response?.data?.message || err.message), "error");
+         addToast("Lỗi khi thanh toán: " + (err.response?.data?.message || err.message), "error");
       }
     }
   };

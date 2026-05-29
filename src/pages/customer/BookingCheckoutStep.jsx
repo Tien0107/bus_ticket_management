@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { checkCoupon, getMyCoupons } from "../../api/customer";
 import { useToast } from "../../context/ToastContext";
 
 export default function BookingCheckoutStep({ bookingData, returnBookingData, isRoundTrip, setBookingData, onBack, onConfirm }) {
-  const [couponInput, setCouponInput] = useState("");
-  const [couponError, setCouponError] = useState("");
-  const [discountVal, setDiscountVal] = useState(0);
-  const [availableCoupons, setAvailableCoupons] = useState([]);
   const { addToast } = useToast();
   
-  // 10 phút đếm ngược
+  // 10 phút đếm ngược (thời gian giữ chỗ sau khi đã gọi createBooking thành công)
   const [timeLeft, setTimeLeft] = useState(10 * 60);
-
-  const roundTripTotal = (bookingData.totalPrice || 0) + (isRoundTrip && returnBookingData ? (returnBookingData.totalPrice || 0) : 0);
 
   useEffect(() => {
     if (timeLeft <= 0) {
@@ -25,53 +18,6 @@ export default function BookingCheckoutStep({ bookingData, returnBookingData, is
     }, 1000);
     return () => clearInterval(timer);
   }, [timeLeft, onBack]);
-
-  useEffect(() => {
-    const fetchCoupons = async () => {
-      try {
-        const res = await getMyCoupons({ orderTotal: roundTripTotal });
-        setAvailableCoupons(res.data?.coupons || res.data || []);
-      } catch (err) {
-        console.error("Lấy danh sách mã giảm giá thất bại", err);
-      }
-    };
-    fetchCoupons();
-  }, [roundTripTotal]);
-
-  const applyCoupon = async (overrideCode) => {
-    const codeToSubmit = typeof overrideCode === 'string' ? overrideCode : couponInput;
-    if (!codeToSubmit.trim()) {
-       setCouponError("Vui lòng nhập mã!");
-       return;
-    }
-    setCouponInput(codeToSubmit);
-    setCouponError("");
-    try {
-      const res = await checkCoupon({ code: codeToSubmit.trim(), orderTotal: roundTripTotal });
-      const data = res.data;
-      if (data && data.discountAmount) {
-         setDiscountVal(data.discountAmount);
-         setBookingData(p => ({
-            ...p,
-            coupon: { id: data.id || null, detailId: data.detailId || null, code: codeToSubmit }
-         }));
-      } else {
-         setCouponError("Mã không hợp lệ hoặc không có giảm giá.");
-      }
-    } catch (err) {
-      setCouponError(err.response?.data?.message || "Mã không hợp lệ hoặc đã hết hạn.");
-      setDiscountVal(0);
-      setBookingData(p => ({ ...p, coupon: null }));
-    }
-  };
-
-  const handleChangeInfo = (e) => {
-    const { name, value } = e.target;
-    setBookingData(prev => ({
-      ...prev,
-      passengerInfo: { ...prev.passengerInfo, [name]: value }
-    }));
-  };
 
   return (
     <>
@@ -101,39 +47,6 @@ export default function BookingCheckoutStep({ bookingData, returnBookingData, is
         <div className="lg:col-span-7 space-y-8">
           
 
-
-          <section className="bg-surface-container-lowest p-8 rounded-xl shadow-sm">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">sell</span>
-              Mã giảm giá
-            </h2>
-            <div className="flex gap-4">
-              <input value={couponInput} onChange={(e) => setCouponInput(e.target.value)} className="flex-1 bg-surface-container-low border-none rounded-xl p-3 focus:ring-2 focus:ring-primary/20 outline-none" placeholder="Nhập mã ưu đãi" type="text" />
-              <button onClick={applyCoupon} className="bg-surface-container-highest text-on-surface px-8 py-3 rounded-xl font-bold hover:bg-outline-variant transition-colors">Áp dụng</button>
-            </div>
-            {couponError && <p className="text-red-500 text-sm mt-2">{couponError}</p>}
-            {discountVal > 0 && <p className="text-green-600 font-semibold text-sm mt-2">Đã áp dụng mã: Giảm {discountVal.toLocaleString()}đ</p>}
-            
-            {availableCoupons.length > 0 && (
-              <div className="mt-6 border-t border-surface-container pt-4">
-                <p className="text-sm font-semibold text-on-surface-variant mb-3">Mã ưu đãi có sẵn trong Ví:</p>
-                <div className="flex flex-wrap gap-2">
-                  {availableCoupons.map(c => {
-                    const discountLabel = String(c.discountType).toLowerCase() === 'percent'
-                      ? `Giảm ${c.discountValue}%`
-                      : `Giảm ${Number(c.discountValue || 0).toLocaleString()}đ`;
-                    return (
-                      <button key={c.id || c.code} onClick={() => applyCoupon(c.code)} className="flex items-center gap-2 bg-primary/5 hover:bg-primary/20 text-primary border border-primary/20 transition-all px-4 py-2 rounded-xl text-sm font-bold shadow-sm">
-                        <span className="material-symbols-outlined text-[16px]">confirmation_number</span>
-                        <span>{c.code}</span>
-                        <span className="text-xs bg-primary/10 px-2 py-0.5 rounded-full text-primary/80">{discountLabel}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </section>
 
           <section className="bg-surface-container-lowest p-8 rounded-xl shadow-sm">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
@@ -236,16 +149,10 @@ export default function BookingCheckoutStep({ bookingData, returnBookingData, is
                     {((bookingData.totalPrice || 0) + (isRoundTrip && returnBookingData ? (returnBookingData.totalPrice || 0) : 0)).toLocaleString()}đ
                   </span>
                 </div>
-                {discountVal > 0 && (
-                   <div className="flex justify-between text-sm text-green-600">
-                     <span className="font-medium">Giảm giá voucher</span>
-                     <span className="font-bold">-{discountVal.toLocaleString()}đ</span>
-                   </div>
-                )}
                 <div className="pt-4 flex justify-between items-end border-t border-dashed border-outline-variant">
                   <span className="font-bold text-lg">Tổng thanh toán</span>
                   <span className="text-3xl font-extrabold text-[#FF6D00]">
-                    {Math.max(0, ((bookingData.totalPrice || 0) + (isRoundTrip && returnBookingData ? (returnBookingData.totalPrice || 0) : 0)) - discountVal).toLocaleString()}đ
+                    {((bookingData.totalPrice || 0) + (isRoundTrip && returnBookingData ? (returnBookingData.totalPrice || 0) : 0)).toLocaleString()}đ
                   </span>
                 </div>
               </div>
