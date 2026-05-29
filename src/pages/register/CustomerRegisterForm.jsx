@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { customerSignUp } from "../../api/auth";
 import { useToast } from "../../context/ToastContext";
+import { buildAuthenticatedUser, getRedirectUrl } from "../login/authUtils";
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#@$%&!*?^_])[^\s]+$/;
 
@@ -54,9 +55,18 @@ export default function CustomerRegisterForm() {
 
     try {
       setLoading(true);
-      await customerSignUp(payload);
-      addToast("Đăng ký khách hàng thành công", "success");
-      setTimeout(() => navigate("/login"), 500);
+      const res = await customerSignUp(payload);
+      if (res.data?.token) {
+        const { token, user } = buildAuthenticatedUser(res.data);
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        addToast("Đăng ký thành công! Chào mừng bạn đến với BusGo.", "success");
+        const redirectUrl = getRedirectUrl(user);
+        setTimeout(() => navigate(redirectUrl, { replace: true }), 500);
+      } else {
+        addToast("Đăng ký khách hàng thành công", "success");
+        setTimeout(() => navigate("/login"), 500);
+      }
     } catch (err) {
       const data = err.response?.data;
       const errorMessage = Array.isArray(data?.issues)

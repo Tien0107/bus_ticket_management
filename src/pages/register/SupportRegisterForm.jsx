@@ -109,10 +109,12 @@ export default function SupportRegisterForm() {
       if (res.data?.token) {
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("user", JSON.stringify(res.data.user));
-        addToast("Đăng ký nhân viên hỗ trợ thành công!", "success");
+        const successMessage = res.data?.message || "Đăng ký nhân viên hỗ trợ thành công!";
+        addToast(successMessage, "success");
         setTimeout(() => navigate("/company-support/tickets"), 500);
       } else {
-        addToast("Đăng ký thành công! Vui lòng chờ công ty duyệt hoặc đăng nhập.", "success");
+        const successMessage = res.data?.message || "Đăng ký thành công! Vui lòng chờ công ty duyệt hoặc đăng nhập.";
+        addToast(successMessage, "success");
         setTimeout(() => navigate("/login"), 500);
       }
     } catch (err) {

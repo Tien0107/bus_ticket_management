@@ -105,8 +105,9 @@ export default function OperatorRegisterForm() {
 
     try {
       setLoading(true);
-      await operatorSignUp(payload);
-      addToast("Đăng ký nhân viên điều hành thành công", "success");
+      const res = await operatorSignUp(payload);
+      const successMessage = res.data?.message || "Đăng ký nhân viên điều hành thành công";
+      addToast(successMessage, "success");
       setTimeout(() => navigate("/login"), 500);
     } catch (err) {
       const data = err.response?.data;

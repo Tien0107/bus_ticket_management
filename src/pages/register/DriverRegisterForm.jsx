@@ -103,8 +103,9 @@ export default function DriverRegisterForm() {
 
     try {
       setLoading(true);
-      await driverSignUp(payload);
-      addToast("Đăng ký tài xế thành công", "success");
+      const res = await driverSignUp(payload);
+      const successMessage = res.data?.message || "Đăng ký tài xế thành công";
+      addToast(successMessage, "success");
       setTimeout(() => navigate("/login"), 500);
     } catch (err) {
       const data = err.response?.data;
