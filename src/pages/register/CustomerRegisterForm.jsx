@@ -10,7 +10,6 @@ export default function CustomerRegisterForm() {
   const { addToast } = useToast();
   const [form, setForm] = useState({
     fullName: "",
-    username: "",
     email: "",
     phone: "",
     password: "",
@@ -45,7 +44,6 @@ export default function CustomerRegisterForm() {
     }
 
     const payload = {
-      username: form.username,
       fullName: form.fullName,
       contactInfo: {
         email: form.email,
@@ -93,19 +91,6 @@ export default function CustomerRegisterForm() {
           placeholder="Nguyễn Văn A"
           type="text"
           value={form.fullName}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-on-surface-variant ml-1">Tên đăng nhập</label>
-        <input
-          name="username"
-          className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
-          placeholder="nguyenvana"
-          type="text"
-          value={form.username}
           onChange={handleChange}
           required
         />
