@@ -279,7 +279,7 @@ const Home = () => {
       try {
         setPromotionsLoading(true);
 
-        const promoRes = await getPromotions({ limit: 10 });
+        const promoRes = await getPromotions({ limit: 10, status: true });
         const items = promoRes.data?.items || promoRes.data?.data || [];
         setPromotions(Array.isArray(items) ? items : []);
         setPromotionsError(null);
