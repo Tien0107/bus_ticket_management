@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   getMyTickets,
   cancelTicket,
@@ -7,7 +7,7 @@ import {
   setDefaultPaymentMethod,
 } from "../../api/customer";
 import { createNotification } from "../../api/notification";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import CustomerProfileNav from "../../components/profile/CustomerProfileNav";
 import CustomerProfileSectionHeader from "../../components/profile/CustomerProfileSectionHeader";
@@ -20,6 +20,11 @@ const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 const DELETED_TICKETS_STORAGE_KEY = "busgo_deleted_tickets";
 const EXPIRED_TICKETS_STORAGE_KEY = "busgo_expired_tickets";
+const ticketTypeFilters = [
+  { id: "ALL", label: "Tất cả loại" },
+  { id: "one_way", label: "Một chiều" },
+  { id: "round_trip", label: "Khứ hồi" },
+];
 
 const readStoredTicketIds = (key) => {
   try {
@@ -84,6 +89,20 @@ const getDisplayTicketStatus = (ticket) => {
   return currentStatus;
 };
 
+const getTicketBookingType = (ticket) => {
+  return String(
+    ticket?.bookingType ||
+      ticket?.type ||
+      ticket?.booking?.bookingType ||
+      ticket?.booking?.type ||
+      "one_way",
+  ).toLowerCase();
+};
+
+const getTicketTypeLabel = (type) => (type === "round_trip" ? "Khứ hồi" : "Một chiều");
+
+const hasCursorValue = (cursor) => cursor !== null && cursor !== undefined && cursor !== "";
+
 const CountdownTimer = ({ expiredAt, onExpire }) => {
   const [timeLeft, setTimeLeft] = useState(new Date(expiredAt).getTime() - Date.now());
   const hasExpiredRef = React.useRef(false);
@@ -137,15 +156,20 @@ export default function MyTickets() {
   
   // Filter State
   const [filterStatus, setFilterStatus] = useState("ALL");
+  const [filterType, setFilterType] = useState("ALL");
   
   // Pagination & Scroll States
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToast } = useToast();
+  const refreshSignal =
+    location.state?.refreshTickets || new URLSearchParams(location.search).get("refresh") || "";
+  const hasActiveFilters = filterStatus !== "ALL" || filterType !== "ALL";
 
-  const fetchTickets = async (cursor = null, isLoadMore = false) => {
+  const fetchTickets = useCallback(async (cursor = null, isLoadMore = false) => {
     try {
       if (isLoadMore) {
         setLoadingMore(true);
@@ -154,14 +178,17 @@ export default function MyTickets() {
       }
       
       const params = { limit: 10 };
-      if (cursor) {
+      if (hasCursorValue(cursor)) {
         params.next = cursor;
+      }
+      if (filterType !== "ALL") {
+        params.type = filterType;
       }
       
       const res = await getMyTickets(params);
       const raw = res.data || {};
       let list = raw.tickets || (Array.isArray(raw) ? raw : (raw.data?.tickets || raw.data || []));
-      const next = raw.next || res.data?.next || null;
+      const next = raw.next ?? raw.data?.next ?? null;
       
       // Xóa vé ảo (Lọc khỏi danh sách hiển thị)
       const deletedIds = readStoredTicketIds(DELETED_TICKETS_STORAGE_KEY);
@@ -188,16 +215,22 @@ export default function MyTickets() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [filterType, navigate]);
 
   useEffect(() => {
     fetchTickets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!refreshSignal) return undefined;
+
+    const timeoutId = setTimeout(() => {
+      fetchTickets();
+    }, 1200);
+
+    return () => clearTimeout(timeoutId);
+  }, [fetchTickets, refreshSignal]);
 
   useEffect(() => {
     const handleScroll = () => {
-      if (loading || loadingMore || !nextCursor) return;
+      if (loading || loadingMore || !hasCursorValue(nextCursor)) return;
       
       const threshold = 150;
       const totalHeight = document.documentElement.scrollHeight;
@@ -210,7 +243,7 @@ export default function MyTickets() {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [loading, loadingMore, nextCursor]);
+  }, [fetchTickets, loading, loadingMore, nextCursor]);
 
   const executeCancel = async (id, isAuto = false) => {
     try {
@@ -300,7 +333,6 @@ export default function MyTickets() {
         }
       } else if (method === "stripe") {
         const clientSecret = res.data?.clientSecret;
-        const paymentIntentId = res.data?.paymentIntentId;
 
         if (!clientSecret) {
           addToast("Không nhận được clientSecret từ backend để thanh toán Stripe.", "error");
@@ -325,7 +357,6 @@ export default function MyTickets() {
           return;
         }
 
-        const paidIntentId = paymentIntent?.id || paymentIntentId;
         if (paymentIntent?.status === "succeeded") {
           addToast(`Thanh toán thành công!`, "success");
           fetchTickets();
@@ -406,22 +437,37 @@ export default function MyTickets() {
         
         <CustomerProfileNav />
 
-        {tickets.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-6 mb-6">
-            {[
-              { id: 'ALL', label: 'Tất cả' },
-              { id: 'PENDING', label: 'Chờ thanh toán' },
-              { id: 'COMPLETED', label: 'Đã thanh toán / Hoàn thành' },
-              { id: 'CANCELLED', label: 'Đã hủy' }
-            ].map(f => (
-              <button 
-                key={f.id}
-                onClick={() => setFilterStatus(f.id)}
-                className={`px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm ${filterStatus === f.id ? 'bg-primary text-white' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}`}
-              >
-                {f.label}
-              </button>
-            ))}
+        {(tickets.length > 0 || hasActiveFilters) && (
+          <div className="mt-6 mb-6 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'ALL', label: 'Tất cả' },
+                { id: 'PENDING', label: 'Chờ thanh toán' },
+                { id: 'COMPLETED', label: 'Đã thanh toán / Hoàn thành' },
+                { id: 'CANCELLED', label: 'Đã hủy' }
+              ].map(f => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setFilterStatus(f.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm ${filterStatus === f.id ? 'bg-primary text-white' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ticketTypeFilters.map(f => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setFilterType(f.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm ${filterType === f.id ? 'bg-secondary text-white' : 'bg-surface-container-low text-secondary hover:bg-secondary/10'}`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -437,7 +483,7 @@ export default function MyTickets() {
 
         {loading ? (
           <p className="text-on-surface-variant animate-pulse mt-6">Đang tải danh sách vé...</p>
-        ) : tickets.length === 0 ? (
+        ) : tickets.length === 0 && !hasActiveFilters ? (
           <div className="bg-surface-container-lowest p-12 text-center rounded-2xl shadow-sm border border-surface-container mt-6">
              <span className="material-symbols-outlined text-6xl text-on-surface-variant mb-4">confirmation_number</span>
              <h2 className="text-xl font-bold text-on-surface mb-2">Chưa có vé nào</h2>
@@ -446,6 +492,8 @@ export default function MyTickets() {
           </div>
         ) : (() => {
           const filteredTickets = tickets.filter(t => {
+            const currentType = getTicketBookingType(t);
+            if (filterType !== 'ALL' && currentType !== filterType) return false;
             if (filterStatus === 'ALL') return true;
             
             const currentStatus = getDisplayTicketStatus(t);
@@ -495,7 +543,7 @@ export default function MyTickets() {
                            {statusLabel}
                          </span>
                       </div>
-                      <h3 className="font-bold text-lg">Loại hành trình: {t.bookingType === 'round_trip' ? 'Khứ hồi' : 'Một chiều'}</h3>
+                      <h3 className="font-bold text-lg">Loại hành trình: {getTicketTypeLabel(getTicketBookingType(t))}</h3>
                       <p className="text-sm text-on-surface-variant"><span className="material-symbols-outlined text-[16px] align-text-bottom mr-1">calendar_month</span>Khởi hành: {t.departureDate ? new Date(t.departureDate).toLocaleString('vi-VN') : 'N/A'}</p>
                       
                                               {(() => {

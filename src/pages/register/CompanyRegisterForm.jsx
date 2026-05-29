@@ -17,7 +17,6 @@ export default function CompanyRegisterForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(false);
 
   // Company dropdown state
   const [companies, setCompanies] = useState([]);
@@ -81,7 +80,6 @@ export default function CompanyRegisterForm() {
     if (form.password.length < 8) return "Mật khẩu tối thiểu 8 ký tự";
     if (!form.companyId) return "Vui lòng chọn công ty";
     if (!Number.isFinite(Number(form.companyId))) return "Công ty không hợp lệ";
-    if (!agreeTerms) return "Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật.";
     return "";
   };
 

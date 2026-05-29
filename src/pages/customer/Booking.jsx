@@ -22,6 +22,16 @@ export default function Booking() {
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast } = useToast();
+
+  const navigateToTickets = (options = {}) => {
+    navigate("/profile/tickets", {
+      ...options,
+      state: {
+        ...(options.state || {}),
+        refreshTickets: Date.now(),
+      },
+    });
+  };
   
   const today = new Date().toISOString().split('T')[0];
   
@@ -57,18 +67,18 @@ export default function Booking() {
     const clientSecret = paymentRes.data?.clientSecret;
     if (!clientSecret) {
       addToast("Đặt vé thành công nhưng không nhận được clientSecret thanh toán thẻ.");
-      navigate("/profile/tickets");
+      navigateToTickets();
       return;
     }
     if (!stripePromise) {
       addToast("Thiếu cấu hình Stripe key (REACT_APP_STRIPE_PUBLISHABLE_KEY).");
-      navigate("/profile/tickets");
+      navigateToTickets();
       return;
     }
     const stripe = await stripePromise;
     if (!stripe) {
       addToast("Không thể khởi tạo Stripe.");
-      navigate("/profile/tickets");
+      navigateToTickets();
       return;
     }
     const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
@@ -76,7 +86,7 @@ export default function Booking() {
     });
     if (error) {
       addToast("Thanh toán thẻ thất bại: " + (error.message || "Unknown error"));
-      navigate("/profile/tickets");
+      navigateToTickets();
       return;
     }
     if (paymentIntent?.status === "succeeded") {
@@ -100,7 +110,7 @@ export default function Booking() {
     } else {
       addToast(`Thanh toán trả về trạng thái: ${paymentIntent?.status || "unknown"}`);
     }
-    navigate("/profile/tickets");
+    navigateToTickets();
   };
 
   const openCardPaymentModal = async (orderId) => {
@@ -123,7 +133,7 @@ export default function Booking() {
     } catch (err) {
       setShowCardModal(false);
       addToast("Không thể tải danh sách thẻ: " + (err.response?.data?.message || err.message));
-      navigate("/profile/tickets");
+      navigateToTickets();
     } finally {
       setLoadingCards(false);
     }
@@ -142,7 +152,7 @@ export default function Booking() {
       await performStripePayment(pendingOrderId, paymentMethodId);
     } catch (err) {
       addToast("Không thể đặt thẻ mặc định để thanh toán: " + (err.response?.data?.message || err.message));
-      navigate("/profile/tickets");
+      navigateToTickets();
     } finally {
       setProcessingCardPayment(false);
     }
@@ -159,7 +169,7 @@ export default function Booking() {
       await performStripePayment(pendingOrderId, paymentMethodId);
     } catch (err) {
       addToast("Không thể thanh toán bằng thẻ mới: " + (err.response?.data?.message || err.message));
-      navigate("/profile/tickets");
+      navigateToTickets();
     } finally {
       setProcessingCardPayment(false);
     }
@@ -273,12 +283,12 @@ export default function Booking() {
             "Đặt vé thành công! Đã ghi nhận thanh toán tiền mặt. Vui lòng thanh toán tại quầy trước giờ xuất bến.",
           "success"
         );
-        navigate("/profile/tickets");
+        navigateToTickets();
         return;
       }
 
       addToast("Thanh toán thành công! Bạn sẽ được chuyển sang trang quản lý vé.", "success");
-      navigate("/profile/tickets");
+      navigateToTickets();
     } catch (err) {
       console.error("Booking & Payment Error:", err);
       if (err.response?.data?.issues) {
@@ -343,7 +353,7 @@ export default function Booking() {
         onClose={() => {
           if (processingCardPayment) return;
           setShowCardModal(false);
-          navigate("/profile/tickets");
+          navigateToTickets();
         }}
         cards={cards}
         loading={loadingCards}

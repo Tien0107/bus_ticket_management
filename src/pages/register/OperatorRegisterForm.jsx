@@ -20,7 +20,6 @@ export default function OperatorRegisterForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(false);
 
   // Company dropdown state
   const [companies, setCompanies] = useState([]);
@@ -73,7 +72,6 @@ export default function OperatorRegisterForm() {
   };
 
   const validate = () => {
-    if (!agreeTerms) return "Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật.";
     if (form.password !== form.confirmPassword) return "Mật khẩu xác nhận không khớp.";
     if (!passwordRegex.test(form.password)) {
       return "Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt (#@$%&!*?^_), không có dấu cách.";
