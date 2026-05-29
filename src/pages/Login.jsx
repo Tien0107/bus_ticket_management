@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signIn } from "../api/auth";
+import { getOperatorProfile } from "../api/operator";
 import LoginForm from "./login/LoginForm";
 import SocialLoginButtons from "./login/SocialLoginButtons";
-import { buildAuthenticatedUser, getRedirectUrl } from "./login/authUtils";
+import { buildAuthenticatedUser, getRedirectUrl, normalizeRole } from "./login/authUtils";
 
 const getLoginIdentifierMeta = (value) => {
   const rawValue = value.trim();
@@ -71,6 +72,46 @@ const getIdentifierValidationError = (value) => {
   return "";
 };
 
+const pickOperatorProfile = (data) => {
+  if (data?.user) return data.user;
+  if (data?.data?.user) return data.data.user;
+  if (data?.profile) return data.profile;
+  if (data?.data && !Array.isArray(data.data)) return data.data;
+  return data || {};
+};
+
+const mergeOperatorProfileIntoUser = (user, profile) => {
+  if (!profile || typeof profile !== "object") return user;
+
+  const staffProfile = { ...(user.staffProfile || {}), ...profile };
+  delete staffProfile.position;
+  delete staffProfile.department;
+  delete staffProfile.identityNumber;
+
+  const nextUser = {
+    ...user,
+    staffProfile,
+    fullName: profile.fullName || user.fullName,
+    status: profile.status || user.status,
+    companyId: profile.companyId ?? profile.company_id ?? user.companyId,
+    staffCode: profile.staffCode ?? profile.staff_code ?? user.staffCode,
+    hireDate: profile.hireDate ?? profile.hire_date ?? user.hireDate,
+    accountStripeId:
+      profile.accountStripeId ??
+      profile.account_stripe_id ??
+      profile.stripeAccountId ??
+      user.accountStripeId,
+  };
+
+  delete nextUser.position;
+  delete nextUser.department;
+  delete nextUser.identityNumber;
+
+  return nextUser;
+};
+
+const shouldLoadOperatorProfile = (user) => normalizeRole(user?.role) === "operator";
+
 function Login() {
   const navigate = useNavigate();
   const [identifier, setIdentifier] = useState("");
@@ -82,11 +123,22 @@ function Login() {
   const completeLogin = useCallback(
     async (data) => {
       const { token, user } = buildAuthenticatedUser(data);
+      let nextUser = user;
 
       localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("user", JSON.stringify(nextUser));
 
-      const redirectUrl = getRedirectUrl(user);
+      if (shouldLoadOperatorProfile(nextUser)) {
+        try {
+          const profileResponse = await getOperatorProfile();
+          nextUser = mergeOperatorProfileIntoUser(nextUser, pickOperatorProfile(profileResponse.data));
+          localStorage.setItem("user", JSON.stringify(nextUser));
+        } catch {
+          // Không chặn đăng nhập nếu API staff profile tạm thời không trả dữ liệu.
+        }
+      }
+
+      const redirectUrl = getRedirectUrl(nextUser);
       navigate(redirectUrl, { replace: true });
     },
     [navigate]

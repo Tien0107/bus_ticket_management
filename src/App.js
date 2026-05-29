@@ -51,10 +51,12 @@ import Prices from "./pages/operator/Prices";
 import OperatorSchedules from "./pages/operator/Schedules";
 import StoppingPoints from "./pages/operator/StoppingPoints";
 import Trips from "./pages/operator/Trips";
+import OperatorProfile from "./pages/operator/OperatorProfile";
 
 // Company Support Pages
 import SupportTickets from "./pages/company-support/SupportTickets";
 import SupportCoupons from "./pages/company-support/SupportCoupons";
+import SupportProfile from "./pages/company-support/SupportProfile";
 
 // Super Admin Pages
 import SuperAdminDashboard from "./pages/super-admin/SuperAdminDashboard";
@@ -176,6 +178,14 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route
+            path="/company-support/profile"
+            element={
+              <PrivateRoute>
+                <SupportProfile />
+              </PrivateRoute>
+            }
+          />
 
           {/* Dashboard Layout */}
           <Route element={<DashboardLayout />}>
@@ -194,10 +204,12 @@ function App() {
             <Route path="/company/staff" element={<Staff />} />
             <Route path="/company/payments" element={<CompanyPayments />} />
             <Route path="/company/profile" element={<CompanyProfile />} />
+            <Route path="/company/staff-profile" element={<Navigate to="/company/profile" replace />} />
 
             {/* Operator */}
             <Route path="/operator" element={<Navigate to="/operator/dashboard" replace />} />
             <Route path="/operator/dashboard" element={<OperatorDashboard />} />
+            <Route path="/operator/profile" element={<OperatorProfile />} />
             <Route path="/operator/routes" element={<OperatorRoutes />} />
             <Route path="/operator/stations" element={<Stations />} />
             <Route path="/operator/prices" element={<Prices />} />

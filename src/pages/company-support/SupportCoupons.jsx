@@ -280,6 +280,7 @@ export default function SupportCoupons() {
   const sidebarItems = [
     { icon: "confirmation_number", label: "Quản lý vé", path: "/company-support/tickets" },
     { icon: "sell", label: "Mã khuyến mãi", path: "/company-support/coupons", active: true },
+    { icon: "person", label: "Hồ sơ", path: "/company-support/profile" },
   ];
 
   const currencyField = ({ label, field, required = false, disabled = false, helper = "", placeholder = "0" }) => (

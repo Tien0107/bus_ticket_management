@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../../api/auth";
 import { cancelSupportTicket, getSupportTicketDetail, getSupportTickets } from "../../api/companySupport";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const LIMIT = 20;
-
 const formatVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 
 const extractTickets = (response) => {
@@ -51,6 +51,7 @@ export default function SupportTickets() {
   const [appliedSearch, setAppliedSearch] = useState("");
   const [viewTicket, setViewTicket] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [actionError, setActionError] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -136,19 +137,44 @@ export default function SupportTickets() {
     }
   };
 
-  const handleCancel = async (id) => {
+  const canCancelTicket = (ticket) =>
+    ticket && !["cancelled", "expired"].includes(String(ticket.status || "").toLowerCase());
+
+  const openCancelConfirm = (ticket) => {
+    setActionError("");
+    setCancelTarget(ticket);
+  };
+
+  const closeCancelConfirm = () => {
+    if (cancelLoading) return;
+    setCancelTarget(null);
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!cancelTarget?.id || cancelLoading) return;
+
     try {
       setCancelLoading(true);
       setActionError("");
-      const response = await cancelSupportTicket(id);
-      const data = response.data;
-      const updatedApiTicket = data?.tickets?.find((ticket) => ticket.id === id);
-      const nextStatus = updatedApiTicket || { status: "cancelled" };
+      setError("");
+      const response = await cancelSupportTicket(cancelTarget.id);
+      const updatedTicket = response.data?.tickets?.find((ticket) => String(ticket.id) === String(cancelTarget.id)) || {
+        id: cancelTarget.id,
+        status: "cancelled",
+      };
 
-      setTickets((prev) => prev.map((ticket) => (ticket.id === id ? { ...ticket, ...nextStatus } : ticket)));
-      setViewTicket((prev) => (prev ? { ...prev, ...nextStatus } : null));
+      setTickets((prev) =>
+        prev.map((ticket) => (String(ticket.id) === String(cancelTarget.id) ? { ...ticket, ...updatedTicket } : ticket))
+      );
+      setViewTicket((prev) =>
+        prev && String(prev.id) === String(cancelTarget.id) ? { ...prev, ...updatedTicket } : prev
+      );
+      setCancelTarget(null);
     } catch (err) {
-      setActionError(err.response?.data?.message || "Hủy vé thất bại. Vui lòng thử lại.");
+      const message = err.response?.data?.message || "Hủy vé thất bại. Vui lòng thử lại.";
+      setActionError(message);
+      setError(message);
+      setCancelTarget(null);
     } finally {
       setCancelLoading(false);
     }
@@ -191,6 +217,7 @@ export default function SupportTickets() {
   const sidebarItems = [
     { icon: "confirmation_number", label: "Quản lý vé", path: "/company-support/tickets", active: true },
     { icon: "sell", label: "Mã khuyến mãi", path: "/company-support/coupons" },
+    { icon: "person", label: "Hồ sơ", path: "/company-support/profile" },
   ];
 
   const statusFilters = [
@@ -206,8 +233,6 @@ export default function SupportTickets() {
     { label: "Một chiều", value: "one_way" },
     { label: "Khứ hồi", value: "round_trip" },
   ];
-
-  const canCancelViewTicket = viewTicket && !["cancelled", "expired"].includes(String(viewTicket.status || "").toLowerCase());
 
   return (
     <div className="flex min-h-screen bg-surface font-body text-on-surface">
@@ -434,14 +459,26 @@ export default function SupportTickets() {
                           </span>
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleView(ticket.id)}
-                            className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
-                          >
-                            <span className="material-symbols-outlined text-[18px]">visibility</span>
-                            Chi tiết
-                          </button>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleView(ticket.id)}
+                              className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">visibility</span>
+                              Chi tiết
+                            </button>
+                            {canCancelTicket(ticket) ? (
+                              <button
+                                type="button"
+                                onClick={() => openCancelConfirm(ticket)}
+                                className="inline-flex h-9 items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-bold text-red-700 transition-colors hover:bg-red-100"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">cancel</span>
+                                Hủy vé
+                              </button>
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -535,19 +572,15 @@ export default function SupportTickets() {
                 >
                   Đóng
                 </button>
-                {canCancelViewTicket ? (
+                {canCancelTicket(viewTicket) ? (
                   <button
                     type="button"
-                    onClick={() => handleCancel(viewTicket.id)}
+                    onClick={() => openCancelConfirm(viewTicket)}
                     disabled={cancelLoading}
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-5 text-sm font-extrabold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {cancelLoading ? (
-                      <>
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-300 border-t-red-700" />
-                        Đang xử lý...
-                      </>
-                    ) : "Hủy vé này"}
+                    <span className="material-symbols-outlined text-[19px]">cancel</span>
+                    Hủy vé này
                   </button>
                 ) : null}
               </div>
@@ -555,6 +588,16 @@ export default function SupportTickets() {
           </div>
         </div>
       ) : null}
+      <ConfirmModal
+        isOpen={Boolean(cancelTarget)}
+        title="Hủy vé"
+        message={`Bạn có chắc muốn hủy vé #${cancelTarget?.id || ""}? Trạng thái vé sẽ được cập nhật theo phản hồi từ hệ thống.`}
+        confirmText={cancelLoading ? "Đang hủy..." : "Hủy vé"}
+        cancelText="Giữ lại"
+        confirmColor="bg-red-600"
+        onConfirm={handleCancelConfirm}
+        onCancel={closeCancelConfirm}
+      />
     </div>
   );
 }

@@ -12,10 +12,28 @@ export default function DashboardLayout() {
   const location = useLocation();
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      setUser(JSON.parse(stored));
-    }
+    const syncStoredUser = () => {
+      try {
+        const stored = localStorage.getItem("user");
+        if (stored) {
+          setUser(JSON.parse(stored));
+        } else {
+          setUser(null);
+        }
+      } catch {
+        localStorage.removeItem("user");
+        setUser(null);
+      }
+    };
+
+    syncStoredUser();
+    window.addEventListener("storage", syncStoredUser);
+    window.addEventListener("busgo:user-updated", syncStoredUser);
+
+    return () => {
+      window.removeEventListener("storage", syncStoredUser);
+      window.removeEventListener("busgo:user-updated", syncStoredUser);
+    };
   }, []);
 
   if (!token) {
@@ -203,6 +221,7 @@ export default function DashboardLayout() {
               {renderNavLink("/operator/stations", "location_on", "Trạm")}
               {renderNavLink("/operator/prices", "local_offer", "Bảng giá")}
               {renderNavLink("/operator/schedules", "schedule", "Lịch biểu")}
+              {renderNavLink("/operator/profile", "person", "Hồ sơ")}
             </>
           )}
 

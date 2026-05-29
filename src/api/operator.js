@@ -1,5 +1,15 @@
 import axiosClient from "./axiosClient";
 
+/* ========== Shared Operator Profile Endpoints ========== */
+
+export const getOperatorProfile = () => {
+  return axiosClient.get("/operator/profile");
+};
+
+export const updateOperatorProfile = (data) => {
+  return axiosClient.put("/operator/profile", data);
+};
+
 /* ========== Operator Dispatcher Endpoints ========== */
 
 // ===== Routes =====

@@ -462,7 +462,6 @@ export default function Trips() {
             <option value="scheduled">Sắp chạy</option>
             <option value="running">Đang chạy</option>
             <option value="completed">Hoàn thành</option>
-            <option value="cancelled">Đã hủy</option>
           </SelectControl>
           <input
             type="date"
@@ -701,7 +700,6 @@ export default function Trips() {
                   <option value="scheduled">Sắp chạy</option>
                   <option value="running">Đang chạy</option>
                   <option value="completed">Hoàn thành</option>
-                  <option value="cancelled">Đã hủy</option>
                 </SelectControl>
               </Field>
             </div>

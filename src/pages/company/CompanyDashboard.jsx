@@ -31,9 +31,9 @@ const quickLinks = [
   },
   {
     to: "/company/profile",
-    icon: "domain",
+    icon: "person",
     title: "Hồ sơ",
-    description: "Cập nhật tên, hotline, logo và địa chỉ công ty.",
+    description: "Cập nhật thông tin công ty và hồ sơ cá nhân.",
   },
 ];
 

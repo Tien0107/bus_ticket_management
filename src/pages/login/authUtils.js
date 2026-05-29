@@ -115,16 +115,57 @@ const getCompanyIdValue = (source) =>
     getField(source?.staff_profile, ["companyId", "company_id", "operatorCompanyId", "operator_company_id"])
   );
 
+const getStaffProfileValue = (source) =>
+  firstValue(
+    getField(source, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
+    getField(source?.user, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
+    getField(source?.data, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
+    getField(source?.data?.user, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
+    getField(source?.profile, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"]),
+    getField(source?.data?.profile, ["staffProfile", "staff_profile", "operatorProfile", "operator_profile"])
+  );
+
+const mergeStaffProfileFields = (user, staffProfile) => {
+  if (!staffProfile || typeof staffProfile !== "object") return user;
+
+  const sanitizedStaffProfile = { ...(user.staffProfile || {}), ...staffProfile };
+  delete sanitizedStaffProfile.position;
+  delete sanitizedStaffProfile.department;
+  delete sanitizedStaffProfile.identityNumber;
+  user.staffProfile = sanitizedStaffProfile;
+
+  const companyId = firstValue(staffProfile.companyId, staffProfile.company_id);
+  const accountStripeId = firstValue(staffProfile.accountStripeId, staffProfile.account_stripe_id, staffProfile.stripeAccountId);
+  const hireDate = firstValue(staffProfile.hireDate, staffProfile.hire_date);
+
+  if (staffProfile.fullName && !user.fullName) user.fullName = staffProfile.fullName;
+  if (staffProfile.full_name && !user.fullName) user.fullName = staffProfile.full_name;
+  if (staffProfile.status) user.status = staffProfile.status;
+  if (companyId !== undefined) user.companyId = companyId;
+  if (staffProfile.staffCode !== undefined) user.staffCode = staffProfile.staffCode;
+  if (staffProfile.staff_code !== undefined) user.staffCode = staffProfile.staff_code;
+  if (hireDate !== undefined) user.hireDate = hireDate;
+  if (accountStripeId !== undefined) user.accountStripeId = accountStripeId;
+
+  delete user.position;
+  delete user.department;
+  delete user.identityNumber;
+
+  return user;
+};
+
 export const mergeAuthClaims = (user, source) => {
   if (!source || typeof source !== "object") return user;
 
   const role = getRoleValue(source);
   const staffProfileRole = getStaffProfileRoleValue(source);
   const companyId = getCompanyIdValue(source);
+  const staffProfile = getStaffProfileValue(source);
 
   if (role) user.role = normalizeRole(role);
   if (staffProfileRole) user.staffProfileRole = normalizeStaffProfileRole(staffProfileRole);
   if (companyId !== undefined) user.companyId = companyId;
+  user = mergeStaffProfileFields(user, staffProfile);
   if (source.accountStripeId !== undefined) user.accountStripeId = source.accountStripeId;
   if (source.account_stripe_id !== undefined) user.accountStripeId = source.account_stripe_id;
   if (source.stripeAccountId !== undefined) user.accountStripeId = source.stripeAccountId;

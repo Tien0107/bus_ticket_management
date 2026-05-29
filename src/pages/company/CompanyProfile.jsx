@@ -10,13 +10,12 @@ import {
   CompanyPageShell,
   EmptyState,
   Field,
-  IconButton,
   LoadingState,
   PrimaryButton,
   SecondaryButton,
-  StatusBadge,
   inputClass,
 } from "./CompanyUI";
+import OperatorProfileCard from "../../components/profile/OperatorProfileCard";
 
 const emptyCompanyForm = {
   name: "",
@@ -27,10 +26,17 @@ const emptyCompanyForm = {
   longitude: "",
 };
 
-const InfoItem = ({ label, value }) => (
-  <div className="rounded-lg bg-surface-container-low p-4">
-    <p className="text-sm font-medium text-on-surface-variant">{label}</p>
-    <p className="mt-1 break-words font-bold text-on-surface">{value || "—"}</p>
+const displayValue = (value) => (value === undefined || value === null || value === "" ? "—" : value);
+
+const CompanyInfoRow = ({ icon, label, value, wide = false }) => (
+  <div className={`flex min-w-0 items-start gap-3 px-5 py-4 ${wide ? "lg:col-span-2" : ""}`}>
+    <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+      <span className="material-symbols-outlined text-[21px] leading-none">{icon}</span>
+    </span>
+    <div className="min-w-0">
+      <p className="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">{label}</p>
+      <p className="mt-1 break-words text-base font-extrabold text-on-surface">{displayValue(value)}</p>
+    </div>
   </div>
 );
 
@@ -80,7 +86,6 @@ export default function CompanyProfile() {
 
   const [profile, setProfile] = useState(null);
   const [formData, setFormData] = useState(emptyCompanyForm);
-  const [currentUser, setCurrentUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -89,9 +94,6 @@ export default function CompanyProfile() {
   const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
-      const stored = localStorage.getItem("user");
-      setCurrentUser(stored ? JSON.parse(stored) : null);
-
       const response = await getCompanyInfo();
       const companyData = normalizeCompany(response.data?.company || response.data);
       setProfile(companyData);
@@ -174,7 +176,7 @@ export default function CompanyProfile() {
 
   if (loading) {
     return (
-      <CompanyPageShell title="Hồ sơ công ty" description="Đang tải thông tin công ty.">
+      <CompanyPageShell title="Hồ sơ" description="Đang tải thông tin công ty.">
         <LoadingState />
       </CompanyPageShell>
     );
@@ -182,7 +184,7 @@ export default function CompanyProfile() {
 
   if (!profile) {
     return (
-      <CompanyPageShell title="Hồ sơ công ty" description="Quản lý thông tin công ty.">
+      <CompanyPageShell title="Hồ sơ" description="Quản lý thông tin công ty và hồ sơ cá nhân.">
         <EmptyState icon="warning" title="Không thể tải hồ sơ công ty" description="Vui lòng thử lại sau." />
       </CompanyPageShell>
     );
@@ -193,62 +195,81 @@ export default function CompanyProfile() {
   return (
     <CompanyPageShell
       eyebrow="Profile"
-      title="Hồ sơ công ty"
-      description="Cập nhật tên, hotline, logo và địa chỉ theo đúng dữ liệu backend đang hỗ trợ."
-      maxWidth="max-w-6xl"
+      title="Hồ sơ"
+      description="Quản lý hồ sơ công ty và hồ sơ cá nhân của tài khoản quản trị."
+      maxWidth="max-w-7xl"
     >
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <section className="rounded-xl border border-outline-variant/30 bg-white shadow-sm">
-          <div className="border-b border-outline-variant/20 p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] xl:items-start">
+        <section className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
+          <div className="p-5">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 items-center gap-4">
                 {logoPreviewUrl ? (
                   <img
                     src={logoPreviewUrl}
                     alt={profile.name || "Logo công ty"}
-                    className="h-14 w-14 rounded-xl border border-outline-variant/30 object-cover"
+                    className="h-16 w-16 rounded-xl border border-outline-variant/30 object-cover"
                   />
                 ) : (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <span className="material-symbols-outlined text-[30px]">domain</span>
                   </div>
                 )}
-                <div>
-                  <h2 className="text-xl font-extrabold text-on-surface">{profile.name || "Công ty"}</h2>
-                  <p className="mt-1 text-sm text-on-surface-variant">
-                    ID công ty: <span className="font-bold">{profile.id || "—"}</span>
-                  </p>
+                <div className="min-w-0">
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-primary">Hồ sơ công ty</p>
+                  <h2 className="mt-1 truncate text-2xl font-extrabold text-on-surface">{profile.name || "Công ty"}</h2>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span className="inline-flex rounded-full bg-surface-container-low px-3 py-1 text-xs font-bold text-on-surface-variant ring-1 ring-outline-variant/30">
+                      ID công ty #{profile.id || "N/A"}
+                    </span>
+                    {profile.hotline ? (
+                      <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">
+                        {profile.hotline}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-              {!isEditing && <IconButton icon="edit" label="Chỉnh sửa công ty" variant="primary" onClick={() => setIsEditing(true)} />}
+              {!isEditing && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white transition-colors hover:bg-primary/90"
+                >
+                  <span className="material-symbols-outlined text-[20px]">edit</span>
+                  Chỉnh sửa
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="p-5">
+          <div className="border-t border-outline-variant/20">
             {isEditing ? (
-              <div className="space-y-4">
-                <Field label="Tên công ty">
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name || ""}
-                    onChange={handleChange}
-                    className={inputClass}
-                    placeholder="Tên nhà xe"
-                  />
-                </Field>
-                <Field label="Hotline">
-                  <input
-                    type="tel"
-                    name="hotline"
-                    value={formData.hotline || ""}
-                    onChange={handleChange}
-                    className={inputClass}
-                    placeholder="0901234567"
-                  />
-                </Field>
+              <div className="space-y-5 p-5">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <Field label="Tên công ty">
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name || ""}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="Tên nhà xe"
+                    />
+                  </Field>
+                  <Field label="Hotline">
+                    <input
+                      type="tel"
+                      name="hotline"
+                      value={formData.hotline || ""}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="0901234567"
+                    />
+                  </Field>
+                </div>
                 <Field label="Logo công ty">
-                  <div className="rounded-xl border border-outline-variant/40 bg-white p-4">
+                  <div className="rounded-lg border border-outline-variant/40 bg-surface-container-low/40 p-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                       {formData.logoUrl ? (
                         <img
@@ -342,45 +363,24 @@ export default function CompanyProfile() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <InfoItem label="Tên công ty" value={profile.name} />
-                <InfoItem label="Hotline" value={profile.hotline} />
-                <InfoItem label="Địa chỉ" value={profile.address} />
-                <InfoItem label="Vĩ độ" value={profile.latitude} />
-                <InfoItem label="Kinh độ" value={profile.longitude} />
+              <div className="grid grid-cols-1 divide-y divide-outline-variant/20 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+                <div className="divide-y divide-outline-variant/20">
+                  <CompanyInfoRow icon="domain" label="Tên công ty" value={profile.name} />
+                  <CompanyInfoRow icon="call" label="Hotline" value={profile.hotline} />
+                  <CompanyInfoRow icon="location_on" label="Địa chỉ" value={profile.address} />
+                </div>
+                <div className="divide-y divide-outline-variant/20">
+                  <CompanyInfoRow icon="explore" label="Vĩ độ" value={profile.latitude} />
+                  <CompanyInfoRow icon="near_me" label="Kinh độ" value={profile.longitude} />
+                  <CompanyInfoRow icon="tag" label="ID công ty" value={profile.id} />
+                </div>
               </div>
             )}
           </div>
         </section>
 
-        <aside className="rounded-xl border border-outline-variant/30 bg-white shadow-sm">
-          <div className="border-b border-outline-variant/20 p-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
-                <span className="material-symbols-outlined text-[30px]">person</span>
-              </div>
-              <div className="min-w-0">
-                <h2 className="truncate text-xl font-extrabold text-on-surface">
-                  {currentUser?.fullName || "Người quản trị"}
-                </h2>
-                <p className="mt-1 text-sm text-on-surface-variant">Thông tin đăng nhập hiện tại</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4 p-5">
-            <InfoItem label="Email" value={currentUser?.email} />
-            <InfoItem label="Số điện thoại" value={currentUser?.phone} />
-            <InfoItem label="Vai trò" value={currentUser?.staffProfileRole || currentUser?.role} />
-            <div className="rounded-lg bg-surface-container-low p-4">
-              <p className="text-sm font-medium text-on-surface-variant">Trạng thái</p>
-              <div className="mt-2">
-                <StatusBadge tone={currentUser?.status === "active" ? "emerald" : "slate"}>
-                  {currentUser?.status === "active" ? "Hoạt động" : currentUser?.status || "—"}
-                </StatusBadge>
-              </div>
-            </div>
-          </div>
+        <aside className="xl:sticky xl:top-6">
+          <OperatorProfileCard roleLabel="Quản trị công ty" compact />
         </aside>
       </div>
     </CompanyPageShell>
