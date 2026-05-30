@@ -40,12 +40,11 @@ const getCurrentUser = () => {
 };
 
 const AUDIO_CONSTRAINTS = {
-  echoCancellation: { ideal: true },
-  noiseSuppression: { ideal: true },
-  autoGainControl: { ideal: true },
-  channelCount: { ideal: 1 },
-  sampleRate: { ideal: 48000 },
-  sampleSize: { ideal: 16 }
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+  channelCount: 1,
+  sampleRate: 48000
 };
 
 const VIDEO_CONSTRAINTS = {
@@ -1106,13 +1105,20 @@ export default function useWebRTCCall(options = {}) {
       }
 
       let pc = pcRef.current;
-      if (!pc && !localStreamRef.current) {
+      const hasLocalMedia = !!localStreamRef.current;
+
+      // Also handle "late offer" after fast Accept (status=CONNECTING but no remoteDescription yet)
+      const needsLateOfferProcessing =
+        (statusRef.current === CALL_STATUS.CONNECTING || statusRef.current === CALL_STATUS.CONNECTED) &&
+        pc && !pc.remoteDescription && hasLocalMedia;
+
+      if (!pc && !hasLocalMedia) {
         pendingLegacyOfferRef.current = { boxId, offer };
         return;
       }
 
-      if (!pc && localStreamRef.current) {
-        console.log("[CALL][LEGACY] Creating PC on offer receive (callee)");
+      if (!pc && hasLocalMedia) {
+        console.log("[CALL][LEGACY] Creating PC on late offer receive (callee)");
         pc = createPeerConnection();
         addLocalTracksToPC(pc, localStreamRef.current);
       }
@@ -1120,6 +1126,10 @@ export default function useWebRTCCall(options = {}) {
       if (!pc) {
         console.warn("[CALL][LEGACY] No PC when processing offer");
         return;
+      }
+
+      if (needsLateOfferProcessing) {
+        console.log("[CALL][LEGACY] Processing late OFFER after fast accept");
       }
 
       try {
@@ -1365,17 +1375,19 @@ export default function useWebRTCCall(options = {}) {
       ringTimeoutRef.current = null;
     }
 
+    // Attach listeners early so we don't miss trickle ICE or late OFFER when user answers immediately
+    setupSocketListeners(socket);
+    joinCallRoom(conversationIdRef.current, socket);
+
     statusRef.current = CALL_STATUS.CONNECTING;
     isInCallRef.current = true;
     setStatus(CALL_STATUS.CONNECTING);
-    joinCallRoom(conversationIdRef.current, socket);
 
     if (getCurrentCallMode() !== "legacy") {
       socket.emit(CALL_CLIENT_EVENTS.ACCEPT, {
         callId: callIdRef.current,
         conversationId: conversationIdRef.current
       });
-      setupSocketListeners(socket);
       return true;
     }
 
@@ -1656,16 +1668,21 @@ export default function useWebRTCCall(options = {}) {
       }
 
       let pc = pcRef.current;
-      if (!pc && !localStreamRef.current) {
+      const hasLocalMedia = !!localStreamRef.current;
+
+      if (!pc && !hasLocalMedia) {
         pendingLegacyOfferRef.current = { boxId, offer };
         return;
       }
 
-      if (!pc && localStreamRef.current) {
+      if (!pc && hasLocalMedia) {
         pc = createPeerConnection();
         addLocalTracksToPC(pc, localStreamRef.current);
       }
       if (!pc) return;
+
+      // Support late offer after fast Accept (user bấm máy liền)
+      const isLateOffer = pc && !pc.remoteDescription && hasLocalMedia;
 
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
@@ -1674,6 +1691,9 @@ export default function useWebRTCCall(options = {}) {
           try {await pc.addIceCandidate(new RTCIceCandidate(candidate));} catch {}
         }
         await sendAnswer();
+        if (isLateOffer || statusRef.current !== CALL_STATUS.CONNECTED) {
+          console.log("[CALL][LEGACY] Late offer processed via window event, marking connected");
+        }
         statusRef.current = CALL_STATUS.CONNECTED;
         isInCallRef.current = true;
         setStatus(CALL_STATUS.CONNECTED);
