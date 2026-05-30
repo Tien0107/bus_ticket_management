@@ -159,13 +159,6 @@ const MainNavbar = () => {
                   <span className="material-symbols-outlined text-lg text-primary">confirmation_number</span>
                   Vé của tôi
                 </button>
-                <button
-                onClick={() => {navigate("/profile/coupons");setShowUserMenu(false);}}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-on-surface hover:bg-surface-container-low transition-colors">
-                
-                  <span className="material-symbols-outlined text-lg text-secondary">sell</span>
-                  Khuyến mãi của tôi
-                </button>
                 <div className="border-t border-outline-variant/10"></div>
                 <button
                 onClick={handleLogout}

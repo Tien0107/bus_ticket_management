@@ -63,11 +63,6 @@ export const cancelTicket = (ticketId) => {
   return axiosClient.delete(`/customer/ticket/${ticketId}`);
 };
 
-export const getMyCoupons = (params) => {
-  return axiosClient.get("/customer/coupon", { params });
-};
-
-
 export const createPaymentMethod = (orderId, method = "vnpay") => {
   return axiosClient.post(`/payment/method?id=${orderId}&method=${method}`);
 };
