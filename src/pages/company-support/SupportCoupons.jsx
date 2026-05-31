@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { logout } from "../../api/auth";
 import { createSupportCoupon, getSupportCoupons, updateSupportCoupon } from "../../api/companySupport";
+import { IconButton } from "../company/CompanyUI";
 
 const PREVIEW_ORDER_AMOUNT = 300000;
 
@@ -495,14 +496,11 @@ export default function SupportCoupons() {
                             <p className="mt-1">đến {coupon.endDate ? new Date(coupon.endDate).toLocaleString("vi-VN") : "Không giới hạn"}</p>
                           </td>
                           <td className="px-5 py-4 text-right">
-                            <button
-                              type="button"
+                            <IconButton
+                              icon="edit"
+                              label="Sửa"
                               onClick={() => openEditModal(coupon)}
-                              className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">edit</span>
-                              Sửa
-                            </button>
+                            />
                           </td>
                         </tr>
                       );
@@ -546,7 +544,7 @@ export default function SupportCoupons() {
               <div>
                 <h3 className="text-xl font-black text-on-surface">{editId ? "Cập nhật coupon" : "Thêm coupon"}</h3>
                 <p className="mt-1 text-sm font-medium text-on-surface-variant">
-                  Tiền nhập theo VND, khi gửi API sẽ là number không có ký hiệu hoặc dấu phân cách.
+                  Tiền nhập theo VND
                 </p>
               </div>
               <button

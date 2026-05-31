@@ -158,17 +158,21 @@ const DriverDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("scheduled");
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  });
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) setUser(JSON.parse(stored));
-    fetchTrips();
-  }, []);
+    fetchTrips(selectedDate);
+  }, [selectedDate]);
 
-  const fetchTrips = async () => {
+  const fetchTrips = async (date) => {
     try {
       setLoading(true);
-      const response = await getDriverTripsAllStatuses();
+      const response = await getDriverTripsAllStatuses(date);
       const tripsData = Array.isArray(response.data?.trips)
         ? response.data.trips
         : Array.isArray(response.data?.data)
@@ -217,14 +221,25 @@ const DriverDashboard = () => {
             </h1>
             <p className="mt-2 text-on-surface-variant">Theo dõi chuyến, hành khách và trạng thái vận hành trong ngày.</p>
           </div>
-          <button
-            type="button"
-            onClick={fetchTrips}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant/50 bg-white px-4 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container-low"
-          >
-            <span className="material-symbols-outlined text-[20px]">refresh</span>
-            Tải lại
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 rounded-lg border border-outline-variant/50 bg-white px-3 py-2">
+              <span className="material-symbols-outlined text-on-surface-variant text-[18px]">calendar_today</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="border-none bg-transparent text-sm font-semibold outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => fetchTrips(selectedDate)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant/50 bg-white px-4 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container-low"
+            >
+              <span className="material-symbols-outlined text-[20px]">refresh</span>
+              Tải lại
+            </button>
+          </div>
         </div>
 
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

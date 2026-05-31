@@ -15,20 +15,19 @@ export const getDriverTrips = (params = {}) => {
 };
 
 
-export const getDriverTripsAllStatuses = async () => {
+export const getDriverTripsAllStatuses = async (date = null) => {
   try {
     const statuses = ["scheduled", "running", "completed", "cancelled"];
     const allTripsArray = [];
     const tripIds = new Set();
 
-    const promises = statuses.map((status) =>
-    getDriverTrips({ status }).
-    then((response) => {
-      const trips = response?.data?.trips || [];
-      return trips;
-    }).
-    catch(() => [])
-    );
+    const promises = statuses.map((status) => {
+      const params = { status };
+      if (date) params.date = date;
+      return getDriverTrips(params)
+        .then((response) => response?.data?.trips || [])
+        .catch(() => []);
+    });
 
     const results = await Promise.all(promises);
 
@@ -43,7 +42,8 @@ export const getDriverTripsAllStatuses = async () => {
 
     return { data: { trips: allTripsArray } };
   } catch (err) {
-    return getDriverTrips();
+    const params = date ? { date } : {};
+    return getDriverTrips(params);
   }
 };
 

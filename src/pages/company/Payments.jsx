@@ -181,10 +181,29 @@ export default function Payments() {
   const [stripeLoading, setStripeLoading] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchPayments = useCallback(async () => {
+  const availableVnd = useMemo(() => {
+    return (balance.available || []).reduce((sum, item) => {
+      const code = String(item?.currency || "").toUpperCase();
+      if (code === "VND") {
+        return sum + Number(item.amount || 0);
+      }
+      if (code === "USD") {
+        return sum + (getStripeMajorAmount(item) * USD_TO_VND_RATE);
+      }
+      return sum;
+    }, 0);
+  }, [balance.available]);
+
+  const fetchPayments = useCallback(async ({ append = false, cursor = null } = {}) => {
     try {
-      setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
       setError("");
 
       const params = {
@@ -193,6 +212,11 @@ export default function Payments() {
         method: appliedFilters.method !== "all" ? appliedFilters.method : undefined,
         limit: 10,
       };
+
+      if (append && cursor) {
+        params.next = cursor;
+      }
+
       Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 
       const canCheckStripe = stripeAccountReady;
@@ -204,56 +228,73 @@ export default function Payments() {
       ]);
 
       if (paymentsRes.status === "fulfilled") {
-        setPayments(Array.isArray(paymentsRes.value.data?.payments) ? paymentsRes.value.data.payments : []);
+        const newPayments = Array.isArray(paymentsRes.value.data?.payments) ? paymentsRes.value.data.payments : [];
+        const responseNext = paymentsRes.value.data?.next || null;
+
+        if (append) {
+          setPayments((prev) => [...prev, ...newPayments]);
+        } else {
+          setPayments(newPayments);
+        }
+
+        setNextCursor(responseNext);
       } else {
         throw paymentsRes.reason;
       }
 
-      setRevenue(revenueRes.status === "fulfilled" ? Number(revenueRes.value.data?.total || 0) : 0);
-      setBalance(
-        balanceRes.status === "fulfilled"
-          ? {
-              available: Array.isArray(balanceRes.value.data?.available) ? balanceRes.value.data.available : [],
-              pending: Array.isArray(balanceRes.value.data?.pending) ? balanceRes.value.data.pending : [],
-            }
-          : { available: [], pending: [] }
-      );
+      // Only update revenue and balance on initial load (not on append)
+      if (!append) {
+        setRevenue(revenueRes.status === "fulfilled" ? Number(revenueRes.value.data?.total || 0) : 0);
+        setBalance(
+          balanceRes.status === "fulfilled"
+            ? {
+                available: Array.isArray(balanceRes.value.data?.available) ? balanceRes.value.data.available : [],
+                pending: Array.isArray(balanceRes.value.data?.pending) ? balanceRes.value.data.pending : [],
+              }
+            : { available: [], pending: [] }
+        );
 
-      if (!canCheckStripe) {
-        setStripeStatus(null);
-        setStripeStatusError("");
-      } else if (
-        stripeStatusRes.status === "fulfilled" &&
-        stripeStatusRes.value.status >= 200 &&
-        stripeStatusRes.value.status < 300
-      ) {
-        setStripeStatus({
-          chargesEnabled: Boolean(stripeStatusRes.value.data?.chargesEnabled),
-          payoutsEnabled: Boolean(stripeStatusRes.value.data?.payoutsEnabled),
-          currentlyDue: Array.isArray(stripeStatusRes.value.data?.currentlyDue)
-            ? stripeStatusRes.value.data.currentlyDue
-            : [],
-        });
-        setStripeStatusError("");
-      } else if (stripeStatusRes.status === "fulfilled") {
-        setStripeStatus(null);
-        setStripeStatusError(
-          stripeStatusRes.value.data?.message || "Không thể tải trạng thái Stripe Connect."
-        );
-      } else {
-        setStripeStatus(null);
-        setStripeStatusError(
-          stripeStatusRes.reason?.response?.data?.message || "Không thể tải trạng thái Stripe Connect."
-        );
+        if (!canCheckStripe) {
+          setStripeStatus(null);
+          setStripeStatusError("");
+        } else if (
+          stripeStatusRes.status === "fulfilled" &&
+          stripeStatusRes.value.status >= 200 &&
+          stripeStatusRes.value.status < 300
+        ) {
+          setStripeStatus({
+            chargesEnabled: Boolean(stripeStatusRes.value.data?.chargesEnabled),
+            payoutsEnabled: Boolean(stripeStatusRes.value.data?.payoutsEnabled),
+            currentlyDue: Array.isArray(stripeStatusRes.value.data?.currentlyDue)
+              ? stripeStatusRes.value.data.currentlyDue
+              : [],
+          });
+          setStripeStatusError("");
+        } else if (stripeStatusRes.status === "fulfilled") {
+          setStripeStatus(null);
+          setStripeStatusError(
+            stripeStatusRes.value.data?.message || "Không thể tải trạng thái Stripe Connect."
+          );
+        } else {
+          setStripeStatus(null);
+          setStripeStatusError(
+            stripeStatusRes.reason?.response?.data?.message || "Không thể tải trạng thái Stripe Connect."
+          );
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || "Không thể tải dữ liệu thanh toán.");
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [appliedFilters, stripeAccountReady]);
 
   useEffect(() => {
+    setNextCursor(null);
     fetchPayments();
   }, [fetchPayments]);
 
@@ -269,6 +310,7 @@ export default function Payments() {
   };
 
   const handleApplyFilters = () => {
+    setNextCursor(null);
     setAppliedFilters(filters);
   };
 
@@ -276,6 +318,13 @@ export default function Payments() {
     const nextFilters = { transactionCode: "", status: "all", method: "all" };
     setFilters(nextFilters);
     setAppliedFilters(nextFilters);
+    setNextCursor(null);
+  };
+
+  const handleLoadMore = () => {
+    if (nextCursor) {
+      fetchPayments({ append: true, cursor: nextCursor });
+    }
   };
 
   const handleUpdatePayment = async (code) => {
@@ -371,11 +420,23 @@ export default function Payments() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-extrabold text-on-surface">Số dư khả dụng</h2>
-              <p className="mt-1 text-sm text-on-surface-variant">Nguồn tiền có thể xử lý qua Stripe.</p>
+              <p className="mt-1 text-sm text-on-surface-variant">Số tiền có thể rút (đã quy đổi sang VND).</p>
             </div>
             <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
           </div>
-          <BalanceList items={balance.available} emptyLabel="Chưa có số dư khả dụng" />
+
+          {availableVnd > 0 ? (
+            <div className="rounded-lg bg-emerald-50 p-5">
+              <div className="text-sm font-medium text-emerald-700">Số dư khả dụng</div>
+              <div className="mt-1 text-3xl font-extrabold text-emerald-800">
+                {new Intl.NumberFormat("vi-VN").format(availableVnd)} <span className="text-xl">VND</span>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-outline-variant/60 p-4 text-sm font-medium text-on-surface-variant">
+              Chưa có số dư khả dụng
+            </div>
+          )}
         </section>
 
         <section className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
@@ -428,7 +489,6 @@ export default function Payments() {
               <thead className="bg-surface-container-low">
                 <tr>
                   <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Mã giao dịch</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Booking</th>
                   <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Khách hàng</th>
                   <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Phương thức</th>
                   <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Trạng thái</th>
@@ -444,7 +504,6 @@ export default function Payments() {
                       <p className="font-bold text-on-surface">{payment.transactionCode || "—"}</p>
                       <p className="mt-1 text-xs text-on-surface-variant">ID: {payment.id || "—"}</p>
                     </td>
-                    <td className="px-5 py-4 text-on-surface-variant">#{payment.bookingId || "—"}</td>
                     <td className="px-5 py-4 text-on-surface-variant">{payment.phone || "—"}</td>
                     <td className="px-5 py-4 font-medium text-on-surface">{methodLabel[payment.method] || payment.method || "—"}</td>
                     <td className="px-5 py-4">
@@ -475,6 +534,19 @@ export default function Payments() {
               </tbody>
             </table>
           </div>
+
+          {nextCursor && (
+            <div className="flex justify-center border-t border-outline-variant/30 bg-white px-5 py-4">
+              <button
+                type="button"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-5 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loadingMore ? "Đang tải thêm..." : "Tải thêm"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

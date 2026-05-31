@@ -7,7 +7,7 @@ export default function OperatorProfile() {
     <OperatorPageShell
       eyebrow="Profile"
       title="Hồ sơ điều hành"
-      description="Quản lý thông tin cá nhân, vai trò, mã nhân viên và ngày vào làm."
+      description="Quản lý thông tin cá nhân, vai trò, mã nhân viên, ngày vào làm, bộ phận và vị trí."
       maxWidth="max-w-6xl"
     >
       <OperatorProfileCard roleLabel="Điều hành viên" />

@@ -105,7 +105,7 @@ export default function SupportProfile() {
             <p className="text-sm font-bold uppercase tracking-wide text-primary">Profile</p>
             <h2 className="mt-2 text-3xl font-black tracking-tight text-on-surface">Hồ sơ hỗ trợ</h2>
             <p className="mt-2 text-sm font-medium text-on-surface-variant">
-              Quản lý thông tin cá nhân, vai trò, mã nhân viên và ngày vào làm.
+              Quản lý thông tin cá nhân, vai trò, mã nhân viên, ngày vào làm, bộ phận và vị trí.
             </p>
             </div>
           </div>

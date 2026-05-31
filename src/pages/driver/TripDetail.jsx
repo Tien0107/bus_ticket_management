@@ -164,7 +164,8 @@ export default function TripDetail() {
     try {
       if (!silent) setLoading(true);
 
-      const tripPromise = getDriverTripsAllStatuses().then((response) => {
+      const today = new Date().toISOString().split("T")[0];
+      const tripPromise = getDriverTripsAllStatuses(today).then((response) => {
         const allTrips = Array.isArray(response.data?.trips) ? response.data.trips : [];
         return allTrips.find((item) => item.id === Number(tripId));
       });

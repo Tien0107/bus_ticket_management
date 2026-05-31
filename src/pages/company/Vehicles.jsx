@@ -63,8 +63,11 @@ export default function Vehicles() {
   const [companyId, setCompanyId] = useState(getStoredCompanyId());
   const [deletingVehicle, setDeletingVehicle] = useState(null);
   const [deletingSeats, setDeletingSeats] = useState(false);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
+    setNextCursor(null);
     fetchVehicles();
     fetchCompanyId();
   }, []);
@@ -79,16 +82,37 @@ export default function Vehicles() {
     }
   };
 
-  const fetchVehicles = async () => {
+  const fetchVehicles = async ({ append = false, cursor = null } = {}) => {
     try {
-      setLoading(true);
-      const response = await getVehicles({ limit: 10 });
-      setVehicles(Array.isArray(response.data?.vehicles) ? response.data.vehicles : []);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      const params = { limit: 10 };
+      if (append && cursor) params.next = cursor;
+
+      const response = await getVehicles(params);
+      const newVehicles = Array.isArray(response.data?.vehicles) ? response.data.vehicles : [];
+      const responseNext = response.data?.next || null;
+
+      if (append) {
+        setVehicles((prev) => [...prev, ...newVehicles]);
+      } else {
+        setVehicles(newVehicles);
+      }
+
+      setNextCursor(responseNext);
       setError("");
     } catch {
       setError("Không thể tải danh sách xe.");
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
@@ -180,6 +204,7 @@ export default function Vehicles() {
       }
 
       handleCloseModal();
+      setNextCursor(null);
       fetchVehicles();
     } catch (err) {
       addToast(err.response?.data?.message || "Lỗi lưu xe", "error");
@@ -223,6 +248,12 @@ export default function Vehicles() {
       addToast(err.response?.data?.message || "Lỗi gỡ cấu hình ghế", "error");
     } finally {
       setDeletingSeats(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (nextCursor) {
+      fetchVehicles({ append: true, cursor: nextCursor });
     }
   };
 
@@ -287,6 +318,19 @@ export default function Vehicles() {
         })}
         </div>
       }
+
+      {nextCursor && !loading && !error && vehicles.length > 0 && (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-5 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loadingMore ? "Đang tải thêm..." : "Tải thêm"}
+          </button>
+        </div>
+      )}
 
       {showModal &&
       <ModalShell

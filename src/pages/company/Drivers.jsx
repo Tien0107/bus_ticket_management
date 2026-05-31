@@ -59,29 +59,52 @@ export default function Drivers() {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusForm, setStatusForm] = useState("active");
   const [statusLoading, setStatusLoading] = useState(false);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchDrivers = useCallback(async () => {
+  const fetchDrivers = useCallback(async ({ append = false, cursor = null } = {}) => {
     try {
-      setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
       const keyword = searchTerm.trim();
       const params = {
         status: filterStatus !== "all" ? filterStatus : undefined,
         phone: keyword || undefined,
         limit: 10
       };
+      if (append && cursor) params.next = cursor;
+
       Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 
       const response = await getDrivers(params);
-      setDrivers(Array.isArray(response.data?.drivers) ? response.data.drivers : []);
+      const newDrivers = Array.isArray(response.data?.drivers) ? response.data.drivers : [];
+      const responseNext = response.data?.next || null;
+
+      if (append) {
+        setDrivers((prev) => [...prev, ...newDrivers]);
+      } else {
+        setDrivers(newDrivers);
+      }
+
+      setNextCursor(responseNext);
       setError("");
     } catch {
       setError("Không thể tải danh sách tài xế.");
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [filterStatus, searchTerm]);
 
   useEffect(() => {
+    setNextCursor(null);
     fetchDrivers();
   }, [fetchDrivers]);
 
@@ -140,6 +163,12 @@ export default function Drivers() {
       addToast(err.response?.data?.message || "Cập nhật trạng thái tài xế thất bại", "error");
     } finally {
       setStatusLoading(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (nextCursor) {
+      fetchDrivers({ append: true, cursor: nextCursor });
     }
   };
 
@@ -230,6 +259,19 @@ export default function Drivers() {
               </tbody>
             </table>
           </div>
+
+          {nextCursor && (
+            <div className="flex justify-center border-t border-outline-variant/30 bg-white px-5 py-4">
+              <button
+                type="button"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-5 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loadingMore ? "Đang tải thêm..." : "Tải thêm"}
+              </button>
+            </div>
+          )}
         </div>
       }
 

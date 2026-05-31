@@ -30,25 +30,48 @@ export default function Stations() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchStations = async () => {
+  const fetchStations = async ({ append = false, cursor = null } = {}) => {
     try {
-      setLoading(true);
-      const response = await getStations({ limit: 10 });
-      setStations(Array.isArray(response.data?.stations) ? response.data.stations : []);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      const params = { limit: 10 };
+      if (append && cursor) params.next = cursor;
+
+      const response = await getStations(params);
+      const newStations = Array.isArray(response.data?.stations) ? response.data.stations : [];
+      const responseNext = response.data?.next || null;
+
+      if (append) {
+        setStations((prev) => [...prev, ...newStations]);
+      } else {
+        setStations(newStations);
+      }
+
+      setNextCursor(responseNext);
       setError("");
     } catch (err) {
       console.error("Lỗi tải trạm:", err);
       setError("Không thể tải danh sách trạm.");
       addToast({ type: "error", title: "Không tải được trạm" });
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
+    setNextCursor(null);
     fetchStations();
-
   }, []);
 
   const filteredStations = useMemo(() => {
@@ -76,6 +99,12 @@ export default function Stations() {
     setFormData(emptyForm);
   };
 
+  const handleLoadMore = () => {
+    if (nextCursor) {
+      fetchStations({ append: true, cursor: nextCursor });
+    }
+  };
+
   const handleSave = async () => {
     if (!formData.address.trim() || !formData.city.trim()) {
       addToast({ type: "warning", title: "Thiếu địa chỉ hoặc thành phố" });
@@ -89,6 +118,7 @@ export default function Stations() {
       });
       addToast({ type: "success", title: "Tạo trạm thành công" });
       closeModal();
+      setNextCursor(null);
       fetchStations();
     } catch (err) {
       console.error("Lỗi tạo trạm:", err);
@@ -135,7 +165,6 @@ export default function Stations() {
                 <tr>
                   <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Địa chỉ</th>
                   <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Thành phố</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Công ty</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
@@ -146,12 +175,24 @@ export default function Stations() {
                       <p className="mt-1 text-xs text-on-surface-variant">ID: {station.id}</p>
                     </td>
                     <td className="px-5 py-4 font-medium text-on-surface">{station.city || "—"}</td>
-                    <td className="px-5 py-4 text-on-surface-variant">#{station.companyId || "—"}</td>
                   </tr>
               )}
               </tbody>
             </table>
           </div>
+
+          {nextCursor && (
+            <div className="flex justify-center border-t border-outline-variant/30 bg-white px-5 py-4">
+              <button
+                type="button"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-5 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loadingMore ? "Đang tải thêm..." : "Tải thêm"}
+              </button>
+            </div>
+          )}
         </div>
       }
 

@@ -6,10 +6,10 @@ const emptyProfile = {
   fullName: "",
   status: "active",
   staffProfileRole: "",
-  companyId: "",
   staffCode: "",
   hireDate: "",
-  accountStripeId: ""
+  department: "",
+  position: ""
 };
 
 const statusOptions = [
@@ -36,13 +36,11 @@ const hasProfileFields = (data) => {
   "staffProfileRole",
   "staff_profile_role",
   "staffprofilerole",
-  "companyId",
-  "company_id",
   "staffCode",
   "hireDate",
   "hire_date",
-  "accountStripeId",
-  "account_stripe_id"].
+  "department",
+  "position"].
   some((key) => profile?.[key] !== undefined);
 };
 
@@ -63,13 +61,14 @@ const formatDate = (value) => {
 const normalizeOperatorProfile = (data = {}) => {
   const profile = pickProfilePayload(data);
 
+  // Hide sensitive/internal fields for all operator roles (dispatcher, support, admin, etc.)
+  const { companyId, company_id, accountStripeId, account_stripe_id, ...safeProfile } = profile;
+
   return {
     ...emptyProfile,
-    ...profile,
+    ...safeProfile,
     staffProfileRole: profile.staffProfileRole || profile.staff_profile_role || profile.staffprofilerole || profile.staffRole || "",
-    companyId: profile.companyId ?? profile.company_id ?? "",
-    hireDate: profile.hireDate || profile.hire_date || "",
-    accountStripeId: profile.accountStripeId || profile.account_stripe_id || ""
+    hireDate: profile.hireDate || profile.hire_date || ""
   };
 };
 
@@ -81,26 +80,19 @@ const extractOperatorProfilePatch = (data = {}) => {
     if (profile[key] !== undefined) patch[key] = profile[key];
   });
 
-  if (profile.companyId !== undefined || profile.company_id !== undefined) {
-    patch.companyId = profile.companyId ?? profile.company_id;
-  }
   if (profile.hireDate !== undefined || profile.hire_date !== undefined) {
     patch.hireDate = profile.hireDate ?? profile.hire_date;
   }
-  if (profile.accountStripeId !== undefined || profile.account_stripe_id !== undefined) {
-    patch.accountStripeId = profile.accountStripeId ?? profile.account_stripe_id;
-  }
-
   return patch;
 };
 
 const buildFormState = (profile) => ({
   fullName: profile.fullName || "",
   status: profile.status || "active",
-  companyId: profile.companyId ?? "",
   staffCode: profile.staffCode || "",
   hireDate: toDateInputValue(profile.hireDate),
-  accountStripeId: profile.accountStripeId || ""
+  department: profile.department || "",
+  position: profile.position || ""
 });
 
 const buildPayload = (formData, currentProfile = {}) => {
@@ -108,17 +100,14 @@ const buildPayload = (formData, currentProfile = {}) => {
     fullName: formData.fullName.trim(),
     status: formData.status || "active",
     staffCode: formData.staffCode.trim(),
-    hireDate: formData.hireDate || ""
+    hireDate: formData.hireDate || "",
+    department: formData.department?.trim() || "",
+    position: formData.position?.trim() || ""
   };
 
-  ["position", "department", "identityNumber"].forEach((key) => {
-    if (currentProfile[key] !== undefined) {
-      payload[key] = currentProfile[key] || "";
-    }
-  });
-
-  if (formData.companyId !== "" && formData.companyId !== null && formData.companyId !== undefined) {
-    payload.companyId = Number(formData.companyId);
+  // Preserve identityNumber if it exists (never edited in this UI)
+  if (currentProfile.identityNumber !== undefined) {
+    payload.identityNumber = currentProfile.identityNumber || "";
   }
 
   return payload;
@@ -189,8 +178,7 @@ const syncStoredUser = (profile) => {
       staffProfileRole: profile.staffProfileRole || currentUser.staffProfileRole,
       companyId: profile.companyId ?? currentUser.companyId,
       staffCode: profile.staffCode ?? currentUser.staffCode,
-      hireDate: profile.hireDate ?? currentUser.hireDate,
-      accountStripeId: profile.accountStripeId ?? currentUser.accountStripeId
+      hireDate: profile.hireDate ?? currentUser.hireDate
     };
     delete nextUser.position;
     delete nextUser.department;
@@ -300,11 +288,6 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
       return;
     }
 
-    if (formData.companyId !== "" && Number.isNaN(Number(formData.companyId))) {
-      addToast("ID công ty phải là số hợp lệ", "error");
-      return;
-    }
-
     try {
       setSaving(true);
       const payload = buildPayload(formData, profile);
@@ -356,11 +339,6 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
 
   }
 
-  const companyLabel =
-  profile?.companyId === undefined || profile?.companyId === null || profile?.companyId === "" ?
-  "Công ty N/A" :
-  `Công ty #${profile.companyId}`;
-
   return (
     <section className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
       {compact ?
@@ -374,9 +352,6 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
                 <p className="text-xs font-extrabold uppercase tracking-wide text-primary">{roleLabel}</p>
                 <h2 className="mt-1 truncate text-xl font-extrabold text-on-surface">{profile?.fullName || "Nhân viên"}</h2>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="inline-flex rounded-full bg-surface-container-low px-2.5 py-1 text-xs font-bold text-on-surface-variant ring-1 ring-outline-variant/30">
-                    {companyLabel}
-                  </span>
                   <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${getStatusClass(profile?.status)}`}>
                     {getStatusLabel(profile?.status)}
                   </span>
@@ -410,9 +385,6 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
                 <p className="text-xs font-extrabold uppercase tracking-wide text-primary">{roleLabel}</p>
                 <h2 className="mt-1 truncate text-2xl font-extrabold text-on-surface">{profile?.fullName || "Nhân viên"}</h2>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center rounded-full bg-surface-container-low px-3 py-1 text-xs font-bold text-on-surface-variant ring-1 ring-outline-variant/30">
-                    {companyLabel}
-                  </span>
                   <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ring-1 ${getStatusClass(profile?.status)}`}>
                     {getStatusLabel(profile?.status)}
                   </span>
@@ -456,29 +428,28 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
                 )}
                 </select>
               </Field>
-              <Field label="ID công ty">
-                <input
-                type="number"
-                name="companyId"
-                value={formData.companyId}
-                onChange={handleChange}
-                className={inputClass}
-                min="0" />
-              
-              </Field>
               <Field label="Mã nhân viên">
                 <input name="staffCode" value={formData.staffCode} onChange={handleChange} className={inputClass} />
               </Field>
               <Field label="Ngày vào làm">
                 <input type="date" name="hireDate" value={formData.hireDate} onChange={handleChange} className={inputClass} />
               </Field>
-              {formData.accountStripeId ?
-            <div className="md:col-span-2">
-                  <Field label="Stripe account">
-                    <input value={formData.accountStripeId} className={inputClass} disabled readOnly />
-                  </Field>
-                </div> :
-            null}
+              <Field label="Bộ phận">
+                <input
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  className={inputClass}
+                  placeholder="Phòng điều hành" />
+              </Field>
+              <Field label="Vị trí">
+                <input
+                  name="position"
+                  value={formData.position}
+                  onChange={handleChange}
+                  className={inputClass}
+                  placeholder="Điều hành viên ca sáng" />
+              </Field>
             </div>
 
             <div className="flex flex-col-reverse gap-3 border-t border-outline-variant/20 pt-5 sm:flex-row sm:justify-end">
@@ -531,11 +502,9 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
             <div className={`grid grid-cols-1 gap-3 ${compact ? "" : "md:grid-cols-2 xl:grid-cols-3 md:gap-4"}`}>
               <InfoItem compact={compact} icon="admin_panel_settings" label="Vai trò" value={getStaffProfileRoleLabel(profile?.staffProfileRole)} />
               <InfoItem compact={compact} icon="badge" label="Mã nhân viên" value={profile?.staffCode} />
-              <InfoItem compact={compact} icon="business" label="ID công ty" value={profile?.companyId} />
               <InfoItem compact={compact} icon="event" label="Ngày vào làm" value={formatDate(profile?.hireDate)} />
-              <div className={compact ? "" : "md:col-span-2 xl:col-span-2"}>
-                <InfoItem compact={compact} icon="credit_card" label="Stripe account" value={profile?.accountStripeId} />
-              </div>
+              <InfoItem compact={compact} icon="business_center" label="Bộ phận" value={profile?.department || "—"} />
+              <InfoItem compact={compact} icon="work" label="Vị trí" value={profile?.position || "—"} />
             </div>
           </div>
         }

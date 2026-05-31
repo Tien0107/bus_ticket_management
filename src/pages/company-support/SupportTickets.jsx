@@ -4,7 +4,7 @@ import { logout } from "../../api/auth";
 import { cancelSupportTicket, getSupportTicketDetail, getSupportTickets } from "../../api/companySupport";
 import ConfirmModal from "../../components/common/ConfirmModal";
 
-const LIMIT = 20;
+const LIMIT = 10;
 const formatVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 
 const extractTickets = (response) => {
@@ -17,17 +17,33 @@ const extractTickets = (response) => {
 const getStatusConfig = (status) => {
   const normalized = String(status || "").toLowerCase();
   const configs = {
-    paid: { label: "Đã thanh toán", icon: "check_circle", className: "bg-primary/10 text-primary" },
-    checked_in: { label: "Đã lên xe", icon: "directions_bus", className: "bg-primary/10 text-primary" },
-    reserved: { label: "Đã giữ chỗ", icon: "schedule", className: "bg-secondary/10 text-secondary" },
-    pending: { label: "Chờ thanh toán", icon: "hourglass_top", className: "bg-secondary/10 text-secondary" },
-    cancelled: { label: "Đã hủy", icon: "cancel", className: "bg-red-50 text-red-700" },
-    expired: { label: "Hết hạn", icon: "timer_off", className: "bg-surface-container-high text-outline" },
+    paid: { label: "Đã TT", icon: "payments", className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100", iconClass: "text-emerald-600" },
+    checked_in: { label: "Đã lên", icon: "directions_bus", className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100", iconClass: "text-emerald-600" },
+    reserved: { label: "Giữ chỗ", icon: "schedule", className: "bg-amber-50 text-amber-700 ring-1 ring-amber-100", iconClass: "text-amber-600" },
+    pending: { label: "Chờ TT", icon: "pending", className: "bg-amber-50 text-amber-700 ring-1 ring-amber-100", iconClass: "text-amber-600" },
+    cancelled: { label: "Đã hủy", icon: "cancel", className: "bg-red-50 text-red-700 ring-1 ring-red-100", iconClass: "text-red-600" },
+    expired: { label: "Hết hạn", icon: "timer_off", className: "bg-slate-100 text-slate-600 ring-1 ring-slate-200", iconClass: "text-slate-500" },
   };
   return configs[normalized] || { label: status || "Không rõ", icon: "info", className: "bg-surface-container-high text-outline" };
 };
 
-const getBookingTypeLabel = (type) => (type === "round_trip" ? "Khứ hồi" : "Một chiều");
+const getBookingTypeConfig = (type) => {
+  const isRound = String(type || "").toLowerCase() === "round_trip";
+  if (isRound) {
+    return {
+      label: "2 chiều",
+      icon: "swap_horiz",
+      className: "bg-blue-50 text-blue-700 ring-1 ring-blue-100",
+      iconClass: "text-blue-600"
+    };
+  }
+  return {
+    label: "1 chiều",
+    icon: "arrow_forward",
+    className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
+    iconClass: "text-emerald-600"
+  };
+};
 
 const formatDateTime = (value) => {
   if (!value) return "N/A";
@@ -223,15 +239,15 @@ export default function SupportTickets() {
   const statusFilters = [
     { label: "Tất cả", value: "" },
     { label: "Giữ chỗ", value: "reserved" },
-    { label: "Đã thanh toán", value: "paid" },
+    { label: "Đã TT", value: "paid" },
     { label: "Đã hủy", value: "cancelled" },
-    { label: "Đã lên xe", value: "checked_in" },
+    { label: "Đã lên", value: "checked_in" },
   ];
 
   const typeFilters = [
-    { label: "Tất cả loại vé", value: "" },
-    { label: "Một chiều", value: "one_way" },
-    { label: "Khứ hồi", value: "round_trip" },
+    { label: "Tất cả", value: "" },
+    { label: "1 chiều", value: "one_way" },
+    { label: "2 chiều", value: "round_trip" },
   ];
 
   return (
@@ -321,8 +337,8 @@ export default function SupportTickets() {
         <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[
             { label: "Tổng số vé", value: stats.total.toLocaleString("vi-VN"), icon: "confirmation_number", tone: "text-primary", bg: "bg-primary/10" },
-            { label: "Chờ xử lý", value: stats.pending.toLocaleString("vi-VN"), icon: "hourglass_top", tone: "text-secondary", bg: "bg-secondary/10" },
-            { label: "Đã thanh toán", value: stats.paid.toLocaleString("vi-VN"), icon: "check_circle", tone: "text-primary", bg: "bg-primary/10" },
+            { label: "Chờ xử lý", value: stats.pending.toLocaleString("vi-VN"), icon: "pending_actions", tone: "text-secondary", bg: "bg-secondary/10" },
+            { label: "Đã thanh toán", value: stats.paid.toLocaleString("vi-VN"), icon: "payments", tone: "text-primary", bg: "bg-primary/10" },
             { label: "Đã hủy", value: stats.cancelled.toLocaleString("vi-VN"), icon: "cancel", tone: "text-red-700", bg: "bg-red-50" },
           ].map((stat) => (
             <div key={stat.label} className="rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
@@ -390,17 +406,6 @@ export default function SupportTickets() {
                 Đang hiển thị {displayTickets.length} vé
               </p>
             </div>
-            {nextCursor ? (
-              <button
-                type="button"
-                onClick={handleLoadMore}
-                disabled={loading}
-                className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <span className="material-symbols-outlined text-[18px]">expand_more</span>
-                {loading ? "Đang tải..." : "Tải thêm"}
-              </button>
-            ) : null}
           </div>
 
           {error ? (
@@ -419,72 +424,104 @@ export default function SupportTickets() {
               <p className="mt-1 text-sm text-on-surface-variant">Thử đổi bộ lọc hoặc làm mới dữ liệu.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1120px] border-collapse">
-                <thead>
-                  <tr className="border-b border-surface-container bg-surface-container-low">
-                    {["Mã vé", "Mã đặt chỗ", "Loại vé", "Khởi hành", "Giá gốc", "Giảm", "Tổng tiền", "Trạng thái", ""].map((header) => (
-                      <th key={header} className="px-5 py-3 text-left text-xs font-black uppercase tracking-wide text-outline">
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayTickets.map((ticket) => {
-                    const status = getStatusConfig(ticket.status);
-                    const isRoundTrip = ticket.bookingType === "round_trip";
-                    return (
-                      <tr key={ticket.id} className="border-b border-surface-container/70 hover:bg-surface-container-low/60">
-                        <td className="px-5 py-4">
-                          <p className="font-black text-primary">#{ticket.id}</p>
-                          {ticket.code ? <p className="mt-1 text-xs font-semibold text-outline">{ticket.code}</p> : null}
-                        </td>
-                        <td className="px-5 py-4 text-sm font-bold text-on-surface">BK-{ticket.bookingId || "N/A"}</td>
-                        <td className="px-5 py-4">
-                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                            isRoundTrip ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"
-                          }`}>
-                            {getBookingTypeLabel(ticket.bookingType)}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-sm font-semibold text-on-surface-variant">{formatDateTime(ticket.departureDate)}</td>
-                        <td className="px-5 py-4 text-sm font-bold text-on-surface">{formatVnd(ticket.originalAmount)}</td>
-                        <td className="px-5 py-4 text-sm font-bold text-primary">-{formatVnd(ticket.discountAmount)}</td>
-                        <td className="px-5 py-4 text-sm font-black text-secondary">{formatVnd(ticket.totalAmount)}</td>
-                        <td className="px-5 py-4">
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black ${status.className}`}>
-                            <span className="material-symbols-outlined text-[15px]">{status.icon}</span>
-                            {status.label}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleView(ticket.id)}
-                              className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">visibility</span>
-                              Chi tiết
-                            </button>
-                            {canCancelTicket(ticket) ? (
+            <div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1120px] border-collapse">
+                  <thead>
+                    <tr className="border-b border-surface-container bg-surface-container-low">
+                      {["Mã vé", "Mã đặt chỗ", "Loại vé", "Khởi hành", "Giá gốc", "Giảm", "Tổng tiền", "Trạng thái", ""].map((header) => (
+                        <th key={header} className="px-5 py-3 text-left text-xs font-black uppercase tracking-wide text-outline">
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayTickets.map((ticket) => {
+                      const status = getStatusConfig(ticket.status);
+                      const isRoundTrip = ticket.bookingType === "round_trip";
+                      return (
+                        <tr key={ticket.id} className="border-b border-surface-container/70 hover:bg-surface-container-low/60">
+                          <td className="px-5 py-4">
+                            <p className="font-black text-primary">#{ticket.id}</p>
+                            {ticket.code ? <p className="mt-1 text-xs font-semibold text-outline">{ticket.code}</p> : null}
+                          </td>
+                          <td className="px-5 py-4 text-sm font-bold text-on-surface">BK-{ticket.bookingId || "N/A"}</td>
+                          <td className="px-5 py-4">
+                            {(() => {
+                              const cfg = getBookingTypeConfig(ticket.bookingType);
+                              const isOneWay = cfg.label === "1 chiều";
+                              return (
+                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${cfg.className}`}>
+                                  <span className={`material-symbols-outlined ${isOneWay ? 'text-[14px]' : 'text-[15px]'} ${cfg.iconClass}`}>
+                                    {cfg.icon}
+                                  </span>
+                                  {isOneWay ? (
+                                    <span className="leading-none font-extrabold">
+                                      <span className="block text-[10px] -mb-0.5">1</span>
+                                      <span className="block">chiều</span>
+                                    </span>
+                                  ) : (
+                                    <span className="font-extrabold">{cfg.label}</span>
+                                  )}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                          <td className="px-5 py-4 text-sm font-semibold text-on-surface-variant">{formatDateTime(ticket.departureDate)}</td>
+                          <td className="px-5 py-4 text-sm font-bold text-on-surface">{formatVnd(ticket.originalAmount)}</td>
+                          <td className="px-5 py-4 text-sm font-bold text-primary">-{formatVnd(ticket.discountAmount)}</td>
+                          <td className="px-5 py-4 text-sm font-black text-secondary">{formatVnd(ticket.totalAmount)}</td>
+                          <td className="px-5 py-4">
+                            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${status.className}`}>
+                              <span className={`material-symbols-outlined text-[15px] ${status.iconClass || ''}`}>{status.icon}</span>
+                              <span className="font-extrabold">{status.label}</span>
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            <div className="flex justify-end gap-1.5">
                               <button
                                 type="button"
-                                onClick={() => openCancelConfirm(ticket)}
-                                className="inline-flex h-9 items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-bold text-red-700 transition-colors hover:bg-red-100"
+                                onClick={() => handleView(ticket.id)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant/50 bg-white px-3 py-1.5 text-xs font-bold text-on-surface transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                                title="Xem chi tiết vé"
                               >
-                                <span className="material-symbols-outlined text-[18px]">cancel</span>
-                                Hủy vé
+                                <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                <span>Chi tiết</span>
                               </button>
-                            ) : null}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                              {canCancelTicket(ticket) ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openCancelConfirm(ticket)}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 transition-all hover:border-red-300 hover:bg-red-100"
+                                  title="Hủy vé này"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">cancel</span>
+                                  <span>Hủy</span>
+                                </button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {nextCursor && (
+                <div className="flex justify-center border-t border-outline-variant/30 bg-white px-5 py-4">
+                  <button
+                    type="button"
+                    onClick={handleLoadMore}
+                    disabled={loading}
+                    className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-5 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                    {loading ? "Đang tải thêm..." : `Tải thêm ${LIMIT} vé`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -530,7 +567,7 @@ export default function SupportTickets() {
                 {[
                   { label: "Mã đặt chỗ", value: `BK-${viewTicket.bookingId || "N/A"}` },
                   { label: "Mã vé", value: viewTicket.code || "N/A" },
-                  { label: "Loại vé", value: getBookingTypeLabel(viewTicket.bookingType) },
+                  { label: "Loại vé", value: getBookingTypeConfig(viewTicket.bookingType).label },
                   { label: "Ngày khởi hành", value: formatDateTime(viewTicket.departureDate) },
                 ].map((item) => (
                   <div key={item.label} className="rounded-lg border border-outline-variant/30 bg-surface-container-low p-4">

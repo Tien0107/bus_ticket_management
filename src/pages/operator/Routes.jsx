@@ -30,25 +30,48 @@ export default function Routes() {
   const [showModal, setShowModal] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchRoutes = async () => {
+  const fetchRoutes = async ({ append = false, cursor = null } = {}) => {
     try {
-      setLoading(true);
-      const response = await getRoutes({ limit: 10 });
-      setRoutes(Array.isArray(response.data?.routes) ? response.data.routes : []);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      const params = { limit: 10 };
+      if (append && cursor) params.next = cursor;
+
+      const response = await getRoutes(params);
+      const newRoutes = Array.isArray(response.data?.routes) ? response.data.routes : [];
+      const responseNext = response.data?.next || null;
+
+      if (append) {
+        setRoutes((prev) => [...prev, ...newRoutes]);
+      } else {
+        setRoutes(newRoutes);
+      }
+
+      setNextCursor(responseNext);
       setError("");
     } catch (err) {
       console.error("Lỗi tải tuyến:", err);
       setError("Không thể tải danh sách tuyến đường.");
       addToast({ type: "error", title: "Không tải được tuyến đường" });
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
+    setNextCursor(null);
     fetchRoutes();
-
   }, []);
 
   const stats = useMemo(() => {
@@ -112,6 +135,7 @@ export default function Routes() {
       }
 
       closeModal();
+      setNextCursor(null);
       fetchRoutes();
     } catch (err) {
       console.error("Lỗi lưu tuyến:", err);
@@ -120,6 +144,12 @@ export default function Routes() {
         title: "Không lưu được tuyến",
         message: err.response?.data?.message || "Vui lòng kiểm tra dữ liệu tuyến."
       });
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (nextCursor) {
+      fetchRoutes({ append: true, cursor: nextCursor });
     }
   };
 
@@ -173,6 +203,19 @@ export default function Routes() {
               </tbody>
             </table>
           </div>
+
+          {nextCursor && (
+            <div className="flex justify-center border-t border-outline-variant/30 bg-white px-5 py-4">
+              <button
+                type="button"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-5 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loadingMore ? "Đang tải thêm..." : "Tải thêm"}
+              </button>
+            </div>
+          )}
         </div>
       }
 
