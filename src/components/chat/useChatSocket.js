@@ -55,9 +55,6 @@ export default function useChatSocket({
       const currentBox = activeBoxRef.current;
       if (currentBox) {
         socket.emit("chat:join", { boxId: currentBox });
-        console.log("[CHAT] ✅ Re-join box sau khi connect/reconnect. boxId =", currentBox);
-      } else {
-        console.log("[CHAT] Socket connected nhưng chưa có box nào được chọn.");
       }
       loadBoxes({ reset: true });
     };
@@ -237,7 +234,6 @@ export default function useChatSocket({
 
 
     const handleCallIncomingFromChat = (payload) => {
-      console.log("[CHAT SOCKET] Received call:incoming via box room", payload);
       window.dispatchEvent(new CustomEvent("call:incoming:bridge", { detail: payload }));
       window.dispatchEvent(new CustomEvent("call:incoming", { detail: payload }));
     };

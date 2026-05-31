@@ -180,7 +180,7 @@ export default function BookingSeatStep({
         setLoadingSeats(true);
         setSeatError("");
         const seatsRes = await getTripSeats(bookingData.tripId, bookingData.pickupOrder, bookingData.dropoffOrder);
-        if (!active) {console.log("Aborted effect");return;}
+        if (!active) return;
         const seatData = seatsRes.data?.seats || seatsRes.data || [];
         setSeats(seatData);
       } catch (err) {
