@@ -26,9 +26,9 @@ const publicEndpoints = [
 
 const isSessionExpiredError = (status, data) => {
     const message = [
-        data ? .message,
-        data ? .error,
-        data ? .detail
+        data?.message,
+        data?.error,
+        data?.detail
     ].
 
     filter(Boolean).
@@ -61,7 +61,7 @@ const redirectToLogin = () => {
 
 axiosClient.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
-    const isPublicEndpoint = publicEndpoints.some((endpoint) => config.url ? .startsWith(endpoint));
+    const isPublicEndpoint = publicEndpoints.some((endpoint) => config.url?.startsWith(endpoint));
 
     if (token && !isPublicEndpoint) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -74,16 +74,16 @@ axiosClient.interceptors.request.use((config) => {
 axiosClient.interceptors.response.use(
     (response) => response,
     (error) => {
-        const status = error.response ? .status;
-        const data = error.response ? .data;
-        const requestUrl = error.response ? .config ? .url || "";
+        const status = error.response?.status;
+        const data = error.response?.data;
+        const requestUrl = error.response?.config?.url || "";
         const isLogoutRequest = requestUrl.includes("/auth/logout");
         const isLoggingOut = window.__isLoggingOut === true;
 
 
         window.lastError = {
             status,
-            url: error.response ? .config ? .url,
+            url: error.response?.config?.url,
             data
         };
 

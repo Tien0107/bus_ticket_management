@@ -18,11 +18,11 @@ import { getStoredUser } from "../chat/chatUtils";
 import { SOCKET_URL } from "../chat/chatUtils";
 
 const getToken = () =>
-    localStorage.getItem("token") ? .replace(/^Bearer\s+/i, "") || null;
+    localStorage.getItem("token")?.replace(/^Bearer\s+/i, "") || null;
 
 const getCurrentUser = () => {
     const user = getStoredUser();
-    if (!user ? .id) return null;
+    if (!user?.id) return null;
     return {
         id: Number(user.id),
         name: user.fullName || user.username || "Người dùng",
@@ -67,8 +67,8 @@ function applyTrackQualityHints(stream) {
 }
 
 async function applyVideoQualityConstraints(stream) {
-    const videoTrack = stream ? .getVideoTracks ? .()[0];
-    if (!videoTrack ? .applyConstraints) return;
+    const videoTrack = stream?.getVideoTracks?.()[0];
+    if (!videoTrack?.applyConstraints) return;
 
     try {
         await videoTrack.applyConstraints(VIDEO_CONSTRAINTS);
@@ -78,7 +78,7 @@ async function applyVideoQualityConstraints(stream) {
 }
 
 function tuneSenderParameters(sender) {
-    if (!sender ? .track || typeof sender.getParameters !== "function" || typeof sender.setParameters !== "function") {
+    if (!sender?.track || typeof sender.getParameters !== "function" || typeof sender.setParameters !== "function") {
         return;
     }
 
@@ -87,7 +87,7 @@ function tuneSenderParameters(sender) {
 
         if (sender.track.kind === "video") {
             parameters.degradationPreference = "maintain-resolution";
-            parameters.encodings = parameters.encodings ? .length ? parameters.encodings : [{}];
+            parameters.encodings = parameters.encodings?.length ? parameters.encodings : [{}];
             parameters.encodings[0] = {
                 ...parameters.encodings[0],
                 maxBitrate: 2500000,
@@ -96,7 +96,7 @@ function tuneSenderParameters(sender) {
         }
 
         if (sender.track.kind === "audio") {
-            parameters.encodings = parameters.encodings ? .length ? parameters.encodings : [{}];
+            parameters.encodings = parameters.encodings?.length ? parameters.encodings : [{}];
             parameters.encodings[0] = {
                 ...parameters.encodings[0],
                 maxBitrate: 64000
@@ -391,13 +391,13 @@ export default function useWebRTCCall(options = {}) {
             payload.userId,
             payload.startedAt,
             payload.timestamp,
-            payload.offer ? .sdp ? .slice ? .(0, 80),
-            payload.answer ? .sdp ? .slice ? .(0, 80),
-            payload.candidate ? .candidate,
-            payload.candidate ? .sdpMid,
-            payload.candidate ? .sdpMLineIndex
+            payload.offer?.sdp?.slice?.(0, 80),
+            payload.answer?.sdp?.slice?.(0, 80),
+            payload.candidate?.candidate,
+            payload.candidate?.sdpMid,
+            payload.candidate?.sdpMLineIndex
         ].
-        map((value) => String(value ? ? "")).join("|");
+        map((value) => String(value ?? "")).join("|");
 
         if (handledEventsRef.current.has(key)) return false;
         handledEventsRef.current.add(key);
@@ -418,11 +418,11 @@ export default function useWebRTCCall(options = {}) {
         }
 
 
-        if (window.__chatSocket ? .connected) {
+        if (window.__chatSocket?.connected) {
             return window.__chatSocket;
         }
 
-        if (socketRef.current ? .connected) return socketRef.current;
+        if (socketRef.current?.connected) return socketRef.current;
 
         const token = getToken();
         if (!token) {
@@ -443,7 +443,7 @@ export default function useWebRTCCall(options = {}) {
         socketRef.current = socket;
 
         socket.on("connect_error", (err) => {
-            console.error("[CALL] Private signaling socket connect_error", err ? .message || err);
+            console.error("[CALL] Private signaling socket connect_error", err?.message || err);
         });
 
         return socket;
@@ -477,7 +477,7 @@ export default function useWebRTCCall(options = {}) {
             nextStream.addTrack(track);
         };
 
-        remoteStreamRef.current ? .getTracks ? .().forEach(addTrack);
+        remoteStreamRef.current?.getTracks?.().forEach(addTrack);
         validTracks.forEach(addTrack);
 
         if (nextStream.getTracks().length === 0) return;
@@ -488,8 +488,8 @@ export default function useWebRTCCall(options = {}) {
     }, []);
 
     const updateRemoteStreamFromReceivers = useCallback((pc, onRemoteStream = null) => {
-        const receiverTracks = pc ? .getReceivers ? .() ? .
-        map((receiver) => receiver.track) ? .
+        const receiverTracks = pc?.getReceivers?.()?.
+        map((receiver) => receiver.track)?.
         filter((track) => track && track.readyState !== "ended") || [];
 
         updateRemoteStreamTracks(receiverTracks, onRemoteStream);
@@ -512,7 +512,7 @@ export default function useWebRTCCall(options = {}) {
                 socket.emit(LEGACY_CALL_EVENTS.ICE_CANDIDATE, {
                     boxId: conversationIdRef.current,
                     candidate: event.candidate || null,
-                    targetUserId: remoteUserRef.current ? .id ? Number(remoteUserRef.current.id) : undefined
+                    targetUserId: remoteUserRef.current?.id ? Number(remoteUserRef.current.id) : undefined
                 });
             } else {
                 socket.emit(CALL_CLIENT_EVENTS.ICE_CANDIDATE, {
@@ -524,7 +524,7 @@ export default function useWebRTCCall(options = {}) {
         };
 
         pc.ontrack = (event) => {
-            const streamTracks = event.streams ? .flatMap((stream) => stream.getTracks()) || [];
+            const streamTracks = event.streams?.flatMap((stream) => stream.getTracks()) || [];
             updateRemoteStreamTracks([event.track, ...streamTracks], onRemoteStream);
         };
 
@@ -533,7 +533,7 @@ export default function useWebRTCCall(options = {}) {
             const state = pc.connectionState;
 
             if (state === "failed" || state === "disconnected") {
-                handleErrorRef.current ? .(CALL_ERROR_CODE.CONNECTION_FAILED, "Kết nối bị gián đoạn");
+                handleErrorRef.current?.(CALL_ERROR_CODE.CONNECTION_FAILED, "Kết nối bị gián đoạn");
             }
             if (state === "connected") {
                 statusRef.current = CALL_STATUS.CONNECTED;
@@ -542,8 +542,8 @@ export default function useWebRTCCall(options = {}) {
 
                 setTimeout(() => {
                     if (pc) {
-                        const hasAudio = remoteStreamRef.current ? .getAudioTracks ? .().some((track) => track.readyState !== "ended");
-                        const hasVideo = remoteStreamRef.current ? .getVideoTracks ? .().some((track) => track.readyState !== "ended");
+                        const hasAudio = remoteStreamRef.current?.getAudioTracks?.().some((track) => track.readyState !== "ended");
+                        const hasVideo = remoteStreamRef.current?.getVideoTracks?.().some((track) => track.readyState !== "ended");
                         const needsVideo = callTypeRef.current === CALL_TYPE.VIDEO;
 
                         if (!remoteStreamRef.current || !hasAudio || needsVideo && !hasVideo) {
@@ -555,8 +555,8 @@ export default function useWebRTCCall(options = {}) {
         };
 
         pc.oniceconnectionstatechange = () => {
-            if (pc ? .iceConnectionState === "failed") {
-                handleErrorRef.current ? .(CALL_ERROR_CODE.CONNECTION_FAILED, "Không thể kết nối ICE");
+            if (pc?.iceConnectionState === "failed") {
+                handleErrorRef.current?.(CALL_ERROR_CODE.CONNECTION_FAILED, "Không thể kết nối ICE");
             }
         };
 
@@ -636,7 +636,7 @@ export default function useWebRTCCall(options = {}) {
         if (getCurrentCallMode() === "legacy") {
             socket.emit(LEGACY_CALL_EVENTS.END, {
                 boxId: conversationIdRef.current,
-                targetUserId: remoteUserRef.current ? .id ? Number(remoteUserRef.current.id) : undefined,
+                targetUserId: remoteUserRef.current?.id ? Number(remoteUserRef.current.id) : undefined,
                 reason
             });
             return;
@@ -656,7 +656,7 @@ export default function useWebRTCCall(options = {}) {
         if (getCurrentCallMode() === "legacy") {
             socket.emit(LEGACY_CALL_EVENTS.REJECT, {
                 boxId: conversationIdRef.current,
-                targetUserId: remoteUserRef.current ? .id ? Number(remoteUserRef.current.id) : undefined,
+                targetUserId: remoteUserRef.current?.id ? Number(remoteUserRef.current.id) : undefined,
                 reason
             });
             return;
@@ -719,7 +719,7 @@ export default function useWebRTCCall(options = {}) {
                 socket.emit(LEGACY_CALL_EVENTS.OFFER, {
                     boxId: conversationIdRef.current,
                     offer,
-                    targetUserId: remoteUserRef.current ? .id ? Number(remoteUserRef.current.id) : undefined
+                    targetUserId: remoteUserRef.current?.id ? Number(remoteUserRef.current.id) : undefined
                 });
                 return;
             }
@@ -748,7 +748,7 @@ export default function useWebRTCCall(options = {}) {
                 socket.emit(LEGACY_CALL_EVENTS.ANSWER, {
                     boxId: conversationIdRef.current,
                     answer,
-                    targetUserId: remoteUserRef.current ? .id ? Number(remoteUserRef.current.id) : undefined
+                    targetUserId: remoteUserRef.current?.id ? Number(remoteUserRef.current.id) : undefined
                 });
                 return;
             }
@@ -830,7 +830,7 @@ export default function useWebRTCCall(options = {}) {
             if (ringTimeoutRef.current) clearTimeout(ringTimeoutRef.current);
             ringTimeoutRef.current = setTimeout(() => {
                 if (callIdRef.current === incomingCallId) {
-                    rejectCallRef.current ? .(CALL_REASON.NO_ANSWER);
+                    rejectCallRef.current?.(CALL_REASON.NO_ANSWER);
                 }
             }, RING_TIMEOUT_MS);
         });
@@ -871,7 +871,7 @@ export default function useWebRTCCall(options = {}) {
 
             if (ringTimeoutRef.current) clearTimeout(ringTimeoutRef.current);
             ringTimeoutRef.current = setTimeout(() => {
-                if (callIdRef.current === incomingCallId) rejectCallRef.current ? .(CALL_REASON.NO_ANSWER);
+                if (callIdRef.current === incomingCallId) rejectCallRef.current?.(CALL_REASON.NO_ANSWER);
             }, RING_TIMEOUT_MS);
         };
 
@@ -1015,7 +1015,7 @@ export default function useWebRTCCall(options = {}) {
             if (!rememberHandledEvent("legacy-incoming", payload)) return;
 
 
-            if (userId && Number(userId) === Number(currentUserRef.current ? .id)) return;
+            if (userId && Number(userId) === Number(currentUserRef.current?.id)) return;
 
             const isSameLegacyCall =
                 getCurrentCallMode() === "legacy" &&
@@ -1068,7 +1068,7 @@ export default function useWebRTCCall(options = {}) {
 
         socket.on(LEGACY_CALL_EVENTS.OFFER, async(payload = {}) => {
             const { boxId, offer, userId: fromUserId } = payload;
-            if (fromUserId && Number(fromUserId) === Number(currentUserRef.current ? .id)) return;
+            if (fromUserId && Number(fromUserId) === Number(currentUserRef.current?.id)) return;
             if (!rememberHandledEvent("legacy-offer", payload)) return;
 
             if (statusRef.current === CALL_STATUS.INCOMING) {
@@ -1114,7 +1114,7 @@ export default function useWebRTCCall(options = {}) {
                 socket.emit(LEGACY_CALL_EVENTS.ANSWER, {
                     boxId,
                     answer,
-                    targetUserId: remoteUserRef.current ? .id ? Number(remoteUserRef.current.id) : undefined
+                    targetUserId: remoteUserRef.current?.id ? Number(remoteUserRef.current.id) : undefined
                 });
 
 
@@ -1129,7 +1129,7 @@ export default function useWebRTCCall(options = {}) {
         socket.on(LEGACY_CALL_EVENTS.ANSWER, async(payload = {}) => {
             const { answer, userId: fromUserId } = payload;
             const pc = pcRef.current;
-            if (!pc || fromUserId && Number(fromUserId) === Number(currentUserRef.current ? .id)) return;
+            if (!pc || fromUserId && Number(fromUserId) === Number(currentUserRef.current?.id)) return;
             if (!rememberHandledEvent("legacy-answer", payload)) return;
 
             try {
@@ -1155,7 +1155,7 @@ export default function useWebRTCCall(options = {}) {
         socket.on(LEGACY_CALL_EVENTS.ICE_CANDIDATE, async(payload = {}) => {
             const { candidate, userId: fromUserId, boxId } = payload;
             if (!candidate) return;
-            if (fromUserId && Number(fromUserId) === Number(currentUserRef.current ? .id)) return;
+            if (fromUserId && Number(fromUserId) === Number(currentUserRef.current?.id)) return;
             if (!rememberHandledEvent("legacy-ice", payload)) return;
 
 
@@ -1381,7 +1381,7 @@ export default function useWebRTCCall(options = {}) {
                     socket.emit(LEGACY_CALL_EVENTS.ANSWER, {
                         boxId: offerBoxId,
                         answer,
-                        targetUserId: remoteUserRef.current ? .id ? Number(remoteUserRef.current.id) : undefined
+                        targetUserId: remoteUserRef.current?.id ? Number(remoteUserRef.current.id) : undefined
                     });
 
 
@@ -1492,7 +1492,7 @@ export default function useWebRTCCall(options = {}) {
 
             const newVideoTrack = newStream.getVideoTracks()[0];
             try { newVideoTrack.contentHint = "motion"; } catch {}
-            if (newVideoTrack ? .applyConstraints) {
+            if (newVideoTrack?.applyConstraints) {
                 try {
                     await newVideoTrack.applyConstraints(SWITCH_CAMERA_VIDEO_CONSTRAINTS(newFacingMode));
                 } catch (error) {
@@ -1503,7 +1503,7 @@ export default function useWebRTCCall(options = {}) {
 
             const pc = pcRef.current;
             if (pc) {
-                const sender = pc.getSenders().find((s) => s.track ? .kind === "video");
+                const sender = pc.getSenders().find((s) => s.track?.kind === "video");
                 if (sender) {
                     await sender.replaceTrack(newVideoTrack);
                     tuneSenderParameters(sender);
@@ -1561,7 +1561,7 @@ export default function useWebRTCCall(options = {}) {
     useEffect(() => {
         const user = getCurrentUser();
         const token = getToken();
-        if (!user ? .id || !token) return undefined;
+        if (!user?.id || !token) return undefined;
 
 
         const handleAnyLegacyIncoming = (payload) => {
