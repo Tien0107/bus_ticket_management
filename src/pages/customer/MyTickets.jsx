@@ -42,20 +42,8 @@ const addStoredTicketId = (key, id) => {
   }
 };
 
-const getLocalPaymentMethod = (ticket) => {
-  try {
-    return (
-      localStorage.getItem(`busgo_payment_method_${ticket?.bookingId}`) ||
-      localStorage.getItem(`busgo_payment_method_${ticket?.id}`) ||
-      "");
-
-  } catch {
-    return "";
-  }
-};
-
 const isCashTicket = (ticket) => {
-  return String(ticket?.paymentMethod || ticket?.paymentType || getLocalPaymentMethod(ticket)).toUpperCase() === "CASH";
+  return String(ticket?.paymentMethod || ticket?.paymentType || "").toUpperCase() === "CASH";
 };
 
 const toValidDate = (value) => {
@@ -90,10 +78,6 @@ const getDisplayTicketStatus = (ticket) => {
 
   if (currentStatus === "EXPIRED") {
     return "EXPIRED";
-  }
-
-  if (isCashTicket(ticket) && (currentStatus === "PENDING" || currentStatus === "RESERVED")) {
-    return "CASH_PAID";
   }
 
   return currentStatus;
@@ -157,9 +141,9 @@ export default function MyTickets() {
         params.next = cursor;
       }
       if (filterStatus !== "ALL") {
-        // Map UI filter to backend status param (backend supports status like pending, paid, cancelled, reserved, etc.)
+        // Filter theo 3 trạng thái: reserved, paid, cancelled
         const statusMap = {
-          PENDING: "pending",
+          PENDING: "reserved",
           COMPLETED: "paid",
           CANCELLED: "cancelled"
         };
@@ -255,7 +239,6 @@ export default function MyTickets() {
   const handlePayment = async (id, method, selectedPaymentMethodId = null) => {
     try {
       if (method === "cash") {
-        localStorage.setItem(`busgo_payment_method_${id}`, 'CASH');
         try {
           const res = await createPaymentMethod(id, method);
           try {
@@ -458,8 +441,11 @@ export default function MyTickets() {
 
             const currentStatus = getDisplayTicketStatus(t);
 
-            if (filterStatus === 'PENDING') return currentStatus === 'PENDING' || currentStatus === 'RESERVED';
-            if (filterStatus === 'COMPLETED') return ['COMPLETED', 'PAID', 'CHECKED_IN', 'CASH_PAID'].includes(currentStatus);
+            if (filterStatus === 'PENDING') {
+              const rawStatus = String(t?.status || '').toUpperCase();
+              return ['RESERVED', 'PENDING'].includes(rawStatus);
+            }
+            if (filterStatus === 'COMPLETED') return ['COMPLETED', 'PAID', 'CHECKED_IN'].includes(currentStatus);
             if (filterStatus === 'CANCELLED') return ['CANCELLED', 'EXPIRED'].includes(currentStatus);
 
             return true;
@@ -478,20 +464,21 @@ export default function MyTickets() {
             <div className="space-y-6">
              {filteredTickets.map((t, idx) => {
                 const currentStatus = getDisplayTicketStatus(t);
+                const rawStatus = String(t?.status || '').toUpperCase();
 
-                const isPending = currentStatus === "PENDING" || currentStatus === "RESERVED";
+                const showPaymentButtons =
+                  rawStatus === "RESERVED" ||
+                  (rawStatus === "PENDING" && t.expiredAt && new Date(t.expiredAt) > new Date());
 
-                // Chỉ hiển thị nút "Đánh giá" khi tripStatus === "completed" (theo yêu cầu)
                 const canShowReviewAction =
                   !["PENDING", "RESERVED", "CANCELLED", "EXPIRED"].includes(currentStatus) &&
                   isTripCompletedForReview(t);
 
                 const statusLabelMap = {
-                  'PENDING': 'Chờ thanh toán', 'RESERVED': 'Đã giữ chỗ',
+                  'PENDING': 'Chờ thanh toán', 'RESERVED': 'Chờ thanh toán',
                   'PAID': 'Đã thanh toán', 'COMPLETED': 'Hoàn thành',
                   'CANCELLED': 'Đã hủy', 'EXPIRED': 'Hết hạn',
-                  'CHECKED_IN': 'Đã lên xe',
-                  'CASH_PAID': 'Thanh toán (Tiền mặt)'
+                  'CHECKED_IN': 'Đã lên xe'
                 };
                 const statusLabel = statusLabelMap[currentStatus] || currentStatus;
 
@@ -499,8 +486,7 @@ export default function MyTickets() {
                   <div key={idx} className="bg-white border rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                    <div className="space-y-2">
                       <div className="flex items-center gap-3">
-                         <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold border border-primary/20">Mã vé: #{t.id} {t.bookingId ? `(Order #${t.bookingId})` : ''}</span>
-                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${currentStatus === 'COMPLETED' || currentStatus === 'PAID' || currentStatus === 'CASH_PAID' ? 'bg-green-100 text-green-700' : currentStatus === 'CANCELLED' ? 'bg-red-100 text-red-700' : currentStatus === 'EXPIRED' ? 'bg-gray-200 text-gray-600' : 'bg-orange-100 text-orange-700'}`}>
+                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${currentStatus === 'COMPLETED' || currentStatus === 'PAID' ? 'bg-green-100 text-green-700' : currentStatus === 'CANCELLED' ? 'bg-red-100 text-red-700' : currentStatus === 'EXPIRED' ? 'bg-gray-200 text-gray-600' : 'bg-orange-100 text-orange-700'}`}>
                            {statusLabel}
                          </span>
                       </div>
@@ -531,7 +517,7 @@ export default function MyTickets() {
                         const isCash = isCashTicket(t);
                         const expireAt = t.expiredAt;
 
-                        if (isPending && !isCash && expireAt) {
+                        if (showPaymentButtons && !isCash && expireAt) {
                           const expireDate = new Date(expireAt);
                           const expireLabel = expireDate.toLocaleTimeString('vi-VN', { 
                             hour: '2-digit', 
@@ -549,7 +535,7 @@ export default function MyTickets() {
                     </div>
                    
                    <div className="flex gap-3 w-full md:w-auto">
-                      {isPending ?
+                      {showPaymentButtons ?
                       <>
                            <div className="flex md:flex-col gap-2 flex-1 md:flex-none">
                              <button onClick={() => handlePayment(t.bookingId || t.id, "vnpay")} className="w-full border border-primary text-primary hover:bg-primary hover:text-white transition-colors px-4 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm text-sm">
@@ -616,7 +602,6 @@ export default function MyTickets() {
 
               })}
               
-              {/* Nút Tải thêm khi API trả về next cursor */}
               {nextCursor && (
                 <div className="flex justify-center pt-2 pb-6">
                   <button
