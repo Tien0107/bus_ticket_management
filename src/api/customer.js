@@ -97,8 +97,14 @@ export const getTripScheduleRatings = (params) => {
     return axiosClient.get("/customer/trip-schedule/rating", { params });
 };
 
+const compactParams = (params = {}) => {
+    return Object.fromEntries(
+        Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== "")
+    );
+};
+
 export const getCustomerTickets = (params) => {
-    return axiosClient.get("/customer/ticket", { params });
+    return axiosClient.get("/customer/ticket", { params: compactParams(params) });
 };
 
 export const getCustomerTicketDetail = (ticketId) => {
