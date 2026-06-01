@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import CustomerProfileNav from "../../components/profile/CustomerProfileNav";
 import CustomerProfileSectionHeader from "../../components/profile/CustomerProfileSectionHeader";
@@ -168,6 +168,7 @@ function DetailRow({ label, value }) {
 
 export default function MyTickets() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToast } = useToast();
   const [tickets, setTickets] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
@@ -246,6 +247,25 @@ export default function MyTickets() {
   useEffect(() => {
     fetchTickets({ filters: appliedFilters });
   }, [appliedFilters, fetchTickets]);
+
+  // Extra background refresh when navigating back from payment flows (Stripe/VNPay)
+  // This helps when webhook is still processing (common with Stripe card payments)
+  useEffect(() => {
+    if (location.state?.refreshTickets) {
+      // Do additional refreshes at strategic times to catch webhook updates
+      const t1 = setTimeout(() => {
+        fetchTickets({ filters: appliedFilters });
+      }, 2800);
+      const t2 = setTimeout(() => {
+        fetchTickets({ filters: appliedFilters });
+      }, 6500);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [location.state?.refreshTickets]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFilterChange = (field, value) => {
     const nextFilters = {
@@ -500,10 +520,24 @@ export default function MyTickets() {
 
       if (paymentIntent?.status === "succeeded") {
         await createPaymentNotification(ticket, "stripe");
+
+        // Optimistic update: vé hiện "Đã thanh toán" ngay lập tức
+        setTickets((prev) =>
+          prev.map((t) =>
+            String(t.id) === String(ticket.id) ? { ...t, status: "paid" } : t
+          )
+        );
+
         addToast("Thanh toán bằng thẻ thành công!", "success");
         setShowCardModal(false);
         setPaymentTicket(null);
-        await fetchTickets({ filters: appliedFilters });
+
+        // Refresh ngay + refresh lại sau 2-3s để bắt webhook Stripe
+        fetchTickets({ filters: appliedFilters });
+        setTimeout(() => {
+          fetchTickets({ filters: appliedFilters });
+        }, 2800);
+
         return;
       }
 
