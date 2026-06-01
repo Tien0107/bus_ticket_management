@@ -99,6 +99,10 @@ const TripCard = ({ trip }) => {
   return (
     <Link
       to={`/driver/trip/${trip.id}`}
+      state={{
+        trip,
+        tripDate: trip.date || trip.departureDate?.split("T")[0] || "",
+      }}
       className="group block rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-editorial"
     >
       <div className="flex items-start justify-between gap-4">
@@ -263,6 +267,10 @@ const DriverDashboard = () => {
               </div>
               <Link
                 to={`/driver/trip/${activeTrip.id}`}
+                state={{
+                  trip: activeTrip,
+                  tripDate: activeTrip.date || activeTrip.departureDate?.split("T")[0] || "",
+                }}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-bold text-primary transition-opacity hover:opacity-90"
               >
                 Mở chuyến

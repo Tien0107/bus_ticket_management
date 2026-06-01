@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getDriverTripsAllStatuses, getTripPassengers, getTripRoute, updateTrip } from "../../api/driver";
 import { useToast } from "../../context/ToastContext";
 import PassengerList from "../../components/driver/PassengerList";
@@ -103,8 +103,19 @@ const normalizePassengers = (rawPassengers) => {
       isCheckedInStatus(normalizedCheckInStatus) ||
       isCheckedInStatus(normalizedTicketStatus);
 
+    const passengerId =
+      passenger.passengerId ||
+      passenger.passenger_id ||
+      passenger.customerId ||
+      passenger.customer_id ||
+      passenger.userId ||
+      passenger.user_id ||
+      passenger.id ||
+      passenger.ticketId;
+
     return {
-      id: passenger.id || passenger.passengerId || passenger.ticketId,
+      id: passengerId,
+      ticketId: passenger.ticketId || passenger.ticket?.id || passenger.Ticket?.id || passenger.id,
       name: passenger.name || passenger.fullName || passenger.passengerName || "Chưa có tên",
       phone: passenger.phone || passenger.phoneNumber || "Chưa có SĐT",
       ticket: passenger.ticket || passenger.ticketNumber || passenger.bookingCode || `#${passenger.id || ""}`,
@@ -148,8 +159,18 @@ const InfoTile = ({ label, value, icon }) => (
 
 export default function TripDetail() {
   const { tripId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const stateTrip =
+    location.state?.trip && String(location.state.trip.id) === String(tripId)
+      ? location.state.trip
+      : null;
+  const stateTripDate =
+    location.state?.tripDate ||
+    stateTrip?.departureDate?.split("T")[0] ||
+    stateTrip?.date ||
+    "";
 
   const [trip, setTrip] = useState(null);
   const [passengers, setPassengers] = useState([]);
@@ -165,10 +186,25 @@ export default function TripDetail() {
       if (!silent) setLoading(true);
 
       const today = new Date().toISOString().split("T")[0];
-      const tripPromise = getDriverTripsAllStatuses(today).then((response) => {
-        const allTrips = Array.isArray(response.data?.trips) ? response.data.trips : [];
-        return allTrips.find((item) => item.id === Number(tripId));
-      });
+      const dateCandidates = [stateTripDate, today, null].filter(
+        (value, index, array) => index === array.findIndex((item) => item === value)
+      );
+      const tripPromise = (async () => {
+        if (stateTrip) return stateTrip;
+
+        for (const date of dateCandidates) {
+          const response = await getDriverTripsAllStatuses(date);
+          const allTrips = Array.isArray(response.data?.trips)
+            ? response.data.trips
+            : Array.isArray(response.data?.data)
+            ? response.data.data
+            : [];
+          const matchedTrip = allTrips.find((item) => String(item.id) === String(tripId));
+          if (matchedTrip) return matchedTrip;
+        }
+
+        return null;
+      })();
 
       const [tripData, passengersRes, routeRes] = await Promise.all([
         tripPromise,
@@ -205,7 +241,7 @@ export default function TripDetail() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [tripId]);
+  }, [stateTrip, stateTripDate, tripId]);
 
   useEffect(() => {
     fetchTripDetails();

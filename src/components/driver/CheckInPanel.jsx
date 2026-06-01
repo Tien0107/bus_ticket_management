@@ -2,6 +2,12 @@ import React, { useMemo, useState } from "react";
 import { checkInPassenger } from "../../api/driver";
 import { useToast } from "../../context/ToastContext";
 
+const getApiMessage = (error) =>
+  error.response?.data?.message ||
+  error.response?.data?.error ||
+  error.message ||
+  "Check-in that bai";
+
 const CheckInPanel = ({ tripId, passengers = [], onCheckInSuccess, isOpen, onClose, initialPassengerId = null }) => {
   const { addToast } = useToast();
   const [selectedPassenger, setSelectedPassenger] = useState(null);
@@ -42,7 +48,15 @@ const CheckInPanel = ({ tripId, passengers = [], onCheckInSuccess, isOpen, onClo
         setSelectedPassenger(null);
         setSearchTerm("");
       }
-    } catch {
+    } catch (error) {
+      console.error("Driver check-in failed", {
+        tripId,
+        passengerId: selectedPassenger.id,
+        passenger: selectedPassenger,
+        status: error.response?.status,
+        data: error.response?.data,
+        message: getApiMessage(error),
+      });
       addToast("Check-in thất bại", "error");
     } finally {
       setLoading(false);
