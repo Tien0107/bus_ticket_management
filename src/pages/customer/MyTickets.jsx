@@ -19,7 +19,6 @@ import { useToast } from "../../context/ToastContext";
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 const DELETED_TICKETS_STORAGE_KEY = "busgo_deleted_tickets";
-const EXPIRED_TICKETS_STORAGE_KEY = "busgo_expired_tickets";
 const ticketTypeFilters = [
 { id: "ALL", label: "Tất cả loại" },
 { id: "one_way", label: "Một chiều" },
@@ -88,9 +87,8 @@ const isTripCompletedForReview = (ticket) => {
 
 const getDisplayTicketStatus = (ticket) => {
   const currentStatus = String(ticket?.status || "pending").toUpperCase();
-  const isStoredExpired = readStoredTicketIds(EXPIRED_TICKETS_STORAGE_KEY).includes(String(ticket?.id));
 
-  if (currentStatus === "EXPIRED" || isStoredExpired) {
+  if (currentStatus === "EXPIRED") {
     return "EXPIRED";
   }
 
@@ -114,41 +112,6 @@ const getTicketBookingType = (ticket) => {
 const getTicketTypeLabel = (type) => type === "round_trip" ? "Khứ hồi" : "Một chiều";
 
 const hasCursorValue = (cursor) => cursor !== null && cursor !== undefined && cursor !== "";
-
-const CountdownTimer = ({ expiredAt, onExpire }) => {
-  const [timeLeft, setTimeLeft] = useState(new Date(expiredAt).getTime() - Date.now());
-  const hasExpiredRef = React.useRef(false);
-
-  useEffect(() => {
-    if (timeLeft <= 0) {
-      if (!hasExpiredRef.current) {
-        hasExpiredRef.current = true;
-        onExpire();
-      }
-      return;
-    }
-    const intervalId = setInterval(() => {
-      const remaining = new Date(expiredAt).getTime() - Date.now();
-      setTimeLeft(remaining);
-      if (remaining <= 0) {
-        clearInterval(intervalId);
-        if (!hasExpiredRef.current) {
-          hasExpiredRef.current = true;
-          onExpire();
-        }
-      }
-    }, 1000);
-    return () => clearInterval(intervalId);
-
-  }, [expiredAt]);
-
-  if (timeLeft <= 0) return <span className="font-bold">Đã hết hạn</span>;
-
-  const m = Math.floor(timeLeft / 1000 / 60 % 60);
-  const s = Math.floor(timeLeft / 1000 % 60);
-
-  return <span className="font-bold">{m}:{s < 10 ? '0' : ''}{s}</span>;
-};
 
 export default function MyTickets() {
   const [tickets, setTickets] = useState([]);
@@ -251,13 +214,10 @@ export default function MyTickets() {
   }, [fetchTickets, refreshSignal]);
 
 
-  const executeCancel = async (id, isAuto = false) => {
+  const executeCancel = async (id) => {
     try {
-      if (isAuto) {
-        addStoredTicketId(EXPIRED_TICKETS_STORAGE_KEY, id);
-      }
       await cancelTicket(id);
-      if (!isAuto) addToast("Hủy vé thành công!", "success", 2600);
+      addToast("Hủy vé thành công!", "success", 2600);
       try {
         const userStr = localStorage.getItem("user");
         if (userStr) {
@@ -276,20 +236,14 @@ export default function MyTickets() {
       }
       fetchTickets();
     } catch (err) {
-      if (!isAuto) addToast("Hủy vé thất bại: " + (err.response?.data?.message || err.message), "error");
+      addToast("Hủy vé thất bại: " + (err.response?.data?.message || err.message), "error");
     } finally {
-      if (!isAuto) {
-        setTicketToCancel(null);
-      }
+      setTicketToCancel(null);
     }
   };
 
-  const handleCancel = (id, isAuto = false) => {
-    if (isAuto) {
-      executeCancel(id, true);
-    } else {
-      setTicketToCancel(id);
-    }
+  const handleCancel = (id) => {
+    setTicketToCancel(id);
   };
 
   const handleDeleteTicket = (id) => {
@@ -574,27 +528,21 @@ export default function MyTickets() {
                       })()}
                        
                        {(() => {
-                        const rawTime = t.expiredAt || t.createdAt || t.created_at || t.createdDate || t.createAt || t.bookingDate || t.bookingTime || t.orderDate;
-                        let baseTime = t.expiredAt ? t.expiredAt : rawTime ? new Date(new Date(rawTime).getTime() + 10 * 60000).toISOString() : null;
                         const isCash = isCashTicket(t);
+                        const expireAt = t.expiredAt;
 
-                        if (isPending && !isCash) {
-
-                          if (!baseTime) {
-                            const localKey = `busgo_ticket_expire_${t.id}`;
-                            baseTime = localStorage.getItem(localKey);
-                            if (!baseTime) {
-                              baseTime = new Date(Date.now() + 10 * 60000).toISOString();
-                              localStorage.setItem(localKey, baseTime);
-                            }
-                          }
+                        if (isPending && !isCash && expireAt) {
+                          const expireDate = new Date(expireAt);
+                          const expireLabel = expireDate.toLocaleTimeString('vi-VN', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          });
 
                           return (
                             <p className="text-xs text-red-500 font-medium flex items-center gap-1 mt-2">
                                 <span className="material-symbols-outlined text-[14px]">timer</span>
-                                Hết hạn trong: <CountdownTimer expiredAt={baseTime} onExpire={() => handleCancel(t.id, true)} />
+                                Hết hạn lúc {expireLabel}
                              </p>);
-
                         }
                         return null;
                       })()}
