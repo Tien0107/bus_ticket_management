@@ -1,23 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { useToast } from "../../context/ToastContext";
+import React from "react";
 
 export default function BookingCheckoutStep({ bookingData, returnBookingData, isRoundTrip, setBookingData, onBack, onConfirm }) {
-  const { addToast } = useToast();
-
-
-  const [timeLeft, setTimeLeft] = useState(10 * 60);
-
-  useEffect(() => {
-    if (timeLeft <= 0) {
-      addToast("Đã hết thời gian giữ chỗ! Vui lòng chọn lại ghế.", "error");
-      onBack();
-      return;
-    }
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft, onBack]);
 
   return (
     <>
@@ -97,9 +80,9 @@ export default function BookingCheckoutStep({ bookingData, returnBookingData, is
               </div>
               <div className="text-right">
                 <p className="text-xs font-medium opacity-90 uppercase tracking-widest mb-1">Thời gian giữ chỗ</p>
-                <div className="flex items-center gap-1 text-2xl font-bold font-mono bg-white/20 px-3 py-1 rounded-lg">
-                  <span className="material-symbols-outlined text-[20px]">timer</span>
-                  {Math.floor(timeLeft / 60)}:{timeLeft % 60 < 10 ? '0' : ''}{timeLeft % 60}
+                <div className="flex items-center gap-1.5 text-sm font-bold bg-white/20 px-3 py-1.5 rounded-lg">
+                  <span className="material-symbols-outlined text-[18px]">timer</span>
+                  <span>Vé sẽ tự hủy sau 10 phút</span>
                 </div>
               </div>
             </div>

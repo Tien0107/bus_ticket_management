@@ -74,6 +74,18 @@ const hasPassedDepartureByDays = (ticket, days = 2) => {
   return Date.now() >= reviewAvailableAt.getTime();
 };
 
+const isTripCompletedForReview = (ticket) => {
+  const raw = String(
+    ticket?.tripStatus ||
+    ticket?.trip?.status ||
+    ticket?.tripSchedule?.status ||
+    ticket?.status ||
+    ""
+  ).toLowerCase().trim();
+
+  return ["completed", "hoàn thành", "done", "finished", "checked_in"].includes(raw);
+};
+
 const getDisplayTicketStatus = (ticket) => {
   const currentStatus = String(ticket?.status || "pending").toUpperCase();
   const isStoredExpired = readStoredTicketIds(EXPIRED_TICKETS_STORAGE_KEY).includes(String(ticket?.id));
@@ -181,6 +193,16 @@ export default function MyTickets() {
       if (hasCursorValue(cursor)) {
         params.next = cursor;
       }
+      if (filterStatus !== "ALL") {
+        // Map UI filter to backend status param (backend supports status like pending, paid, cancelled, reserved, etc.)
+        const statusMap = {
+          PENDING: "pending",
+          COMPLETED: "paid",
+          CANCELLED: "cancelled"
+        };
+        const apiStatus = statusMap[filterStatus];
+        if (apiStatus) params.status = apiStatus;
+      }
       if (filterType !== "ALL") {
         params.type = filterType;
       }
@@ -215,7 +237,7 @@ export default function MyTickets() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [filterType, navigate]);
+  }, [filterStatus, filterType, navigate]);
 
   useEffect(() => {
     fetchTickets();
@@ -228,22 +250,6 @@ export default function MyTickets() {
     return () => clearTimeout(timeoutId);
   }, [fetchTickets, refreshSignal]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (loading || loadingMore || !hasCursorValue(nextCursor)) return;
-
-      const threshold = 150;
-      const totalHeight = document.documentElement.scrollHeight;
-      const scrollPosition = window.innerHeight + window.scrollY;
-
-      if (totalHeight - scrollPosition <= threshold) {
-        fetchTickets(nextCursor, true);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [fetchTickets, loading, loadingMore, nextCursor]);
 
   const executeCancel = async (id, isAuto = false) => {
     try {
@@ -520,10 +526,11 @@ export default function MyTickets() {
                 const currentStatus = getDisplayTicketStatus(t);
 
                 const isPending = currentStatus === "PENDING" || currentStatus === "RESERVED";
-                const isReviewAvailableByDepartureDate = hasPassedDepartureByDays(t, 2);
+
+                // Chỉ hiển thị nút "Đánh giá" khi tripStatus === "completed" (theo yêu cầu)
                 const canShowReviewAction =
-                !["PENDING", "RESERVED", "CANCELLED", "EXPIRED"].includes(currentStatus) &&
-                isReviewAvailableByDepartureDate;
+                  !["PENDING", "RESERVED", "CANCELLED", "EXPIRED"].includes(currentStatus) &&
+                  isTripCompletedForReview(t);
 
                 const statusLabelMap = {
                   'PENDING': 'Chờ thanh toán', 'RESERVED': 'Đã giữ chỗ',
@@ -661,12 +668,29 @@ export default function MyTickets() {
 
               })}
               
-              {loadingMore &&
-              <div className="flex justify-center items-center py-6">
-                  <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin mr-2"></div>
-                  <span className="text-sm text-on-surface-variant font-medium">Đang tải thêm vé...</span>
+              {/* Nút Tải thêm khi API trả về next cursor */}
+              {nextCursor && (
+                <div className="flex justify-center pt-2 pb-6">
+                  <button
+                    type="button"
+                    onClick={() => fetchTickets(nextCursor, true)}
+                    disabled={loadingMore}
+                    className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/60 bg-white px-6 py-2.5 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.985]"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        Đang tải thêm...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                        Tải thêm vé
+                      </>
+                    )}
+                  </button>
                 </div>
-              }
+              )}
             </div>);
 
         })()}

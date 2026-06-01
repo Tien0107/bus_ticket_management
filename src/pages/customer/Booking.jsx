@@ -242,7 +242,7 @@ export default function Booking() {
     try {
       const ids = await createBookingsForCurrentSelection();
       setOrderIds(ids);
-      addToast("Đã giữ chỗ thành công! Vui lòng chọn phương thức thanh toán trong 10 phút.", "success", 3200);
+      addToast("Đã giữ chỗ thành công! Vé sẽ tự hủy sau 10 phút nếu chưa thanh toán.", "success", 3200);
       setStep(2);
       return true;
     } catch (err) {
