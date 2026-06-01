@@ -1,6 +1,17 @@
 import React from "react";
 
-export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText = "Đồng ý", cancelText = "Hủy", confirmColor = "bg-error" }) {
+export default function ConfirmModal({
+  isOpen,
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  confirmText = "Đồng ý",
+  cancelText = "Hủy",
+  confirmColor = "bg-error",
+  confirmDisabled = false,
+  cancelDisabled = false,
+}) {
   if (!isOpen) return null;
 
   return (
@@ -13,13 +24,15 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
         <div className="px-6 py-4 bg-surface-container-lowest border-t flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-5 py-2.5 text-sm font-bold text-on-surface-variant hover:bg-surface-container rounded-xl transition-colors"
+            disabled={cancelDisabled}
+            className="px-5 py-2.5 text-sm font-bold text-on-surface-variant hover:bg-surface-container rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
-            className={`px-5 py-2.5 text-sm font-bold text-white rounded-xl shadow-md hover:opacity-90 transition-opacity ${confirmColor}`}
+            disabled={confirmDisabled}
+            className={`px-5 py-2.5 text-sm font-bold text-white rounded-xl shadow-md hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:opacity-60 ${confirmColor}`}
           >
             {confirmText}
           </button>

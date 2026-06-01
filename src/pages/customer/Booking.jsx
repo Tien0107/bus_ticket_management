@@ -106,11 +106,15 @@ export default function Booking() {
       } catch (notifErr) {
         console.warn("Failed to create Stripe payment notification:", notifErr);
       }
-      addToast("Thanh toán bằng thẻ thành công!");
+
+      addToast("Thanh toán bằng thẻ thành công!", "success");
+      setShowCardModal(false);
+      navigateToTickets();
+      return;
     } else {
       addToast(`Thanh toán trả về trạng thái: ${paymentIntent?.status || "unknown"}`);
+      navigateToTickets();
     }
-    navigateToTickets();
   };
 
   const openCardPaymentModal = async (orderId) => {
@@ -392,7 +396,8 @@ export default function Booking() {
         }
         onContinueWithSelected={(card) => handleSelectCardAndPay(card)}
         onContinueWithPaymentMethodId={handlePayWithNewCard}
-        continuing={processingCardPayment} />
+        continuing={processingCardPayment}
+      />
       
     </div>);
 

@@ -136,7 +136,8 @@ export default function SelectPaymentCardModal({
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-surface-container-low hover:bg-surface-container transition-colors flex items-center justify-center"
+            disabled={continuing}
+            className="w-10 h-10 rounded-full bg-surface-container-low hover:bg-surface-container transition-colors flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span className="material-symbols-outlined text-on-surface">close</span>
           </button>
