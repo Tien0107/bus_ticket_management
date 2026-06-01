@@ -45,6 +45,52 @@ const getStoredCompanyId = () => {
   }
 };
 
+function StationDropdown({ stations = [], value, onChange, placeholder = "Chọn trạm" }) {
+  const [open, setOpen] = useState(false);
+  const selectedStation = stations.find((station) => Number(station.id) === Number(value));
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full items-center justify-between gap-3 rounded-lg border border-outline-variant/50 bg-white px-4 py-3 text-left text-sm font-medium text-on-surface outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+      >
+        <span className={selectedStation ? "truncate" : "truncate text-outline"}>
+          {selectedStation ? `${selectedStation.address} - ${selectedStation.city}` : placeholder}
+        </span>
+        <span className="material-symbols-outlined text-[20px] text-on-surface-variant">
+          {open ? "keyboard_arrow_up" : "keyboard_arrow_down"}
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 z-50 mt-2 max-h-[180px] overflow-y-auto rounded-lg border border-outline-variant/40 bg-white py-1 shadow-[0_18px_48px_rgba(15,23,42,0.18)]">
+          {stations.map((station) => {
+            const active = Number(station.id) === Number(value);
+
+            return (
+              <button
+                key={station.id}
+                type="button"
+                onClick={() => {
+                  onChange(station.id);
+                  setOpen(false);
+                }}
+                className={`flex h-9 w-full items-center truncate px-3 text-left text-xs font-bold transition-colors ${
+                  active ? "bg-primary text-white" : "text-on-surface hover:bg-surface-container-low"
+                }`}
+              >
+                {station.address} - {station.city}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Prices() {
   const { addToast } = useToast();
   const [prices, setPrices] = useState([]);
@@ -312,6 +358,8 @@ export default function Prices() {
         title={editingPrice ? "Sửa bảng giá" : "Thêm bảng giá"}
         subtitle="Giá vé theo tuyến và trạm."
         onClose={closeModal}
+        bodyClassName="overflow-visible"
+        panelOverflowClassName="overflow-visible"
         footer={
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <SecondaryButton onClick={closeModal}>Hủy</SecondaryButton>
@@ -335,24 +383,20 @@ export default function Prices() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Từ trạm">
-                <SelectControl value={formData.fromStationId} onChange={(e) => handleChange("fromStationId", e.target.value)}>
-                  <option value="">Chọn trạm đi</option>
-                  {stations.map((station) =>
-                <option key={station.id} value={station.id}>
-                      {station.address} - {station.city}
-                    </option>
-                )}
-                </SelectControl>
+                <StationDropdown
+                  stations={stations}
+                  value={formData.fromStationId}
+                  placeholder="Chọn trạm đi"
+                  onChange={(stationId) => handleChange("fromStationId", stationId)}
+                />
               </Field>
               <Field label="Đến trạm">
-                <SelectControl value={formData.toStationId} onChange={(e) => handleChange("toStationId", e.target.value)}>
-                  <option value="">Chọn trạm đến</option>
-                  {stations.map((station) =>
-                <option key={station.id} value={station.id}>
-                      {station.address} - {station.city}
-                    </option>
-                )}
-                </SelectControl>
+                <StationDropdown
+                  stations={stations}
+                  value={formData.toStationId}
+                  placeholder="Chọn trạm đến"
+                  onChange={(stationId) => handleChange("toStationId", stationId)}
+                />
               </Field>
             </div>
 

@@ -19,7 +19,6 @@ import {
   OperatorPageShell,
   PrimaryButton,
   SecondaryButton,
-  SelectControl,
   StatCard,
   StatusBadge,
   inputClass } from
@@ -31,6 +30,8 @@ const emptyForm = {
   allowDropoff: true,
   stopOrder: ""
 };
+
+const OPTION_LIMIT = 100;
 
 const findRouteForSchedule = (schedule, routes) => {
   if (!schedule) return null;
@@ -49,6 +50,57 @@ const getStoredCompanyId = () => {
     return null;
   }
 };
+
+function StationDropdown({ stations = [], value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const selectedStation = stations.find((station) => Number(station.id) === Number(value));
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full items-center justify-between gap-3 rounded-lg border border-outline-variant/50 bg-white px-4 py-3 text-left text-sm font-medium text-on-surface outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+      >
+        <span className={selectedStation ? "truncate" : "truncate text-outline"}>
+          {selectedStation ? `${selectedStation.address} - ${selectedStation.city}` : "Chọn trạm"}
+        </span>
+        <span className="material-symbols-outlined text-[20px] text-on-surface-variant">
+          {open ? "keyboard_arrow_up" : "keyboard_arrow_down"}
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 z-50 mt-2 max-h-[220px] overflow-y-auto rounded-lg border border-outline-variant/40 bg-white py-1 shadow-[0_18px_48px_rgba(15,23,42,0.18)]">
+          {stations.map((station) => {
+            const active = Number(station.id) === Number(value);
+
+            return (
+              <button
+                key={station.id}
+                type="button"
+                onClick={() => {
+                  onChange(station.id);
+                  setOpen(false);
+                }}
+                className={`flex min-h-[44px] w-full items-center px-3 text-left text-xs transition-colors ${
+                  active ? "bg-primary text-white" : "text-on-surface hover:bg-surface-container-low"
+                }`}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-bold">{station.address}</span>
+                  <span className={`mt-0.5 block truncate text-xs ${active ? "text-white/80" : "text-on-surface-variant"}`}>
+                    {station.city}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function StoppingPoints() {
   const { scheduleId } = useParams();
@@ -77,9 +129,9 @@ export default function StoppingPoints() {
     try {
       setLoading(true);
       const [stationsRes, schedulesRes, routesRes] = await Promise.all([
-      getStations({ limit: 10 }),
-      getTripSchedules({ limit: 10, orderBy: "asc" }),
-      getRoutes({ limit: 10 })]
+      getStations({ limit: OPTION_LIMIT }),
+      getTripSchedules({ limit: OPTION_LIMIT, orderBy: "asc" }),
+      getRoutes({ limit: OPTION_LIMIT })]
       );
 
       const stationList = Array.isArray(stationsRes.data?.stations) ? stationsRes.data.stations : [];
@@ -271,6 +323,8 @@ export default function StoppingPoints() {
         title={editingPoint ? "Sửa điểm dừng" : "Thêm điểm dừng"}
         subtitle="Trạm và quyền đón trả."
         onClose={closeModal}
+        bodyClassName="overflow-visible"
+        panelOverflowClassName="overflow-visible"
         footer={
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <SecondaryButton onClick={closeModal}>Hủy</SecondaryButton>
@@ -282,14 +336,11 @@ export default function StoppingPoints() {
         
           <div className="space-y-4">
             <Field label="Trạm">
-              <SelectControl value={formData.stationId} onChange={(e) => handleChange("stationId", e.target.value)}>
-                <option value="">Chọn trạm</option>
-                {stations.map((station) =>
-              <option key={station.id} value={station.id}>
-                    {station.address} - {station.city}
-                  </option>
-              )}
-              </SelectControl>
+              <StationDropdown
+                stations={stations}
+                value={formData.stationId}
+                onChange={(stationId) => handleChange("stationId", stationId)}
+              />
             </Field>
 
             <Field label="Thứ tự dừng">

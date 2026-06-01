@@ -170,10 +170,19 @@ export function StatusBadge({ children, tone = "slate" }) {
   );
 }
 
-export function ModalShell({ title, subtitle, onClose, children, footer, maxWidth = "max-w-2xl" }) {
+export function ModalShell({
+  title,
+  subtitle,
+  onClose,
+  children,
+  footer,
+  maxWidth = "max-w-2xl",
+  bodyClassName = "overflow-y-auto",
+  panelOverflowClassName = "overflow-hidden",
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className={`flex max-h-[90vh] w-full ${maxWidth} flex-col overflow-hidden rounded-xl bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)]`}>
+      <div className={`flex max-h-[90vh] w-full ${maxWidth} flex-col ${panelOverflowClassName} rounded-xl bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)]`}>
         <div className="border-b border-outline-variant/20 px-5 py-4">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -190,7 +199,7 @@ export function ModalShell({ title, subtitle, onClose, children, footer, maxWidt
             </button>
           </div>
         </div>
-        <div className="overflow-y-auto p-5">{children}</div>
+        <div className={`${bodyClassName} p-5`}>{children}</div>
         {footer && <div className="border-t border-outline-variant/20 p-5">{footer}</div>}
       </div>
     </div>
