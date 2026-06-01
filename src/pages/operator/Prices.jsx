@@ -34,6 +34,8 @@ const emptyForm = {
   status: true
 };
 
+const OPTION_LIMIT = 100;
+
 const getStoredCompanyId = () => {
   try {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -69,8 +71,8 @@ export default function Prices() {
   const fetchBaseData = async () => {
     try {
       const [routesRes, stationsRes] = await Promise.all([
-      getRoutes({ limit: 10 }),
-      getStations({ limit: 10 })]
+      getRoutes({ limit: OPTION_LIMIT }),
+      getStations({ limit: OPTION_LIMIT })]
       );
       setRoutes(Array.isArray(routesRes.data?.routes) ? routesRes.data.routes : []);
       setStations(Array.isArray(stationsRes.data?.stations) ? stationsRes.data.stations : []);
