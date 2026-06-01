@@ -251,7 +251,7 @@ export default function Booking() {
         const msgs = err.response.data.issues.map((i) => `${i.field}: ${i.reason}`).join(" | ");
         addToast("Lỗi khi giữ chỗ: " + msgs, "error");
       } else {
-        addToast("Lỗi khi giữ chỗ: " + (err.response?.data?.message || err.message || "Không thể tạo đơn đặt vé."), "error");
+        addToast("Ghế này đã có ai đó đặt mất rồi, vui lòng chọn ghế khác.", "warning");
       }
       return false;
     }
