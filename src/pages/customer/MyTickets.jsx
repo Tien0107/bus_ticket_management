@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import CustomerProfileNav from "../../components/profile/CustomerProfileNav";
 import CustomerProfileSectionHeader from "../../components/profile/CustomerProfileSectionHeader";
@@ -63,10 +63,10 @@ const statusLabels = {
 
 const statusBadgeClasses = {
   reserved: "bg-secondary/10 text-secondary ring-1 ring-secondary/20",
-  pending: "bg-secondary/10 text-secondary ring-1 ring-secondary/20",
-  paid: "bg-primary/10 text-primary ring-1 ring-primary/20",
-  checked_in: "bg-primary/10 text-primary ring-1 ring-primary/20",
-  cancelled: "bg-error-container text-error ring-1 ring-error/20",
+  pending: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+  paid: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  checked_in: "bg-primary/10 text-primary ring-1 ring-primary/25",
+  cancelled: "bg-error-container text-error ring-1 ring-error/30",
   expired: "bg-surface-container-high text-on-surface-variant ring-1 ring-outline-variant/60",
 };
 
@@ -103,6 +103,12 @@ const getStatusLabel = (status) => statusLabels[normalizeStatus(status)] || stat
 
 const getStatusBadgeClass = (status) =>
   statusBadgeClasses[normalizeStatus(status)] || "bg-surface-container-high text-on-surface-variant ring-1 ring-outline-variant";
+
+const isMeaningfulValue = (val) => {
+  if (val == null) return false;
+  const str = String(val).trim().toLowerCase();
+  return str !== "" && str !== "-" && str !== "chưa có" && str !== "không rõ";
+};
 
 const getErrorMessage = (error, fallback) => {
   const status = error?.response?.status;
@@ -158,17 +164,20 @@ const buildReviewTicket = (ticket) => ({
 });
 
 function DetailRow({ label, value }) {
+  const val = value != null ? String(value).trim() : "";
+  if (!val || val === "-" || val.toLowerCase() === "chưa có" || val.toLowerCase() === "không rõ") {
+    return null;
+  }
   return (
     <div className="min-w-0">
       <dt className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-bold text-on-surface">{value || "Chưa có"}</dd>
+      <dd className="mt-1 break-words text-sm font-bold text-on-surface">{val}</dd>
     </div>
   );
 }
 
 export default function MyTickets() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { addToast } = useToast();
   const [tickets, setTickets] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
@@ -248,24 +257,14 @@ export default function MyTickets() {
     fetchTickets({ filters: appliedFilters });
   }, [appliedFilters, fetchTickets]);
 
-  // Extra background refresh when navigating back from payment flows (Stripe/VNPay)
-  // This helps when webhook is still processing (common with Stripe card payments)
+  // Safety delayed refresh after mount / filter changes.
+  // Catches async payment updates (Stripe webhook etc) without relying on special router state or fake DOM signals.
   useEffect(() => {
-    if (location.state?.refreshTickets) {
-      // Do additional refreshes at strategic times to catch webhook updates
-      const t1 = setTimeout(() => {
-        fetchTickets({ filters: appliedFilters });
-      }, 2800);
-      const t2 = setTimeout(() => {
-        fetchTickets({ filters: appliedFilters });
-      }, 6500);
-
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-      };
-    }
-  }, [location.state?.refreshTickets]); // eslint-disable-line react-hooks/exhaustive-deps
+    const t = setTimeout(() => {
+      fetchTickets({ filters: appliedFilters });
+    }, 2800);
+    return () => clearTimeout(t);
+  }, [appliedFilters, fetchTickets]);
 
   const handleFilterChange = (field, value) => {
     const nextFilters = {
@@ -630,40 +629,40 @@ export default function MyTickets() {
     const isBusy = Boolean(paymentLoadingKey) || processingCardPayment;
 
     return (
-      <div className="mt-5 rounded-xl border border-secondary/20 bg-secondary/10 p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-black text-secondary">Vé đang chờ thanh toán</p>
-            <p className="mt-1 text-xs font-semibold text-on-surface-variant">
-              Hạn thanh toán: {formatDateTime(ticket.expiredAt)}
-            </p>
+      <div className="border-t border-secondary/15 bg-secondary/5 px-4 py-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-[10px]">
+            <span className="font-extrabold text-secondary">Chờ thanh toán</span>
+            {isMeaningfulValue(ticket.expiredAt) && (
+              <span className="ml-1.5 font-semibold text-on-surface-variant/80">Hạn: {formatDateTime(ticket.expiredAt)}</span>
+            )}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
               onClick={() => handlePaymentClick(ticket, "vnpay")}
               disabled={isBusy}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-7 items-center gap-1 rounded-md bg-primary px-2 text-[10px] font-bold text-white shadow-sm transition-all hover:bg-primary/90 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span className="material-symbols-outlined text-[18px]">qr_code_2</span>
+              <span className="material-symbols-outlined text-[13px]">qr_code_2</span>
               {paymentLoadingKey === `${ticket.id}:vnpay` ? "Đang mở..." : "VNPay"}
             </button>
             <button
               type="button"
               onClick={() => handlePaymentClick(ticket, "stripe")}
               disabled={isBusy}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-surface-container-lowest px-3 text-sm font-bold text-primary ring-1 ring-primary/20 transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-primary/25 bg-white px-2 text-[10px] font-bold text-primary ring-1 ring-primary/15 transition-all hover:bg-primary/5 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span className="material-symbols-outlined text-[18px]">credit_card</span>
+              <span className="material-symbols-outlined text-[13px]">credit_card</span>
               {paymentLoadingKey === `${ticket.id}:stripe` ? "Đang tải..." : "Thẻ"}
             </button>
             <button
               type="button"
               onClick={() => handlePaymentClick(ticket, "cash")}
               disabled={isBusy}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-surface-container-lowest px-3 text-sm font-bold text-secondary ring-1 ring-secondary/20 transition-colors hover:bg-secondary/10 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-secondary/25 bg-white px-2 text-[10px] font-bold text-secondary ring-1 ring-secondary/15 transition-all hover:bg-secondary/5 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span className="material-symbols-outlined text-[18px]">payments</span>
+              <span className="material-symbols-outlined text-[13px]">payments</span>
               {paymentLoadingKey === `${ticket.id}:cash` ? "Đang xử lý..." : "Tiền mặt"}
             </button>
           </div>
@@ -675,63 +674,144 @@ export default function MyTickets() {
   const renderTicketCard = (ticket) => {
     const status = normalizeStatus(ticket.status);
     const isCancelDisabled = !canCancelTicket(ticket) || cancelLoading;
+    const fromLoc = ticket.fromLocation || ticket.departureLocation || "";
+    const toLoc = ticket.toLocation || ticket.arrivalLocation || "";
 
     return (
       <article
         key={`${ticket.id}-${ticket.bookingId}`}
-        className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm transition-shadow hover:border-primary/25 hover:shadow-md"
+        className="group overflow-hidden rounded-3xl border border-outline-variant/25 bg-surface-container-lowest shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-primary/30 hover:shadow-xl"
       >
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="material-symbols-outlined text-[22px] text-primary">confirmation_number</span>
-              <h2 className="text-lg font-black text-on-surface">{getTicketCode(ticket)}</h2>
-              <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${getStatusBadgeClass(status)}`}>
-                {getStatusLabel(status)}
-              </span>
+        {/* Header: code + status */}
+        <div className="flex items-center justify-between gap-3 border-b border-outline-variant/15 bg-surface-container px-5 py-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <span className="material-symbols-outlined text-[20px]">confirmation_number</span>
             </div>
-            <p className="mt-1 text-sm font-semibold text-on-surface-variant">
-              Đơn đặt vé #{ticket.bookingId}
-            </p>
+            <div className="min-w-0">
+              <div className="font-mono text-sm font-extrabold tracking-[0.5px] text-on-surface">{getTicketCode(ticket)}</div>
+              {isMeaningfulValue(ticket.bookingId) && (
+                <div className="text-[11px] font-semibold text-on-surface-variant">Đơn #{ticket.bookingId}</div>
+              )}
+            </div>
+          </div>
+          <span className={`rounded-full px-3.5 py-1 text-xs font-extrabold shadow-sm ${getStatusBadgeClass(status)}`}>
+            {getStatusLabel(status)}
+          </span>
+        </div>
+
+        {/* Route visual + schedule info in list: always show key trip info (ngày khởi hành, giờ, etc.) */}
+        <div className="px-5 py-3">
+          <div className="flex items-center gap-3">
+            {/* From */}
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-black uppercase tracking-[1px] text-on-surface-variant/70">Từ</div>
+              <div className="mt-0.5 truncate text-[15px] font-extrabold leading-tight text-on-surface" title={fromLoc || "—"}>{fromLoc || "—"}</div>
+            </div>
+
+            {/* Arrow + transport icon */}
+            <div className="flex shrink-0 flex-col items-center px-1 pt-2">
+              <div className="flex items-center gap-1 text-primary">
+                <span className="material-symbols-outlined text-xl">directions_bus</span>
+              </div>
+              <div className="mt-0.5 h-px w-8 bg-gradient-to-r from-primary/40 via-primary to-primary/40" />
+            </div>
+
+            {/* To */}
+            <div className="min-w-0 flex-1 text-right">
+              <div className="text-[10px] font-black uppercase tracking-[1px] text-on-surface-variant/70">Đến</div>
+              <div className="mt-0.5 truncate text-[15px] font-extrabold leading-tight text-on-surface" title={toLoc || "—"}>{toLoc || "—"}</div>
+            </div>
           </div>
 
-          <div className="flex shrink-0 flex-wrap gap-2">
-            {canReviewTicket(ticket) ? (
-              <button
-                type="button"
-                onClick={() => handleOpenReview(ticket)}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-secondary/20 bg-secondary/10 px-3 text-sm font-bold text-secondary transition-colors hover:bg-secondary/20"
-              >
-                <span className="material-symbols-outlined text-[18px]">star</span>
-                Đánh giá
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => handleOpenDetail(ticket)}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 text-sm font-bold text-primary transition-colors hover:bg-primary/10"
-            >
-              <span className="material-symbols-outlined text-[18px]">visibility</span>
-              Chi tiết
-            </button>
-            <button
-              type="button"
-              onClick={() => setCancelTarget(ticket)}
-              disabled={isCancelDisabled}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-error/20 bg-error-container/50 px-3 text-sm font-bold text-error transition-colors hover:bg-error-container disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <span className="material-symbols-outlined text-[18px]">delete</span>
-              Hủy vé
-            </button>
+          {/* Date + time row: show departure date, time etc. in list view */}
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            {ticket.departureDate && (
+              <div className="inline-flex items-center gap-1.5 rounded-lg bg-surface-container-high/60 px-2.5 py-1">
+                <span className="material-symbols-outlined text-[15px] text-on-surface-variant">schedule</span>
+                <span className="font-bold text-on-surface">{formatDateTime(ticket.departureDate)}</span>
+              </div>
+            )}
+            {ticket.departureTime && (
+              <div className="inline-flex items-center gap-1 rounded-lg bg-primary/5 px-2.5 py-1 text-primary">
+                <span className="material-symbols-outlined text-[15px]">departure_board</span>
+                <span className="font-extrabold">{ticket.departureTime}</span>
+              </div>
+            )}
+            {ticket.tripStatus && isMeaningfulValue(ticket.tripStatus) && (
+              <div className="ml-auto text-xs font-bold text-on-surface-variant/80">
+                {tripStatusLabels[ticket.tripStatus] || ticket.tripStatus}
+              </div>
+            )}
           </div>
         </div>
 
-        <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <DetailRow label="Loại booking" value={bookingTypeLabels[ticket.bookingType] || ticket.bookingType} />
-          <DetailRow label="Tổng tiền" value={formatMoney(ticket.totalAmount)} />
-          <DetailRow label="Ngày khởi hành" value={formatDateTime(ticket.departureDate)} />
-          <DetailRow label="Trạng thái chuyến" value={tripStatusLabels[ticket.tripStatus] || ticket.tripStatus || "Chưa có"} />
-        </dl>
+        {/* Meta row: only render bar + fields that have real data */}
+        {(() => {
+          const totalDisplay = formatMoney(ticket.totalAmount);
+          const hasOptionalMeta = isMeaningfulValue(ticket.bookingType) || isMeaningfulValue(ticket.seatNumber) || isMeaningfulValue(ticket.plateNumber) || isMeaningfulValue(ticket.type);
+          // In list always try to show price + any optional fields that exist (core info like date/time/route are shown above)
+          if (!hasOptionalMeta && !isMeaningfulValue(totalDisplay)) return null;
+          return (
+            <div className="flex flex-wrap items-start gap-x-5 gap-y-2 border-t border-outline-variant/15 bg-surface-container-low/60 px-5 py-2.5 text-sm">
+              {isMeaningfulValue(ticket.bookingType) && (
+                <div className="min-w-[70px]">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/70">Loại vé</div>
+                  <div className="mt-0.5 font-extrabold text-on-surface">{bookingTypeLabels[ticket.bookingType] || ticket.bookingType}</div>
+                </div>
+              )}
+              {isMeaningfulValue(ticket.seatNumber) && (
+                <div className="min-w-[50px]">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/70">Ghế</div>
+                  <div className="mt-0.5 font-extrabold text-on-surface">{ticket.seatNumber}</div>
+                </div>
+              )}
+              {(isMeaningfulValue(ticket.plateNumber) || isMeaningfulValue(ticket.type)) && (
+                <div className="min-w-[70px]">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/70">Xe</div>
+                  <div className="mt-0.5 font-extrabold text-on-surface truncate">{ticket.plateNumber || ticket.type}</div>
+                </div>
+              )}
+              <div className="ml-auto md:ml-0 text-right">
+                <div className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/70">Tổng tiền</div>
+                <div className="mt-0.5 text-lg font-extrabold text-[#FF6D00] tabular-nums">{isMeaningfulValue(totalDisplay) ? totalDisplay : "—"}</div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Action buttons - compact so they don't dominate the card height */}
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-outline-variant/15 bg-surface-container px-4 py-2">
+          {canReviewTicket(ticket) ? (
+            <button
+              type="button"
+              onClick={() => handleOpenReview(ticket)}
+              className="inline-flex h-7 flex-1 min-w-[64px] items-center justify-center gap-1 rounded-lg border border-secondary/30 bg-secondary/15 px-2 text-[10px] font-extrabold text-secondary shadow-sm transition-all hover:bg-secondary/25 hover:border-secondary/40 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+              <span>Đánh giá</span>
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => handleOpenDetail(ticket)}
+            className="inline-flex h-7 flex-1 min-w-[64px] items-center justify-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-2 text-[10px] font-extrabold text-primary transition-all hover:bg-primary/10 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="material-symbols-outlined text-[14px]">visibility</span>
+            <span>Chi tiết</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCancelTarget(ticket)}
+            disabled={isCancelDisabled}
+            className="inline-flex h-7 flex-1 min-w-[64px] items-center justify-center gap-1 rounded-lg border border-error/30 bg-error-container/70 px-2 text-[10px] font-extrabold text-error transition-all hover:bg-error-container active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="material-symbols-outlined text-[14px]">delete</span>
+            <span>Hủy</span>
+          </button>
+        </div>
+
+        {/* Payment actions (pending) */}
         {renderPaymentActions(ticket)}
       </article>
     );
@@ -758,7 +838,7 @@ export default function MyTickets() {
         />
         <CustomerProfileNav />
 
-        <section className="mb-6 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm">
+        <section className="mb-6 rounded-3xl border border-outline-variant/25 bg-surface-container-lowest p-5 shadow-sm">
           <div className="space-y-4">
             <div>
               <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-on-surface-variant">
@@ -783,18 +863,18 @@ export default function MyTickets() {
         </section>
 
         {tickets.length > 0 ? (
-          <p className="mb-4 text-sm font-bold text-on-surface-variant">
-            {tickets.length} vé{activeFilterCount ? " theo bộ lọc hiện tại" : ""}
+          <p className="mb-3 text-xs font-extrabold uppercase tracking-widest text-on-surface-variant/70">
+            {tickets.length} vé{activeFilterCount ? " • đang lọc" : ""}
           </p>
         ) : null}
 
         {loading && tickets.length === 0 ? (
-          <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-10 text-center shadow-sm">
+          <div className="rounded-3xl border border-outline-variant/25 bg-surface-container-lowest p-10 text-center shadow-sm">
             <div className="mx-auto mb-4 h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
             <p className="font-bold text-on-surface-variant">Đang tải danh sách vé...</p>
           </div>
         ) : error && tickets.length === 0 ? (
-          <div className="rounded-2xl border border-error/20 bg-error-container/40 p-6 text-error">
+          <div className="rounded-3xl border border-error/20 bg-error-container/40 p-6 text-error">
             <div className="flex items-start gap-3">
               <span className="material-symbols-outlined text-[24px]">error</span>
               <div className="min-w-0">
@@ -812,15 +892,17 @@ export default function MyTickets() {
             </div>
           </div>
         ) : tickets.length === 0 ? (
-          <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-12 text-center shadow-sm">
-            <span className="material-symbols-outlined mb-4 text-6xl text-on-surface-variant">confirmation_number</span>
+          <div className="rounded-3xl border border-outline-variant/25 bg-surface-container-lowest p-14 text-center shadow-sm">
+            <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-container">
+              <span className="material-symbols-outlined text-5xl text-on-surface-variant/60">confirmation_number</span>
+            </div>
             <h2 className="text-xl font-black text-on-surface">Chưa có vé nào</h2>
             <p className="mx-auto mt-2 max-w-md text-sm font-medium text-on-surface-variant">
               Danh sách vé của bạn sẽ xuất hiện tại đây sau khi đặt hoặc thanh toán thành công.
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {error ? (
               <div className="rounded-xl border border-error/20 bg-error-container/40 px-4 py-3 text-sm font-bold text-error">
                 {error}
@@ -880,12 +962,14 @@ export default function MyTickets() {
                 ) : detailTicket ? (
                   <div className="space-y-5">
                     <div className="flex flex-col gap-3 rounded-xl border border-primary/10 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Tuyến</p>
-                        <h3 className="mt-1 text-xl font-black text-on-surface">
-                          {detailTicket.fromLocation || "Chưa có"} - {detailTicket.toLocation || "Chưa có"}
-                        </h3>
-                      </div>
+                      {(detailTicket.fromLocation || detailTicket.departureLocation || detailTicket.toLocation || detailTicket.arrivalLocation) && (
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Tuyến</p>
+                          <h3 className="mt-1 text-xl font-black text-on-surface">
+                            {(detailTicket.fromLocation || detailTicket.departureLocation || "—")} - {(detailTicket.toLocation || detailTicket.arrivalLocation || "—")}
+                          </h3>
+                        </div>
+                      )}
                       <span className={`self-start rounded-full px-3 py-1 text-xs font-extrabold sm:self-center ${getStatusBadgeClass(detailTicket.status)}`}>
                         {getStatusLabel(detailTicket.status)}
                       </span>
@@ -899,22 +983,22 @@ export default function MyTickets() {
                       <DetailRow label="Số ghế" value={detailTicket.seatNumber} />
                       <DetailRow label="Loại xe" value={detailTicket.type === "bed" ? "Giường nằm" : detailTicket.type === "seat" ? "Ghế ngồi" : detailTicket.type} />
                       <DetailRow label="Biển số" value={detailTicket.plateNumber} />
-                      <DetailRow label="Giá gốc" value={formatMoney(detailTicket.originalAmount)} />
-                      <DetailRow label="Giảm giá" value={formatMoney(detailTicket.discountAmount)} />
+                      {detailTicket.originalAmount > 0 && <DetailRow label="Giá gốc" value={formatMoney(detailTicket.originalAmount)} />}
+                      {detailTicket.discountAmount > 0 && <DetailRow label="Giảm giá" value={formatMoney(detailTicket.discountAmount)} />}
                       <DetailRow label="Tổng tiền" value={formatMoney(detailTicket.totalAmount)} />
                     </dl>
 
                     {renderPaymentActions(detailTicket)}
 
                     {canReviewTicket(detailTicket) || canCancelTicket(detailTicket) ? (
-                      <div className="flex flex-wrap justify-end gap-2 border-t border-outline-variant/30 pt-4">
+                      <div className="flex flex-wrap justify-end gap-1.5 border-t border-outline-variant/30 pt-3">
                         {canReviewTicket(detailTicket) ? (
                           <button
                             type="button"
                             onClick={() => handleOpenReview(detailTicket)}
-                            className="inline-flex h-10 items-center gap-2 rounded-xl border border-secondary/20 bg-secondary/10 px-4 text-sm font-bold text-secondary transition-colors hover:bg-secondary/20"
+                            className="inline-flex h-7 items-center gap-1 rounded-lg border border-secondary/30 bg-secondary/15 px-2.5 text-[10px] font-extrabold text-secondary shadow-sm transition-all hover:bg-secondary/25 hover:border-secondary/40 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            <span className="material-symbols-outlined text-[18px]">star</span>
+                            <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                             Đánh giá
                           </button>
                         ) : null}
@@ -923,9 +1007,9 @@ export default function MyTickets() {
                           type="button"
                           onClick={() => setCancelTarget(detailTicket)}
                           disabled={cancelLoading}
-                          className="inline-flex h-10 items-center gap-2 rounded-xl border border-error/20 bg-error-container/50 px-4 text-sm font-bold text-error transition-colors hover:bg-error-container disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex h-7 items-center gap-1 rounded-lg border border-error/30 bg-error-container/70 px-2.5 text-[10px] font-extrabold text-error transition-all hover:bg-error-container active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                          <span className="material-symbols-outlined text-[14px]">delete</span>
                           Hủy vé
                         </button>
                         ) : null}

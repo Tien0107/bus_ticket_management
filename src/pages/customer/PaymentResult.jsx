@@ -42,17 +42,14 @@ export default function PaymentResult() {
     if (!isSuccess) return undefined;
 
     const timeoutId = setTimeout(() => {
-      navigate("/profile/tickets", {
-        replace: true,
-        state: { refreshTickets: Date.now() }
-      });
-    }, 1200);
+      navigate("/profile/tickets", { replace: true });
+    }, 2500);
 
     return () => clearTimeout(timeoutId);
   }, [isSuccess, navigate]);
 
   const handleGoToTickets = () => {
-    navigate("/profile/tickets", { state: { refreshTickets: Date.now() } });
+    navigate("/profile/tickets");
   };
 
   const handleGoHome = () => {

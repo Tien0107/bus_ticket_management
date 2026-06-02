@@ -24,13 +24,7 @@ export default function Booking() {
   const { addToast } = useToast();
 
   const navigateToTickets = (options = {}) => {
-    navigate("/profile/tickets", {
-      ...options,
-      state: {
-        ...(options.state || {}),
-        refreshTickets: Date.now()
-      }
-    });
+    navigate("/profile/tickets", options);
   };
 
   const today = new Date().toISOString().split('T')[0];
@@ -109,7 +103,10 @@ export default function Booking() {
 
       addToast("Thanh toán bằng thẻ thành công!", "success");
       setShowCardModal(false);
-      navigateToTickets();
+      // Chờ 2-3s để webhook/backend cập nhật trạng thái vé trước khi chuyển trang
+      setTimeout(() => {
+        navigateToTickets();
+      }, 2500);
       return;
     } else {
       addToast(`Thanh toán trả về trạng thái: ${paymentIntent?.status || "unknown"}`);
