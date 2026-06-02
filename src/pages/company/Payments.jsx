@@ -8,6 +8,7 @@ import {
   updatePayment,
   withdrawStripeBalance,
 } from "../../api/company";
+import axiosClient from "../../api/axiosClient";
 import { useToast } from "../../context/ToastContext";
 import {
   CompanyPageShell,
@@ -349,10 +350,19 @@ export default function Payments() {
     try {
       setStripeLoading(true);
       const response = await createStripeAccount();
-      const url = response.data?.url;
-      rememberStripeAccount(response.data?.accountStripeId || response.data?.stripeAccountId);
+      const data = response.data || {};
+      const url = data.url;
+      const nextToken = data.token;
+      if (nextToken) {
+        localStorage.setItem("token", nextToken);
+        axiosClient.defaults.headers.common.Authorization = `Bearer ${nextToken}`;
+      }
+      rememberStripeAccount(data.accountStripeId || data.stripeAccountId);
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
       setStripeAccountReady(true);
-      addToast(response.data?.message || "Đã tạo phiên liên kết Stripe", "success");
+      addToast(data.message || "Đã tạo phiên liên kết Stripe", "success");
       if (url) {
         window.location.assign(url);
       }

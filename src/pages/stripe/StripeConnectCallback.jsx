@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { handleStripeConnectCallback } from "../../api/company";
+import axiosClient from "../../api/axiosClient";
 import { useToast } from "../../context/ToastContext";
 
 const STRIPE_CONNECT_STARTED_KEY = "busgoStripeConnectStarted";
@@ -33,8 +34,17 @@ export default function StripeConnectCallback() {
     const completeConnect = async () => {
       try {
         const response = await handleStripeConnectCallback(window.location.search);
-        const message = response.data?.message || "Liên kết Stripe đã được cập nhật.";
-        markStripeConnectStarted(response.data?.accountStripeId || response.data?.stripeAccountId);
+        const data = response.data || {};
+        const message = data.message || "Liên kết Stripe đã được cập nhật.";
+        const nextToken = data.token;
+        if (nextToken) {
+          localStorage.setItem("token", nextToken);
+          axiosClient.defaults.headers.common.Authorization = `Bearer ${nextToken}`;
+        }
+        markStripeConnectStarted(data.accountStripeId || data.stripeAccountId);
+        if (data.user) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+        }
 
         if (!isMounted) return;
         setState({ status: "success", message });
