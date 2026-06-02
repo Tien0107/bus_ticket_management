@@ -3,9 +3,10 @@ import { Outlet, Link, useNavigate, useLocation, Navigate } from "react-router-d
 import { logout } from "../../api/auth";
 import NotificationBell from "../common/NotificationBell";
 import ChatWidget from "../chat/ChatWidget";
+import { clearAuthSession, clearStoredUser, getStoredToken, getStoredUser, getStoredUserRaw } from "../../utils/authStorage";
 
 export default function DashboardLayout() {
-  const token = localStorage.getItem("token")?.trim();
+  const token = getStoredToken();
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
@@ -13,15 +14,9 @@ export default function DashboardLayout() {
 
   useEffect(() => {
     const syncStoredUser = () => {
-      try {
-        const stored = localStorage.getItem("user");
-        if (stored) {
-          setUser(JSON.parse(stored));
-        } else {
-          setUser(null);
-        }
-      } catch {
-        localStorage.removeItem("user");
+      if (getStoredUserRaw()) {
+        setUser(getStoredUser(null));
+      } else {
         setUser(null);
       }
     };
@@ -37,7 +32,7 @@ export default function DashboardLayout() {
   }, []);
 
   if (!token) {
-    localStorage.removeItem("user");
+    clearStoredUser();
     return <Navigate to="/login" replace />;
   }
 
@@ -64,8 +59,7 @@ export default function DashboardLayout() {
     } catch {
 
     }
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuthSession();
     navigate("/login", { replace: true });
   };
 

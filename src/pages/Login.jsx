@@ -5,6 +5,7 @@ import { getOperatorProfile } from "../api/operator";
 import LoginForm from "./login/LoginForm";
 import SocialLoginButtons from "./login/SocialLoginButtons";
 import { buildAuthenticatedUser, getRedirectUrl, normalizeRole } from "./login/authUtils";
+import { getStoredToken, getStoredUser, setAuthSession, setStoredUser } from "../utils/authStorage";
 
 const getLoginIdentifierMeta = (value) => {
   const rawValue = value.trim();
@@ -119,20 +120,20 @@ function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberLogin, setRememberLogin] = useState(true);
 
   const completeLogin = useCallback(
     async (data) => {
       const { token, user } = buildAuthenticatedUser(data);
       let nextUser = user;
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(nextUser));
+      setAuthSession({ token, user: nextUser, remember: rememberLogin });
 
       if (shouldLoadOperatorProfile(nextUser)) {
         try {
           const profileResponse = await getOperatorProfile();
           nextUser = mergeOperatorProfileIntoUser(nextUser, pickOperatorProfile(profileResponse.data));
-          localStorage.setItem("user", JSON.stringify(nextUser));
+          setStoredUser(nextUser);
         } catch {
 
         }
@@ -141,19 +142,14 @@ function Login() {
       const redirectUrl = getRedirectUrl(nextUser);
       navigate(redirectUrl, { replace: true });
     },
-    [navigate]
+    [navigate, rememberLogin]
   );
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = getStoredToken();
     if (!token) return;
 
-    let storedUser = {};
-    try {
-      storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-    } catch {
-      storedUser = {};
-    }
+    const storedUser = getStoredUser();
 
     navigate(getRedirectUrl(storedUser), { replace: true });
   }, [navigate]);
@@ -264,6 +260,8 @@ function Login() {
               onTogglePassword={() => setShowPassword((current) => !current)}
               loading={loading}
               onSubmit={handleSubmit}
+              rememberLogin={rememberLogin}
+              onRememberLoginChange={setRememberLogin}
               fieldErrors={loginErrorState.fieldErrors}
               formError={loginErrorState.formError} />
             

@@ -24,6 +24,7 @@ import {
   StatCard,
   inputClass } from
 "./OperatorUI";
+import { getStoredUser } from "../../utils/authStorage";
 
 const today = () => new Date().toISOString().split("T")[0];
 
@@ -97,12 +98,8 @@ const emptyForm = {
 };
 
 const getStoredCompanyId = () => {
-  try {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    return user.companyId || null;
-  } catch {
-    return null;
-  }
+  const user = getStoredUser();
+  return user.companyId || null;
 };
 
 export default function Schedules() {

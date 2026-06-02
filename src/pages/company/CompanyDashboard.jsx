@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getCompanyInfo, getDrivers, getRevenue, getStaff, getVehicles } from "../../api/company";
 import { useToast } from "../../context/ToastContext";
 import { CompanyPageShell, ErrorState, LoadingState, StatCard } from "./CompanyUI";
+import { getStoredUser } from "../../utils/authStorage";
 
 const quickLinks = [
   {
@@ -90,8 +91,7 @@ export default function CompanyDashboard() {
   }, [addToast]);
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    const storedUser = stored ? JSON.parse(stored) : null;
+    const storedUser = getStoredUser(null);
     setUser(storedUser);
     fetchDashboardData(storedUser);
   }, [fetchDashboardData]);

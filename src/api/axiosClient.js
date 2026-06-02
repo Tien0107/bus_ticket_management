@@ -1,5 +1,6 @@
 import axios from "axios";
 import toast from "react-hot-toast";
+import { clearAuthSession, getStoredToken } from "../utils/authStorage";
 
 const axiosClient = axios.create({
     baseURL: "https://busgo.servecounterstrike.com",
@@ -46,8 +47,7 @@ const isSessionExpiredError = (status, data) => {
 };
 
 const redirectToLogin = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuthSession();
 
     if (window.__isLoggingOut === true || window.__sessionExpiredRedirecting === true) return;
     if (window.location.pathname === "/login") return;
@@ -60,7 +60,7 @@ const redirectToLogin = () => {
 
 
 axiosClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
+    const token = getStoredToken();
     const isPublicEndpoint = publicEndpoints.some((endpoint) => config.url?.startsWith(endpoint));
 
     if (token && !isPublicEndpoint) {

@@ -16,6 +16,7 @@ import {
   getPaymentMethods,
   setDefaultPaymentMethod,
 } from "../../api/customer";
+import { getStoredToken, getStoredUser } from "../../utils/authStorage";
 
 const LIMIT = 10;
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
@@ -222,7 +223,7 @@ export default function MyTickets() {
   );
 
   const fetchTickets = useCallback(async ({ append = false, cursor = null, filters = appliedFilters } = {}) => {
-    const token = localStorage.getItem("token")?.trim();
+    const token = getStoredToken();
 
     if (!token) {
       setTickets([]);
@@ -300,7 +301,7 @@ export default function MyTickets() {
   };
 
   const handleOpenDetail = async (ticket) => {
-    const token = localStorage.getItem("token")?.trim();
+    const token = getStoredToken();
     setDetailOpen(true);
     setDetailTicket(null);
     setDetailError("");
@@ -354,7 +355,7 @@ export default function MyTickets() {
   };
 
   const handleConfirmCancel = async () => {
-    const token = localStorage.getItem("token")?.trim();
+    const token = getStoredToken();
 
     if (!cancelTarget?.id || cancelLoading) return;
 
@@ -382,9 +383,7 @@ export default function MyTickets() {
 
   const createPaymentNotification = async (ticket, method) => {
     try {
-      const userStr = localStorage.getItem("user");
-      if (!userStr) return;
-      const currentUser = JSON.parse(userStr);
+      const currentUser = getStoredUser(null);
       if (!currentUser?.id) return;
 
       await createNotification({

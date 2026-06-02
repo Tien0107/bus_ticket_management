@@ -1,3 +1,5 @@
+import { getStoredUser as getAuthStoredUser } from "../../utils/authStorage";
+
 export const PAGE_SIZE = 10;
 export const RECALLED_MESSAGE = "Tin nhắn đã được thu hồi";
 export const SOCKET_URL =
@@ -6,13 +8,7 @@ process.env.REACT_APP_SOCKET_URL ||
 process.env.VITE_SOCKET_URL ||
 "https://socket-server-b5r4.onrender.com";
 
-export const getStoredUser = () => {
-  try {
-    return JSON.parse(localStorage.getItem("user") || "null");
-  } catch {
-    return null;
-  }
-};
+export const getStoredUser = () => getAuthStoredUser(null);
 
 export const getRecallCacheKey = (userId) => `driverChatRecalledMessages:${userId || "guest"}`;
 

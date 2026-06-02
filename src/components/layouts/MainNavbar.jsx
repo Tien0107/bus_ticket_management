@@ -4,6 +4,7 @@ import { logout } from "../../api/auth";
 import NotificationBell from "../common/NotificationBell";
 
 import { getCustomerProfile } from "../../api/customer";
+import { clearAuthSession, clearStoredUser, getStoredToken, getStoredUserRaw, setStoredUser } from "../../utils/authStorage";
 
 const MainNavbar = () => {
   const navigate = useNavigate();
@@ -14,15 +15,15 @@ const MainNavbar = () => {
   useEffect(() => {
     const initUser = async () => {
       try {
-        const token = localStorage.getItem("token")?.trim();
+        const token = getStoredToken();
         if (!token) {
-          localStorage.removeItem("user");
+          clearStoredUser();
           setUser(null);
           setShowUserMenu(false);
           return;
         }
 
-        const stored = localStorage.getItem("user");
+        const stored = getStoredUserRaw();
         if (stored) {
           let parsedUser = JSON.parse(stored);
 
@@ -33,7 +34,7 @@ const MainNavbar = () => {
               const profileUser = res.data?.user || res.data;
               if (profileUser && profileUser.fullName) {
                 parsedUser = { ...parsedUser, ...profileUser };
-                localStorage.setItem("user", JSON.stringify(parsedUser));
+                setStoredUser(parsedUser);
               }
             } catch (err) {
               console.error("Lỗi lấy profile cho navbar:", err);
@@ -45,7 +46,7 @@ const MainNavbar = () => {
           setUser(null);
         }
       } catch (e) {
-        localStorage.removeItem("user");
+        clearStoredUser();
         setUser(null);
         console.error("Lỗi parse user:", e);
       }
@@ -73,8 +74,7 @@ const MainNavbar = () => {
     } catch (err) {
       console.error("Lỗi khi đăng xuất:", err);
     }
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuthSession();
     setUser(null);
     setShowUserMenu(false);
     navigate("/login", { replace: true });

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { companySupportRegister } from "../../api/companySupport";
 import { useToast } from "../../context/ToastContext";
 import axiosClient from "../../api/axiosClient";
+import { setAuthSession } from "../../utils/authStorage";
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#@$%&!*?^_])[^\s]+$/;
 
@@ -107,8 +108,7 @@ export default function SupportRegisterForm() {
       setLoading(true);
       const res = await companySupportRegister(payload);
       if (res.data?.token) {
-        localStorage.setItem("token", res.data.token);
-        localStorage.setItem("user", JSON.stringify(res.data.user));
+        setAuthSession({ token: res.data.token, user: res.data.user, remember: true });
         const successMessage = res.data?.message || "Đăng ký nhân viên hỗ trợ thành công!";
         addToast(successMessage, "success");
         setTimeout(() => navigate("/company-support/tickets"), 500);

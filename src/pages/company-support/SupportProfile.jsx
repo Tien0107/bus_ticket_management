@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../../api/auth";
 import OperatorProfileCard from "../../components/profile/OperatorProfileCard";
+import { clearAuthSession, getStoredUser as getAuthStoredUser } from "../../utils/authStorage";
 
 const sidebarItems = [
 { icon: "confirmation_number", label: "Quản lý vé", path: "/company-support/tickets" },
@@ -10,13 +11,7 @@ const sidebarItems = [
 
 
 const getStoredUser = () => {
-  try {
-    const userStr = localStorage.getItem("user");
-    if (userStr && userStr !== "undefined") return JSON.parse(userStr);
-  } catch {
-    return {};
-  }
-  return {};
+  return getAuthStoredUser();
 };
 
 export default function SupportProfile() {
@@ -45,8 +40,7 @@ export default function SupportProfile() {
     } catch {
 
     }
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuthSession();
     navigate("/login", { replace: true });
   };
 

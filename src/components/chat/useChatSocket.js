@@ -9,6 +9,7 @@ import {
   toNumber,
   zeroUnreadForViewer } from
 "./chatUtils";
+import { getStoredToken } from "../../utils/authStorage";
 
 export default function useChatSocket({
   activeBoxRef,
@@ -31,7 +32,7 @@ export default function useChatSocket({
   useEffect(() => {
     if (!enabled) return undefined;
 
-    const token = localStorage.getItem("token")?.replace(/^Bearer\s+/i, "") || "";
+    const token = getStoredToken().replace(/^Bearer\s+/i, "") || "";
     if (!token) {
       setSocketError("Thiếu token đăng nhập.");
       return undefined;

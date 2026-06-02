@@ -19,6 +19,7 @@ import DashboardLayout from "./components/layouts/DashboardLayout";
 import MainLayout from "./components/layouts/MainLayout";
 import PrivateRoute from "./components/PrivateRoute";
 import { getRedirectUrl } from "./pages/login/authUtils";
+import { getStoredToken, getStoredUser } from "./utils/authStorage";
 
 
 import Booking from "./pages/customer/Booking";
@@ -64,20 +65,12 @@ import SuperAdminDashboard from "./pages/super-admin/SuperAdminDashboard";
 import BusCompanies from "./pages/super-admin/BusCompanies";
 
 function RootRedirect() {
-  const token = localStorage.getItem("token")?.trim();
+  const token = getStoredToken();
   if (!token) {
     return <Home />;
   }
 
-  let user = {};
-  try {
-    const raw = localStorage.getItem("user");
-    if (raw) {
-      user = JSON.parse(raw);
-    }
-  } catch {
-    user = {};
-  }
+  const user = getStoredUser();
 
   const target = getRedirectUrl(user);
 

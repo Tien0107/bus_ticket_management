@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { getStaff, updateStaff, verifyCompanyAccount } from "../../api/company";
 import { createNotification, getNotifications, markNotificationRead } from "../../api/notification";
 import { useToast } from "../../context/ToastContext";
+import { getStoredUser } from "../../utils/authStorage";
 
 const accountActions = [
 {
@@ -94,13 +95,7 @@ const parseNotificationData = (data) => {
   return trimmed.startsWith("/") ? { path: trimmed } : { raw: trimmed };
 };
 
-const getCurrentUser = () => {
-  try {
-    return JSON.parse(localStorage.getItem("user") || "null");
-  } catch (err) {
-    return null;
-  }
-};
+const getCurrentUser = () => getStoredUser(null);
 
 const normalizeRole = (value) => String(value || "").replace(/[\s-]+/g, "_").toLowerCase();
 

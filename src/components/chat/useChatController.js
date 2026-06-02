@@ -34,6 +34,7 @@ import {
   zeroUnreadForViewer } from
 "./chatUtils";
 import useChatSocket from "./useChatSocket";
+import { getStoredToken } from "../../utils/authStorage";
 
 const MAX_RECIPIENT_QUERY_PAGES = 8;
 
@@ -96,7 +97,7 @@ const mergeBoxesWithCurrentActivity = (incomingBoxes, currentBoxes) => {
 export default function useChatController() {
   const { addToast } = useToast();
   const [currentUser] = useState(getStoredUser);
-  const [token] = useState(() => localStorage.getItem("token"));
+  const [token] = useState(() => getStoredToken());
   const viewerId = currentUser?.id ? Number(currentUser.id) : null;
   const isAuthenticated = Boolean(currentUser?.id && token);
   const [open, setOpen] = useState(false);

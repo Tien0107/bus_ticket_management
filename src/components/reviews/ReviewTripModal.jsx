@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { rateTicket } from "../../api/customer";
 import { createNotification } from "../../api/notification";
+import { getStoredUser } from "../../utils/authStorage";
 
 const ReviewTripModal = ({ isOpen, onClose, ticket, onSuccess }) => {
   const [rating, setRating] = useState(5);
@@ -37,17 +38,14 @@ const ReviewTripModal = ({ isOpen, onClose, ticket, onSuccess }) => {
 
       await rateTicket(payload);
       try {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-          const currentUser = JSON.parse(userStr);
-          if (currentUser?.id) {
-            await createNotification({
-              userId: currentUser.id,
-              title: "Cảm ơn bạn đã gửi đánh giá!",
-              body: `Đóng góp của bạn giúp chuyến xe #${ticket.tripId || ticket.id || ""} cải thiện chất lượng dịch vụ tốt hơn.`,
-              data: JSON.stringify({ path: "/profile/tickets" })
-            });
-          }
+        const currentUser = getStoredUser(null);
+        if (currentUser?.id) {
+          await createNotification({
+            userId: currentUser.id,
+            title: "Cảm ơn bạn đã gửi đánh giá!",
+            body: `Đóng góp của bạn giúp chuyến xe #${ticket.tripId || ticket.id || ""} cải thiện chất lượng dịch vụ tốt hơn.`,
+            data: JSON.stringify({ path: "/profile/tickets" })
+          });
         }
       } catch (notifErr) {
         console.warn("Failed to create review notification:", notifErr);

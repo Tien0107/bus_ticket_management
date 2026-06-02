@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { logout } from "../../api/auth";
 import { createSupportCoupon, getSupportCoupons, updateSupportCoupon } from "../../api/companySupport";
 import { IconButton } from "../company/CompanyUI";
+import { clearAuthSession, getStoredUser } from "../../utils/authStorage";
 
 const PREVIEW_ORDER_AMOUNT = 300000;
 
@@ -68,21 +69,11 @@ export default function SupportCoupons() {
   const [submitError, setSubmitError] = useState("");
   const itemsPerPage = 8;
 
-  let user = {};
-  try {
-    const userStr = localStorage.getItem("user");
-    if (userStr && userStr !== "undefined") user = JSON.parse(userStr);
-  } catch (e) {
-    user = {};
-  }
+  const user = getStoredUser();
 
   const getCompanyId = () => {
-    try {
-      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-      return storedUser.companyId || storedUser.company?.id || null;
-    } catch {
-      return null;
-    }
+    const storedUser = getStoredUser();
+    return storedUser.companyId || storedUser.company?.id || null;
   };
 
   const fetchCoupons = useCallback(async () => {
@@ -183,8 +174,7 @@ export default function SupportCoupons() {
     } catch (err) {
       console.error(err);
     }
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuthSession();
     navigate("/login", { replace: true });
   };
 

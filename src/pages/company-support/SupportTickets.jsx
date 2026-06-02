@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../../api/auth";
 import { cancelSupportTicket, getSupportTicketDetail, getSupportTickets } from "../../api/companySupport";
 import ConfirmModal from "../../components/common/ConfirmModal";
+import { clearAuthSession, getStoredUser } from "../../utils/authStorage";
 
 const LIMIT = 10;
 const formatVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
@@ -74,13 +75,7 @@ export default function SupportTickets() {
   const [filterType, setFilterType] = useState("");
   const [nextCursor, setNextCursor] = useState(null);
 
-  let user = {};
-  try {
-    const userStr = localStorage.getItem("user");
-    if (userStr && userStr !== "undefined") user = JSON.parse(userStr);
-  } catch (e) {
-    user = {};
-  }
+  const user = getStoredUser();
 
   const fetchTickets = useCallback(async ({ append = false, status = "", type = "", keyword = "", cursor = null } = {}) => {
     try {
@@ -207,8 +202,7 @@ export default function SupportTickets() {
     } catch (err) {
       console.error(err);
     }
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuthSession();
     navigate("/login", { replace: true });
   };
 

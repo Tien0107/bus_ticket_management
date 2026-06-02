@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { handleStripeConnectCallback } from "../../api/company";
 import axiosClient from "../../api/axiosClient";
 import { useToast } from "../../context/ToastContext";
+import { getStoredUser, setStoredToken, setStoredUser } from "../../utils/authStorage";
 
 const STRIPE_CONNECT_STARTED_KEY = "busgoStripeConnectStarted";
 
@@ -11,12 +12,8 @@ const markStripeConnectStarted = (accountId) => {
 
   if (!accountId) return;
 
-  try {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    localStorage.setItem("user", JSON.stringify({ ...user, accountStripeId: accountId }));
-  } catch {
-    localStorage.setItem("user", JSON.stringify({ accountStripeId: accountId }));
-  }
+  const user = getStoredUser();
+  setStoredUser({ ...user, accountStripeId: accountId });
 };
 
 export default function StripeConnectCallback() {
@@ -44,12 +41,12 @@ export default function StripeConnectCallback() {
         const message = data.message || (isPreConfirmedSuccess ? "Liên kết Stripe đã thành công." : "Liên kết Stripe đã được cập nhật thành công.");
         const nextToken = data.token;
         if (nextToken) {
-          localStorage.setItem("token", nextToken);
+          setStoredToken(nextToken);
           axiosClient.defaults.headers.common.Authorization = `Bearer ${nextToken}`;
         }
         markStripeConnectStarted(data.accountStripeId || data.stripeAccountId);
         if (data.user) {
-          localStorage.setItem("user", JSON.stringify(data.user));
+          setStoredUser(data.user);
         }
 
         if (!isMounted) return;

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { customerSignUp } from "../../api/auth";
 import { useToast } from "../../context/ToastContext";
 import { buildAuthenticatedUser, getRedirectUrl } from "../login/authUtils";
+import { setAuthSession } from "../../utils/authStorage";
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#@$%&!*?^_])[^\s]+$/;
 
@@ -58,8 +59,7 @@ export default function CustomerRegisterForm() {
       const res = await customerSignUp(payload);
       if (res.data?.token) {
         const { token, user } = buildAuthenticatedUser(res.data);
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
+        setAuthSession({ token, user, remember: true });
         const successMessage = res.data?.message || "Đăng ký thành công! Chào mừng bạn đến với BusGo.";
         addToast(successMessage, "success");
         const redirectUrl = getRedirectUrl(user);

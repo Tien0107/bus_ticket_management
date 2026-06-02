@@ -27,6 +27,12 @@ import {
   ToolbarCard,
   inputClass,
 } from "./CompanyUI";
+import {
+  getStoredToken,
+  getStoredUser as getAuthStoredUser,
+  setStoredToken,
+  setStoredUser,
+} from "../../utils/authStorage";
 
 const paymentStatusLabel = {
   pending: "Đang chờ",
@@ -53,16 +59,12 @@ const USD_TO_VND_RATE = 25000;
 const WITHDRAW_AMOUNT_SUGGESTIONS = [500000, 1000000, 2000000, 5000000];
 
 const getStoredUser = () => {
-  try {
-    return JSON.parse(localStorage.getItem("user") || "{}");
-  } catch {
-    return {};
-  }
+  return getAuthStoredUser();
 };
 
 const getTokenPayload = () => {
   try {
-    const token = localStorage.getItem("token");
+    const token = getStoredToken();
     const payload = token?.split(".")[1];
     if (!payload) return {};
 
@@ -103,13 +105,10 @@ const rememberStripeAccount = (accountId) => {
   if (!accountId) return;
 
   const user = getStoredUser();
-  localStorage.setItem(
-    "user",
-    JSON.stringify({
-      ...user,
-      accountStripeId: accountId,
-    })
-  );
+  setStoredUser({
+    ...user,
+    accountStripeId: accountId,
+  });
 };
 
 const formatCurrency = (value) =>
@@ -354,12 +353,12 @@ export default function Payments() {
       const url = data.url;
       const nextToken = data.token;
       if (nextToken) {
-        localStorage.setItem("token", nextToken);
+        setStoredToken(nextToken);
         axiosClient.defaults.headers.common.Authorization = `Bearer ${nextToken}`;
       }
       rememberStripeAccount(data.accountStripeId || data.stripeAccountId);
       if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
+        setStoredUser(data.user);
       }
       setStripeAccountReady(true);
       addToast(data.message || "Đã tạo phiên liên kết Stripe", "success");

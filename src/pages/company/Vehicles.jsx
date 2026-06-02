@@ -17,6 +17,7 @@ import {
   StatusBadge,
   inputClass } from
 "./CompanyUI";
+import { getStoredUser } from "../../utils/authStorage";
 
 const defaultForm = {
   vehicleNumber: "",
@@ -43,12 +44,8 @@ const vehicleStatusTone = {
 };
 
 const getStoredCompanyId = () => {
-  try {
-    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-    return storedUser.companyId || null;
-  } catch {
-    return null;
-  }
+  const storedUser = getStoredUser();
+  return storedUser.companyId || null;
 };
 
 export default function Vehicles() {

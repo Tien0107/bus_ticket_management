@@ -9,6 +9,8 @@ export default function LoginForm({
   onTogglePassword,
   loading,
   onSubmit,
+  rememberLogin = true,
+  onRememberLoginChange,
   fieldErrors = {},
   formError = "",
 }) {
@@ -93,6 +95,18 @@ export default function LoginForm({
           </p>
         )}
       </div>
+
+      <label className="flex cursor-pointer items-center gap-2 text-sm font-bold text-on-surface">
+        <input
+          type="checkbox"
+          checked={rememberLogin}
+          onChange={(event) => onRememberLoginChange?.(event.target.checked)}
+          disabled={loading}
+          className="h-4 w-4 cursor-pointer rounded border-outline-variant accent-primary disabled:cursor-not-allowed disabled:opacity-60"
+        />
+        <span>Ghi nhớ đăng nhập</span>
+      </label>
+
       <button
         type="submit"
         disabled={loading}

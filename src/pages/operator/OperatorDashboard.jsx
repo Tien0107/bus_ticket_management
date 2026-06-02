@@ -10,6 +10,7 @@ import {
   getAllVehicles } from "../../api/operator";
 import { useToast } from "../../context/ToastContext";
 import { ErrorState, LoadingState, OperatorPageShell, StatCard } from "./OperatorUI";
+import { getStoredUser } from "../../utils/authStorage";
 
 const quickLinks = [
 {
@@ -53,12 +54,7 @@ export default function OperatorDashboard() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("user");
-      setUser(stored ? JSON.parse(stored) : null);
-    } catch {
-      setUser(null);
-    }
+    setUser(getStoredUser(null));
     fetchDashboardData();
 
   }, []);

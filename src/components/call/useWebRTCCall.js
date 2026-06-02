@@ -16,9 +16,10 @@ import {
 } from "./callTypes";
 import { getStoredUser } from "../chat/chatUtils";
 import { SOCKET_URL } from "../chat/chatUtils";
+import { getStoredToken } from "../../utils/authStorage";
 
 const getToken = () =>
-    localStorage.getItem("token")?.replace(/^Bearer\s+/i, "") || null;
+    getStoredToken().replace(/^Bearer\s+/i, "") || null;
 
 const getCurrentUser = () => {
     const user = getStoredUser();

@@ -5,6 +5,7 @@ import { updateCustomerContact, verifyContactIdentity } from "../../api/customer
 import { useToast } from "../../context/ToastContext";
 import ProfileField from "./ProfileField";
 import ProfileStatusBadge from "./ProfileStatusBadge";
+import { getStoredUser, setStoredToken, setStoredUser } from "../../utils/authStorage";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^(?:\+84|0)\d{9}$/;
@@ -24,14 +25,8 @@ const LAST_CHANGE_KEYS = {
 };
 
 const getCachedUser = () => {
-  try {
-    const raw = localStorage.getItem("user");
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : null;
-  } catch {
-    return null;
-  }
+  const parsed = getStoredUser(null);
+  return parsed && typeof parsed === "object" ? parsed : null;
 };
 
 const getLastChangeTimestamp = (user, field) => {
@@ -391,12 +386,12 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
       const updatedUser = res?.data?.user;
 
       if (nextToken) {
-        localStorage.setItem("token", nextToken);
+        setStoredToken(nextToken);
         axiosClient.defaults.headers.common.Authorization = `Bearer ${nextToken}`;
       }
 
       if (updatedUser) {
-        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setStoredUser(updatedUser);
       }
 
       addToast(`Cập nhật ${FIELD_LABELS[field].toLowerCase()} thành công.`, "success");

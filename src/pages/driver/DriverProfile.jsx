@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useToast } from "../../context/ToastContext";
 import axiosClient from "../../api/axiosClient";
+import { clearStoredUser, getStoredUserRaw, setStoredUser } from "../../utils/authStorage";
 
 const ProfileField = ({ label, value, icon }) =>
 <div className="rounded-lg border border-outline-variant/30 bg-white p-4">
@@ -103,14 +104,14 @@ const DriverProfile = () => {
   const [loadingCompany, setLoadingCompany] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
+    const stored = getStoredUserRaw();
     if (stored) {
       try {
         const userData = normalizeDriverProfile(JSON.parse(stored));
         setUser(userData);
         setFormData(userData);
       } catch {
-        localStorage.removeItem("user");
+        clearStoredUser();
       }
     }
   }, []);
@@ -125,7 +126,7 @@ const DriverProfile = () => {
     const updateStoredProfile = (nextProfile) => {
       setFormData(nextProfile);
       setUser(nextProfile);
-      localStorage.setItem("user", JSON.stringify(nextProfile));
+      setStoredUser(nextProfile);
     };
 
     const resolveCompanyName = async (targetCompanyId, baseProfile) => {
@@ -205,7 +206,7 @@ const DriverProfile = () => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      localStorage.setItem("user", JSON.stringify(formData));
+      setStoredUser(formData);
       setUser(formData);
       setIsEditing(false);
       addToast("Cập nhật hồ sơ thành công", "success");

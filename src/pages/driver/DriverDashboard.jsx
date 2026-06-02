@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getAllTripPassengers, getDriverStats, getDriverTripsAllStatuses } from "../../api/driver";
+import { getStoredUser } from "../../utils/authStorage";
 
 const statusMeta = {
   scheduled: {
@@ -204,8 +205,7 @@ const DriverDashboard = () => {
   });
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
+    setUser(getStoredUser(null));
   }, []);
 
   useEffect(() => {

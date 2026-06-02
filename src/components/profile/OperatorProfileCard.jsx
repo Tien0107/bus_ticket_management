@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { getOperatorProfile, updateOperatorProfile } from "../../api/operator";
 import { useToast } from "../../context/ToastContext";
+import { getStoredUser, setStoredUser } from "../../utils/authStorage";
 
 const emptyProfile = {
   fullName: "",
@@ -147,30 +148,23 @@ const getStaffProfileRoleLabel = (role) => {
 };
 
 const getStoredStaffProfileRole = () => {
-  try {
-    const raw = localStorage.getItem("user");
-    const user = raw ? JSON.parse(raw) : {};
-    return (
-      user.staffProfileRole ||
-      user.staff_profile_role ||
-      user.staffprofilerole ||
-      user.staffProfile?.role ||
-      user.staffProfile?.staffProfileRole ||
-      user.staffProfile?.staffprofilerole ||
-      user.staff_profile?.role ||
-      user.staff_profile?.staff_profile_role ||
-      user.staff_profile?.staffprofilerole ||
-      "");
-
-  } catch {
-    return "";
-  }
+  const user = getStoredUser();
+  return (
+    user.staffProfileRole ||
+    user.staff_profile_role ||
+    user.staffprofilerole ||
+    user.staffProfile?.role ||
+    user.staffProfile?.staffProfileRole ||
+    user.staffProfile?.staffprofilerole ||
+    user.staff_profile?.role ||
+    user.staff_profile?.staff_profile_role ||
+    user.staff_profile?.staffprofilerole ||
+    "");
 };
 
 const syncStoredUser = (profile) => {
   try {
-    const raw = localStorage.getItem("user");
-    const currentUser = raw ? JSON.parse(raw) : {};
+    const currentUser = getStoredUser();
     const nextUser = {
       ...currentUser,
       fullName: profile.fullName || currentUser.fullName,
@@ -184,7 +178,7 @@ const syncStoredUser = (profile) => {
     delete nextUser.department;
     delete nextUser.identityNumber;
 
-    localStorage.setItem("user", JSON.stringify(nextUser));
+    setStoredUser(nextUser);
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("busgo:user-updated", { detail: nextUser }));
     }

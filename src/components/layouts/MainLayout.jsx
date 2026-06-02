@@ -3,18 +3,19 @@ import { Outlet, Navigate, useLocation } from "react-router-dom";
 import MainNavbar from "./MainNavbar";
 import MainFooter from "./MainFooter";
 import ChatWidget from "../chat/ChatWidget";
+import { clearStoredUser, getStoredToken, getStoredUserRaw } from "../../utils/authStorage";
 
 const publicMainPaths = new Set(["/routes", "/companies", "/promotions", "/contact"]);
 
 const MainLayout = () => {
   const location = useLocation();
-  const user = localStorage.getItem("user");
-  const token = localStorage.getItem("token")?.trim();
+  const user = getStoredUserRaw();
+  const token = getStoredToken();
   const isLoggedIn = !!(user && token);
   const isPublicPage = publicMainPaths.has(location.pathname);
 
   if (!token && user) {
-    localStorage.removeItem("user");
+    clearStoredUser();
   }
 
   if (!isLoggedIn && !isPublicPage) {

@@ -23,6 +23,7 @@ import {
   StatusBadge,
   inputClass } from
 "./OperatorUI";
+import { getStoredUser } from "../../utils/authStorage";
 
 const emptyForm = {
   stationId: "",
@@ -41,12 +42,8 @@ const findRouteForSchedule = (schedule, routes) => {
 };
 
 const getStoredCompanyId = () => {
-  try {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    return user.companyId || null;
-  } catch {
-    return null;
-  }
+  const user = getStoredUser();
+  return user.companyId || null;
 };
 
 function StationDropdown({ stations = [], value, onChange }) {

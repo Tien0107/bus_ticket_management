@@ -4,6 +4,7 @@ import { getTicketDetail, cancelTicket } from "../../api/customer";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import { useToast } from "../../context/ToastContext";
 import ChatWidget from "../../components/chat/ChatWidget";
+import { getStoredToken } from "../../utils/authStorage";
 
 export default function TicketDetail() {
   const { ticketId } = useParams();
@@ -263,7 +264,7 @@ export default function TicketDetail() {
           }
         </div>
       </main>
-      {!!localStorage.getItem("token") && <ChatWidget />}
+      {!!getStoredToken() && <ChatWidget />}
     </div>);
 
 }

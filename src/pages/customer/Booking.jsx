@@ -13,6 +13,7 @@ import BookingCheckoutStep from "./BookingCheckoutStep";
 import SelectPaymentCardModal from "../../components/payment/SelectPaymentCardModal";
 import ReturnTripSelection from "./ReturnTripSelection";
 import { useToast } from "../../context/ToastContext";
+import { getStoredUser } from "../../utils/authStorage";
 
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -96,17 +97,14 @@ export default function Booking() {
     }
     if (paymentIntent?.status === "succeeded") {
       try {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-          const currentUser = JSON.parse(userStr);
-          if (currentUser?.id) {
-            await createNotification({
-              userId: currentUser.id,
-              title: "Thanh toán thành công!",
-              body: `Vé của bạn cho đơn hàng #${orderId || ""} đã được thanh toán thành công qua thẻ Stripe.`,
-              data: JSON.stringify({ path: "/profile/tickets" })
-            });
-          }
+        const currentUser = getStoredUser(null);
+        if (currentUser?.id) {
+          await createNotification({
+            userId: currentUser.id,
+            title: "Thanh toán thành công!",
+            body: `Vé của bạn cho đơn hàng #${orderId || ""} đã được thanh toán thành công qua thẻ Stripe.`,
+            data: JSON.stringify({ path: "/profile/tickets" })
+          });
         }
       } catch (notifErr) {
         console.warn("Failed to create Stripe payment notification:", notifErr);
@@ -304,17 +302,14 @@ export default function Booking() {
       if (bookingData.paymentMethod === "cash") {
         localStorage.setItem(`busgo_payment_method_${activeOrderId}`, 'CASH');
         try {
-          const userStr = localStorage.getItem("user");
-          if (userStr) {
-            const currentUser = JSON.parse(userStr);
-            if (currentUser?.id) {
-              await createNotification({
-                userId: currentUser.id,
-                title: "Giữ chỗ thành công (Tiền mặt)",
-                body: `Đơn giữ chỗ #${activeOrderId || ""} đã được ghi nhận. Vui lòng thanh toán tiền mặt tại quầy trước giờ xe xuất bến.`,
-                data: JSON.stringify({ path: "/profile/tickets" })
-              });
-            }
+          const currentUser = getStoredUser(null);
+          if (currentUser?.id) {
+            await createNotification({
+              userId: currentUser.id,
+              title: "Giữ chỗ thành công (Tiền mặt)",
+              body: `Đơn giữ chỗ #${activeOrderId || ""} đã được ghi nhận. Vui lòng thanh toán tiền mặt tại quầy trước giờ xe xuất bến.`,
+              data: JSON.stringify({ path: "/profile/tickets" })
+            });
           }
         } catch (notifErr) {
           console.warn("Failed to create checkout notification:", notifErr);
