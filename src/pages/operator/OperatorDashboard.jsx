@@ -138,7 +138,7 @@ export default function OperatorDashboard() {
         )}
       </div>
 
-      <section className="mt-6 rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
+      <section className="mt-6 rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-extrabold text-on-surface">Khu vực điều hành</h2>

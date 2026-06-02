@@ -337,10 +337,10 @@ export default function TripDetail() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface p-6">
+      <div className="flex min-h-screen items-center justify-center bg-surface p-4">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-          <p className="mt-4 text-on-surface-variant">Đang tải chuyến...</p>
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+          <p className="mt-3 text-sm text-on-surface-variant">Đang tải chuyến...</p>
         </div>
       </div>
     );
@@ -348,16 +348,16 @@ export default function TripDetail() {
 
   if (error || !trip) {
     return (
-      <div className="min-h-screen bg-surface p-6 lg:p-8">
+      <div className="min-h-screen bg-surface p-4 lg:p-6">
         <button
           type="button"
           onClick={() => navigate("/driver/dashboard")}
-          className="mb-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-bold text-primary shadow-sm"
+          className="mb-4 inline-flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-sm font-bold text-primary shadow-sm"
         >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
           Quay lại
         </button>
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center font-medium text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-center font-medium text-red-700">
           {error}
         </div>
       </div>
@@ -367,25 +367,25 @@ export default function TripDetail() {
   const currentStatus = statusMeta[trip.status] || statusMeta.scheduled;
 
   return (
-    <div className="min-h-screen bg-surface px-5 py-6 lg:px-8">
+    <div className="min-h-screen bg-surface px-4 py-4 lg:px-6">
       <div className="mx-auto max-w-7xl">
         <button
           type="button"
           onClick={() => navigate("/driver/dashboard")}
-          className="mb-5 inline-flex items-center gap-2 rounded-lg border border-outline-variant/40 bg-white px-4 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+          className="mb-4 inline-flex items-center gap-2 rounded-lg border border-outline-variant/40 bg-white px-3 py-1.5 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
         >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
           Quay lại
         </button>
 
-        <section className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm lg:p-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <section className="rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
-              <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold ring-1 ${currentStatus.badge}`}>
-                <span className="material-symbols-outlined text-[18px]">{currentStatus.icon}</span>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${currentStatus.badge}`}>
+                <span className="material-symbols-outlined text-[16px]">{currentStatus.icon}</span>
                 {currentStatus.label}
               </span>
-              <h1 className="mt-4 text-3xl font-bold tracking-tight text-on-surface lg:text-4xl">
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-on-surface lg:text-3xl">
                 {trip.departure} → {trip.destination}
               </h1>
               <p className="mt-2 text-on-surface-variant">{trip.displayDate} · Xuất bến {trip.departureTime}</p>
@@ -427,14 +427,14 @@ export default function TripDetail() {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <InfoTile icon="confirmation_number" label="Hành khách" value={`${passengers.length || trip.passengerCount}/${trip.totalSeats}`} />
             <InfoTile icon="task_alt" label="Đã check-in" value={`${checkedInCount}/${passengers.length || trip.passengerCount || 0}`} />
             <InfoTile icon="directions_bus" label="Biển số" value={trip.plateNumber || trip.vehicleNumber || "Chưa gán"} />
             <InfoTile icon="schedule" label="Thời lượng" value={formatDuration(trip.durationMinutes)} />
           </div>
 
-          <div className="mt-6 rounded-xl bg-surface-container-low p-4">
+          <div className="mt-4 rounded-xl bg-surface-container-low p-3">
             <div className="mb-3 flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-on-surface">Tiến độ check-in</p>
@@ -448,11 +448,11 @@ export default function TripDetail() {
           </div>
         </section>
 
-        <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
+        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1fr_360px]">
           <PassengerList passengers={passengers} onCheckIn={handleOpenCheckIn} />
 
-          <aside className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
-            <div className="mb-5 flex items-center justify-between">
+          <aside className="rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-on-surface">Tuyến đường</h2>
                 <p className="mt-1 text-sm text-on-surface-variant">{route.length} điểm dừng</p>
@@ -486,7 +486,7 @@ export default function TripDetail() {
                 })}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-outline-variant/50 p-6 text-center">
+              <div className="rounded-lg border border-dashed border-outline-variant/50 p-4 text-center">
                 <span className="material-symbols-outlined text-4xl text-outline">route</span>
                 <p className="mt-2 text-sm text-on-surface-variant">Chưa có dữ liệu tuyến đường</p>
               </div>

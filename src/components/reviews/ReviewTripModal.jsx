@@ -102,7 +102,7 @@ const ReviewTripModal = ({ isOpen, onClose, ticket, onSuccess }) => {
                 Khởi hành: {new Date(ticket.departureDate || Date.now()).toLocaleDateString('vi-VN')}
               </p>
               <p className="text-[10px] text-outline font-medium mt-0.5 uppercase tracking-wider">
-                Mã chuyến: #{ticket.tripId || ticket.id}
+                Mã chuyến: {ticket.code || "—"}
               </p>
             </div>
           </div>

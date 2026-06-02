@@ -53,7 +53,7 @@ export default function SupportProfile() {
   return (
     <div className="flex min-h-screen bg-surface font-body text-on-surface">
       <aside className="flex w-[260px] shrink-0 flex-col border-r border-surface-container-high bg-white py-6">
-        <div className="mb-8 px-6">
+        <div className="mb-4 px-4">
           <h1 className="text-lg font-black tracking-tight text-primary">Quản trị nhà xe</h1>
           <p className="mt-1 text-xs font-bold uppercase tracking-wide text-outline">Trung tâm hỗ trợ</p>
         </div>
@@ -98,12 +98,12 @@ export default function SupportProfile() {
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 overflow-auto bg-[#f6f8f5] px-6 py-6 lg:px-8">
+      <main className="min-w-0 flex-1 overflow-auto bg-[#f6f8f5] px-4 py-4 lg:px-6">
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
             <p className="text-sm font-bold uppercase tracking-wide text-primary">Profile</p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-on-surface">Hồ sơ hỗ trợ</h2>
+            <h2 className="mt-1 text-2xl font-black tracking-tight text-on-surface">Hồ sơ hỗ trợ</h2>
             <p className="mt-2 text-sm font-medium text-on-surface-variant">
               Quản lý thông tin cá nhân, vai trò, mã nhân viên, ngày vào làm, bộ phận và vị trí.
             </p>

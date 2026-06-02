@@ -11,7 +11,7 @@ export default function CustomerProfileNav() {
   const location = useLocation();
 
   return (
-    <div className="flex items-center flex-wrap gap-4 mb-8">
+    <div className="flex items-center flex-wrap gap-2 mb-4">
       {navItems.map((item) => {
         const isActive =
             item.to === "/profile"
@@ -22,7 +22,7 @@ export default function CustomerProfileNav() {
             <Link
               key={item.to}
               to={item.to}
-              className={`px-6 py-2 rounded-full font-bold transition-colors shadow-sm ${
+              className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors shadow-sm ${
                 isActive
                   ? "bg-primary text-white shadow-md"
                   : "bg-surface-container-low text-on-surface hover:bg-surface-container hover:text-primary"

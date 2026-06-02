@@ -218,7 +218,7 @@ const DriverProfile = () => {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface p-6">
+      <div className="flex min-h-screen items-center justify-center bg-surface p-4">
         <div className="text-center">
           <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
           <p className="mt-4 text-on-surface-variant">Đang tải hồ sơ...</p>
@@ -236,30 +236,30 @@ const DriverProfile = () => {
   toUpperCase();
 
   return (
-    <div className="min-h-screen bg-surface px-5 py-6 lg:px-8">
+    <div className="min-h-screen bg-surface px-4 py-4 lg:px-6">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-6">
+        <div className="mb-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-primary">Hồ sơ tài xế</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-on-surface lg:text-4xl">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary">Hồ sơ tài xế</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-on-surface lg:text-3xl">
               Thông tin cá nhân
             </h1>
-            <p className="mt-2 text-on-surface-variant">Quản lý thông tin liên hệ và trạng thái tài khoản tài xế.</p>
+            <p className="mt-1 text-sm text-on-surface-variant">Quản lý thông tin liên hệ và trạng thái tài khoản tài xế.</p>
           </div>
         </div>
 
         <section className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
-          <div className="bg-primary p-6 text-white">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-white/15 text-3xl font-bold ring-1 ring-white/20">
+          <div className="bg-primary p-4 text-white">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/15 text-xl font-bold ring-1 ring-white/20">
                   {initials}
                 </div>
                 <div className="min-w-0">
-                  <h2 className="truncate text-2xl font-bold">{user.fullName || "Tài xế"}</h2>
-                  <p className="mt-1 truncate text-white/85">{user.email}</p>
-                  <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-sm font-semibold ring-1 ring-white/20">
-                    <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                  <h2 className="truncate text-xl font-bold">{user.fullName || "Tài xế"}</h2>
+                  <p className="mt-0.5 truncate text-sm text-white/85">{user.email}</p>
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-white/20">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
                     {user.status === "inactive" ? "Tạm ngưng" : "Đang hoạt động"}
                   </div>
                 </div>
@@ -268,19 +268,19 @@ const DriverProfile = () => {
               <button
                 type="button"
                 onClick={() => setIsEditing(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-bold text-primary transition-opacity hover:opacity-90">
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-3 py-1.5 text-sm font-bold text-primary transition-opacity hover:opacity-90">
                 
-                  <span className="material-symbols-outlined text-[20px]">edit</span>
+                  <span className="material-symbols-outlined text-[18px]">edit</span>
                   Chỉnh sửa
                 </button>
               }
             </div>
           </div>
 
-          <div className="p-5 lg:p-6">
+          <div className="p-4">
             {isEditing ?
-            <div className="space-y-6">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <TextInput label="Họ và tên" name="fullName" value={formData.fullName} onChange={handleChange} />
                   <TextInput label="Tên đăng nhập" name="loginName" value={getDisplayName(formData)} onChange={handleChange} disabled />
                   <TextInput label="Email" name="email" type="email" value={formData.email} onChange={handleChange} disabled />

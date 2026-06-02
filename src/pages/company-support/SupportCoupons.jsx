@@ -76,11 +76,21 @@ export default function SupportCoupons() {
     user = {};
   }
 
+  const getCompanyId = () => {
+    try {
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      return storedUser.companyId || storedUser.company?.id || null;
+    } catch {
+      return null;
+    }
+  };
+
   const fetchCoupons = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const res = await getSupportCoupons();
+      const companyId = getCompanyId();
+      const res = await getSupportCoupons(companyId ? { companyId } : undefined);
       setCoupons(extractCoupons(res));
     } catch (err) {
       setError(getErrorMessage(err) || "Không thể tải danh sách khuyến mãi.");
@@ -241,7 +251,14 @@ export default function SupportCoupons() {
       isActive: Boolean(form.isActive),
     };
 
-    if (!editId) payload.usedQuantity = 0;
+    if (!editId) {
+      const companyId = getCompanyId();
+      if (companyId) {
+        payload.companyId = Number(companyId);
+      }
+      payload.usedQuantity = 0;
+    }
+
     if (start) payload.startDate = start.toISOString();
     if (end) payload.endDate = end.toISOString();
 
@@ -314,7 +331,7 @@ export default function SupportCoupons() {
   return (
     <div className="flex min-h-screen bg-surface font-body text-on-surface">
       <aside className="flex w-[260px] shrink-0 flex-col border-r border-surface-container-high bg-white py-6">
-        <div className="mb-8 px-6">
+        <div className="mb-6 px-4">
           <h1 className="text-lg font-black tracking-tight text-primary">Quản trị nhà xe</h1>
           <p className="mt-1 text-xs font-bold uppercase tracking-wide text-outline">Trang khuyến mãi</p>
         </div>
@@ -357,10 +374,10 @@ export default function SupportCoupons() {
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 overflow-auto px-8 py-8">
-        <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <main className="min-w-0 flex-1 overflow-auto px-5 py-5">
+        <div className="mb-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-on-surface">Quản lý mã khuyến mãi</h2>
+            <h2 className="text-2xl font-black tracking-tight text-on-surface">Quản lý mã khuyến mãi</h2>
             <p className="mt-1 text-sm font-medium text-on-surface-variant">
               Tạo coupon cho nhà xe, ưu tiên định dạng VND và kiểm soát giới hạn giảm giá.
             </p>
@@ -390,26 +407,26 @@ export default function SupportCoupons() {
         </div>
 
         <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-outline-variant/30 bg-white p-4 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-wide text-outline">Đang hoạt động</p>
-            <p className="mt-2 text-3xl font-black text-primary">{activeCoupons}</p>
+            <p className="mt-1 text-2xl font-black text-primary">{activeCoupons}</p>
           </div>
-          <div className="rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-outline-variant/30 bg-white p-4 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-wide text-outline">Đã dùng</p>
-            <p className="mt-2 text-3xl font-black text-on-surface">{totalUsed.toLocaleString("vi-VN")}</p>
+            <p className="mt-1 text-2xl font-black text-on-surface">{totalUsed.toLocaleString("vi-VN")}</p>
           </div>
-          <div className="rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-outline-variant/30 bg-white p-4 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-wide text-outline">Tổng lượt phát hành</p>
-            <p className="mt-2 text-3xl font-black text-on-surface">{totalIssued.toLocaleString("vi-VN")}</p>
+            <p className="mt-1 text-2xl font-black text-on-surface">{totalIssued.toLocaleString("vi-VN")}</p>
           </div>
-          <div className="rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-outline-variant/30 bg-white p-4 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-wide text-outline">Coupon VND</p>
-            <p className="mt-2 text-3xl font-black text-secondary">{fixedCoupons}</p>
+            <p className="mt-1 text-2xl font-black text-secondary">{fixedCoupons}</p>
           </div>
         </div>
 
         <section className="overflow-hidden rounded-lg border border-outline-variant/30 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-surface-container px-5 py-4">
+          <div className="flex items-center justify-between border-b border-surface-container px-4 py-2.5">
             <div>
               <h3 className="text-lg font-black text-on-surface">Danh sách coupon</h3>
               <p className="mt-0.5 text-xs font-semibold text-on-surface-variant">
@@ -445,7 +462,7 @@ export default function SupportCoupons() {
                   <thead>
                     <tr className="border-b border-surface-container bg-surface-container-low">
                       {["Mã coupon", "Giảm giá", "Đơn tối thiểu", "Giảm tối đa", "Đã dùng/Tổng", "Trạng thái", "Thời gian", ""].map((header) => (
-                        <th key={header} className="px-5 py-3 text-left text-xs font-black uppercase tracking-wide text-outline">
+                        <th key={header} className="px-4 py-2 text-left text-[10px] font-black uppercase tracking-wide text-outline">
                           {header}
                         </th>
                       ))}
@@ -458,11 +475,10 @@ export default function SupportCoupons() {
                       const usagePercent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
                       return (
                         <tr key={coupon.id || coupon.code} className="border-b border-surface-container/70 hover:bg-surface-container-low/60">
-                          <td className="px-5 py-4">
+                          <td className="px-4 py-2.5">
                             <p className="font-black tracking-wide text-on-surface">{coupon.code}</p>
-                            <p className="mt-1 text-xs font-semibold text-outline">ID: {coupon.id || "N/A"}</p>
                           </td>
-                          <td className="px-5 py-4">
+                          <td className="px-4 py-2.5">
                             <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
                               coupon.discountType === "percent"
                                 ? "bg-primary/10 text-primary"
@@ -471,9 +487,9 @@ export default function SupportCoupons() {
                               {discountLabel(coupon)}
                             </span>
                           </td>
-                          <td className="px-5 py-4 text-sm font-bold text-on-surface">{formatVnd(coupon.minOrderAmount)}</td>
-                          <td className="px-5 py-4 text-sm font-bold text-on-surface">{formatVnd(coupon.maxDiscountAmount)}</td>
-                          <td className="px-5 py-4">
+                          <td className="px-4 py-2.5 text-sm font-bold text-on-surface">{formatVnd(coupon.minOrderAmount)}</td>
+                          <td className="px-4 py-2.5 text-sm font-bold text-on-surface">{formatVnd(coupon.maxDiscountAmount)}</td>
+                          <td className="px-4 py-2.5">
                             <div className="flex items-center gap-3">
                               <div className="h-2 w-24 overflow-hidden rounded-full bg-surface-container-high">
                                 <div
@@ -484,18 +500,18 @@ export default function SupportCoupons() {
                               <span className="whitespace-nowrap text-xs font-black text-on-surface-variant">{used}/{total}</span>
                             </div>
                           </td>
-                          <td className="px-5 py-4">
+                          <td className="px-4 py-2.5">
                             <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${
                               coupon.isActive !== false ? "bg-primary/10 text-primary" : "bg-surface-container-high text-outline"
                             }`}>
                               {coupon.isActive !== false ? "Đang bật" : "Đã tắt"}
                             </span>
                           </td>
-                          <td className="px-5 py-4 text-xs font-semibold text-on-surface-variant">
+                          <td className="px-4 py-2.5 text-xs font-semibold text-on-surface-variant">
                             <p>{coupon.startDate ? new Date(coupon.startDate).toLocaleString("vi-VN") : "Không giới hạn"}</p>
                             <p className="mt-1">đến {coupon.endDate ? new Date(coupon.endDate).toLocaleString("vi-VN") : "Không giới hạn"}</p>
                           </td>
-                          <td className="px-5 py-4 text-right">
+                          <td className="px-4 py-2.5 text-right">
                             <IconButton
                               icon="edit"
                               label="Sửa"
@@ -509,7 +525,7 @@ export default function SupportCoupons() {
                 </table>
               </div>
 
-              <div className="flex items-center justify-between border-t border-surface-container px-5 py-4">
+              <div className="flex items-center justify-between border-t border-surface-container px-4 py-2.5">
                 <span className="text-sm font-semibold text-on-surface-variant">
                   Trang {currentPage} / {totalPages}
                 </span>
@@ -684,9 +700,9 @@ export default function SupportCoupons() {
 
               <aside className="border-t border-surface-container bg-surface-container-low p-6 lg:border-l lg:border-t-0">
                 <div className="sticky top-0 space-y-4">
-                  <div className="rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
+                  <div className="rounded-lg border border-outline-variant/30 bg-white p-4 shadow-sm">
                     <p className="text-xs font-bold uppercase tracking-wide text-outline">Preview đơn mẫu</p>
-                    <p className="mt-2 text-3xl font-black text-on-surface">{formatVnd(PREVIEW_ORDER_AMOUNT)}</p>
+                    <p className="mt-1 text-2xl font-black text-on-surface">{formatVnd(PREVIEW_ORDER_AMOUNT)}</p>
                     <div className="mt-5 space-y-3 text-sm">
                       <div className="flex justify-between gap-4">
                         <span className="font-semibold text-on-surface-variant">Loại giảm</span>

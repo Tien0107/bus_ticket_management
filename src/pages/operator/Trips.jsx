@@ -508,11 +508,11 @@ export default function Trips() {
             <table className="w-full min-w-[820px] text-sm">
               <thead className="bg-surface-container-low">
                 <tr>
-                  <th className="px-5 py-3 text-left text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Chuyến</th>
-                  <th className="px-5 py-3 text-left text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Tuyến</th>
-                  <th className="px-5 py-3 text-left text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Xe</th>
-                  <th className="px-5 py-3 text-left text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Trạng thái</th>
-                  <th className="px-5 py-3 text-right text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Thao tác</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Chuyến</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Tuyến</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Xe</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Trạng thái</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
@@ -523,10 +523,10 @@ export default function Trips() {
 
                 return (
                   <tr key={trip.id} className="hover:bg-surface-container-low/70">
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 py-2.5.5">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-base font-extrabold text-primary ring-1 ring-emerald-100">
-                          #{trip.id}
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-primary ring-1 ring-emerald-100">
+                          <span className="material-symbols-outlined text-xl">directions_bus</span>
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-bold text-on-surface">
@@ -539,24 +539,24 @@ export default function Trips() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 py-2.5.5">
                       <p className="font-bold text-on-surface">{trip.fromLocation} → {trip.toLocation}</p>
                       <p className="mt-1 text-xs font-medium text-on-surface-variant">
                         {Number(trip.distanceKm || 0).toLocaleString("vi-VN")} km
                       </p>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 py-2.5.5">
                       <p className="font-bold text-on-surface">{trip.plateNumber || "Chưa gán xe"}</p>
                       <p className="mt-1 text-xs font-medium text-on-surface-variant">
                         {trip.totalSeats || 0} ghế · {trip.type || "—"}
                       </p>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 py-2.5.5">
                       <StatusBadge tone={statusTone[trip.status] || "slate"}>
                         {statusLabel[trip.status] || trip.status || "—"}
                       </StatusBadge>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 py-2.5.5">
                       <div className="flex justify-end">
                         <IconButton
                           icon="edit"
@@ -579,7 +579,7 @@ export default function Trips() {
       {showModal && editingTrip &&
       <ModalShell
         title="Cập nhật chuyến"
-        subtitle={`Chuyến #${editingTrip.id}`}
+        subtitle="Chi tiết chuyến"
         onClose={closeModal}
         footer={
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

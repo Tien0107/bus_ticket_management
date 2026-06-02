@@ -87,14 +87,14 @@ const normalizeTrip = (trip) => {
 };
 
 const StatCard = ({ icon, label, value, tone = "text-primary" }) => (
-  <div className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
-    <div className="flex items-start justify-between gap-4">
+  <div className="rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm">
+    <div className="flex items-start justify-between gap-3">
       <div>
-        <p className="text-sm font-medium text-on-surface-variant">{label}</p>
-        <p className={`mt-2 text-3xl font-bold tracking-tight ${tone}`}>{value}</p>
+        <p className="text-xs font-medium text-on-surface-variant">{label}</p>
+        <p className={`mt-0.5 text-2xl font-bold tracking-tight ${tone}`}>{value}</p>
       </div>
-      <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <span className="material-symbols-outlined text-[26px] leading-none">{icon}</span>
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <span className="material-symbols-outlined text-[20px] leading-none">{icon}</span>
       </div>
     </div>
   </div>
@@ -113,53 +113,53 @@ const TripCard = ({ trip }) => {
         trip,
         tripDate: trip.date || trip.departureDate?.split("T")[0] || "",
       }}
-      className="group block rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-editorial"
+      className="group block rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-editorial"
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 ${meta.badge}`}>
-              <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${meta.badge}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
               {meta.label}
             </span>
-            <span className="text-xs font-medium text-on-surface-variant">{trip.displayDate}</span>
-            <span className="text-xs font-medium text-on-surface-variant">{trip.departureTime}</span>
+            <span className="text-[10px] font-medium text-on-surface-variant">{trip.displayDate}</span>
+            <span className="text-[10px] font-medium text-on-surface-variant">{trip.departureTime}</span>
           </div>
 
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2">
             <div className="min-w-0">
-              <p className="truncate text-lg font-bold text-on-surface">{trip.departure}</p>
-              <p className="mt-1 truncate text-lg font-bold text-on-surface">{trip.destination}</p>
+              <p className="truncate text-base font-bold text-on-surface">{trip.departure}</p>
+              <p className="mt-0.5 truncate text-base font-bold text-on-surface">{trip.destination}</p>
             </div>
-            <span className="material-symbols-outlined shrink-0 text-primary transition-transform group-hover:translate-x-1">
+            <span className="material-symbols-outlined shrink-0 text-primary transition-transform group-hover:translate-x-1 text-lg">
               arrow_forward
             </span>
           </div>
         </div>
 
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-surface-container-low text-primary">
-          <span className="material-symbols-outlined text-[26px] leading-none">{meta.icon}</span>
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-container-low text-primary">
+          <span className="material-symbols-outlined text-[18px] leading-none">{meta.icon}</span>
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-3 text-sm">
+      <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
         <div>
           <p className="text-on-surface-variant">Ghế</p>
-          <p className="mt-1 font-semibold text-on-surface">
+          <p className="mt-0.5 font-semibold text-on-surface">
             {trip.hasPassengerCount ? trip.passengerCount : "--"}/{trip.totalSeats}
           </p>
         </div>
         <div>
           <p className="text-on-surface-variant">Thời lượng</p>
-          <p className="mt-1 font-semibold text-on-surface">{formatDuration(trip.durationMinutes)}</p>
+          <p className="mt-0.5 font-semibold text-on-surface">{formatDuration(trip.durationMinutes)}</p>
         </div>
         <div>
           <p className="text-on-surface-variant">Xe</p>
-          <p className="mt-1 truncate font-semibold text-on-surface">{trip.plateNumber || trip.vehicleNumber || "Chưa gán"}</p>
+          <p className="mt-0.5 truncate font-semibold text-on-surface">{trip.plateNumber || trip.vehicleNumber || "Chưa gán"}</p>
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-2">
         <div className="h-2 overflow-hidden rounded-full bg-surface-container-high">
           <div className="h-full rounded-full bg-primary" style={{ width: `${occupancy}%` }} />
         </div>
@@ -260,18 +260,18 @@ const DriverDashboard = () => {
   const activeTrip = groupedTrips.running[0];
 
   return (
-    <div className="min-h-screen bg-surface px-5 py-6 lg:px-8">
+    <div className="min-h-screen bg-surface px-4 py-4 lg:px-6">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-primary">Bảng điều khiển tài xế</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-on-surface lg:text-4xl">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary">Bảng điều khiển tài xế</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-on-surface lg:text-3xl">
               Xin chào, {user?.fullName || "Tài xế"}
             </h1>
-            <p className="mt-2 text-on-surface-variant">Theo dõi chuyến, hành khách và trạng thái vận hành trong ngày.</p>
+            <p className="mt-1 text-sm text-on-surface-variant">Theo dõi chuyến, hành khách và trạng thái vận hành trong ngày.</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-lg border border-outline-variant/50 bg-white px-3 py-2">
+            <div className="flex items-center gap-2 rounded-lg border border-outline-variant/50 bg-white px-2.5 py-1.5">
               <span className="material-symbols-outlined text-on-surface-variant text-[18px]">calendar_today</span>
               <input
                 type="date"
@@ -283,7 +283,7 @@ const DriverDashboard = () => {
             <button
               type="button"
               onClick={() => fetchTrips(selectedDate)}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant/50 bg-white px-4 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container-low"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant/50 bg-white px-3 py-1.5 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container-low"
             >
               <span className="material-symbols-outlined text-[20px]">refresh</span>
               Tải lại
@@ -291,7 +291,7 @@ const DriverDashboard = () => {
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <StatCard icon="event_upcoming" label="Chuyến sắp chạy" value={stats.scheduled} />
           <StatCard icon="directions_bus" label="Đang chạy" value={stats.running} tone="text-emerald-600" />
           <StatCard icon="groups" label="Tổng hành khách" value={stats.passengers} />
@@ -300,8 +300,8 @@ const DriverDashboard = () => {
         </div>
 
         {activeTrip && (
-          <div className="mb-6 rounded-xl bg-primary p-5 text-white shadow-editorial">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="mb-4 rounded-xl bg-primary p-4 text-white shadow-editorial">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-white/80">Chuyến đang chạy</p>
                 <h2 className="mt-1 truncate text-2xl font-bold">
@@ -349,10 +349,10 @@ const DriverDashboard = () => {
 
         <div className="mt-6">
           {loading ? (
-            <div className="flex min-h-[280px] items-center justify-center rounded-xl border border-outline-variant/30 bg-white">
+            <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-outline-variant/30 bg-white">
               <div className="text-center">
-                <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-                <p className="mt-4 text-on-surface-variant">Đang tải chuyến...</p>
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+                <p className="mt-3 text-sm text-on-surface-variant">Đang tải chuyến...</p>
               </div>
             </div>
           ) : error ? (
@@ -360,16 +360,16 @@ const DriverDashboard = () => {
               {error}
             </div>
           ) : activeTrips.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               {activeTrips.map((trip) => (
                 <TripCard key={trip.id} trip={trip} />
               ))}
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-outline-variant/60 bg-white p-10 text-center">
-              <span className="material-symbols-outlined text-5xl text-outline">event_busy</span>
-              <p className="mt-3 text-lg font-semibold text-on-surface">Không có chuyến</p>
-              <p className="mt-1 text-sm text-on-surface-variant">Danh sách này hiện chưa có chuyến phù hợp.</p>
+            <div className="rounded-xl border border-dashed border-outline-variant/60 bg-white p-6 text-center">
+              <span className="material-symbols-outlined text-4xl text-outline">event_busy</span>
+              <p className="mt-2 text-sm font-semibold text-on-surface">Không có chuyến</p>
+              <p className="mt-0.5 text-xs text-on-surface-variant">Danh sách này hiện chưa có chuyến phù hợp.</p>
             </div>
           )}
         </div>

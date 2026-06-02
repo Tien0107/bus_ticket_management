@@ -302,40 +302,39 @@ export default function Prices() {
             <table className="w-full min-w-[980px] text-sm">
               <thead className="bg-surface-container-low">
                 <tr>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Tuyến</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Từ trạm</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Đến trạm</th>
-                  <th className="px-5 py-3 text-right font-bold text-on-surface-variant">Giá</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Trạng thái</th>
-                  <th className="px-5 py-3 text-right font-bold text-on-surface-variant">Thao tác</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Tuyến</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Từ trạm</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Đến trạm</th>
+                  <th className="px-4 py-2.5 text-right font-bold text-on-surface-variant">Giá</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Trạng thái</th>
+                  <th className="px-4 py-2.5 text-right font-bold text-on-surface-variant">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
                 {prices.map((price) =>
               <tr key={price.id} className="hover:bg-surface-container-low/70">
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <p className="font-bold text-on-surface">
                         {price.routeFromLocation && price.routeToLocation ?
                     `${price.routeFromLocation} → ${price.routeToLocation}` :
                     routeLabel(price.routeId)}
                       </p>
-                      <p className="mt-1 text-xs text-on-surface-variant">ID: {price.id}</p>
                     </td>
-                    <td className="px-5 py-4 text-on-surface-variant">
+                    <td className="px-4 py-2.5 text-on-surface-variant">
                       {price.fromStationAddress || "—"}
                       {price.fromStationCity ? `, ${price.fromStationCity}` : ""}
                     </td>
-                    <td className="px-5 py-4 text-on-surface-variant">
+                    <td className="px-4 py-2.5 text-on-surface-variant">
                       {price.toStationAddress || "—"}
                       {price.toStationCity ? `, ${price.toStationCity}` : ""}
                     </td>
-                    <td className="px-5 py-4 text-right font-extrabold text-on-surface">{formatCurrency(price.price)}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5 text-right font-extrabold text-on-surface">{formatCurrency(price.price)}</td>
+                    <td className="px-4 py-2.5">
                       <StatusBadge tone={price.status ? "emerald" : "slate"}>
                         {price.status ? "Áp dụng" : "Tạm tắt"}
                       </StatusBadge>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <div className="flex justify-end gap-2">
                         <IconButton icon="edit" label="Sửa bảng giá" onClick={() => openEditModal(price)} />
                         <IconButton icon="delete_outline" label="Xóa bảng giá" variant="danger" onClick={() => handleDelete(price)} />

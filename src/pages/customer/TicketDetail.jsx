@@ -60,22 +60,22 @@ export default function TicketDetail() {
   }
 
 
-  const departureCity = ticket.fromLocation || ticket.startCity || "Đang cập nhật...";
-  const arrivalCity = ticket.toLocation || ticket.endCity || "Đang cập nhật...";
-  const departureStation = ticket.startStation || "Bến xe đi";
-  const arrivalStation = ticket.endStation || "Bến xe đến";
-  const date = ticket.departureDate ? new Date(ticket.departureDate).toLocaleDateString('vi-VN') : "Chưa có ngày";
-  const time = ticket.departureTime || "--:--";
+  // Remove all null/empty data
+  const rawDepartureCity = ticket.fromLocation || ticket.startCity;
+  const rawArrivalCity = ticket.toLocation || ticket.endCity;
+  const departureCity = rawDepartureCity || "";
+  const arrivalCity = rawArrivalCity || "";
+  const departureStation = ticket.startStation || "";
+  const arrivalStation = ticket.endStation || "";
+  const date = ticket.departureDate ? new Date(ticket.departureDate).toLocaleDateString('vi-VN') : "";
+  const time = ticket.departureTime || "";
 
+  const seatNumbers = ticket.seatNumber || ticket.seatId || "";
 
-  const seatNumbers = ticket.seatNumber || ticket.seatId || "N/A";
+  const driverPhone = ticket.driverPhone || "";
+  const busCompany = ticket.companyName || "BusGo";
 
-
-  const driverPhone = ticket.driverPhone || "Chưa cập nhật";
-  const busCompany = ticket.companyName || "BusGo Company";
-
-
-  const busPlate = ticket.plateNumber || ticket.licensePlate || "Chưa cấp biển";
+  const busPlate = ticket.plateNumber || ticket.licensePlate || "";
 
 
   const ticketOriginal = ticket.originalAmount || ticket.totalPrice || ticket.price || 0;
@@ -86,7 +86,7 @@ export default function TicketDetail() {
   const price = ticketFinal.toLocaleString('vi-VN') + 'đ';
 
 
-  const qrCodeData = ticket.code || ticket.qrCode || `BG-${ticketId}`;
+  const qrCodeData = ticket.code || ticket.qrCode || `BG-****${String(ticketId || '').slice(-4)}`;
 
   const isCancelled = ticket.status === 'CANCELLED' || ticket.status === 'cancelled';
 
@@ -95,7 +95,7 @@ export default function TicketDetail() {
       <ConfirmModal
         isOpen={showConfirm}
         title="Xác nhận hủy vé"
-        message={`Bạn có chắc chắn muốn hủy vé số #${ticketId} không?`}
+        message={`Bạn có chắc chắn muốn hủy vé ${ticket.code || "này"} không?`}
         confirmText="Có, hủy vé"
         cancelText="Đóng"
         onConfirm={executeCancel}
@@ -138,48 +138,64 @@ export default function TicketDetail() {
                 <p className="text-[10px] text-on-surface-variant font-medium tracking-widest uppercase">BUS LINES</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-widest">Biển số</p>
-              <p className="font-bold text-on-surface text-sm">{busPlate}</p>
-            </div>
+            {busPlate && (
+              <div className="text-right">
+                <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-widest">Biển số</p>
+                <p className="font-bold text-on-surface text-sm">{busPlate}</p>
+              </div>
+            )}
           </div>
 
           {}
           <div className="p-8">
             <div className="flex justify-between items-center mb-8">
-              <div className="flex-1">
-                <p className="text-[11px] font-bold text-primary uppercase tracking-[0.1em] mb-1">Xuất phát</p>
-                <h2 className="text-2xl font-extrabold tracking-tight leading-none">{departureCity}</h2>
-                <p className="text-[13px] text-on-surface-variant mt-1 font-medium">{departureStation}</p>
-              </div>
-              <div className="flex flex-col items-center px-4">
-                <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>trending_flat</span>
-              </div>
-              <div className="flex-1 text-right">
-                <p className="text-[11px] font-bold text-primary uppercase tracking-[0.1em] mb-1">Đến</p>
-                <h2 className="text-2xl font-extrabold tracking-tight leading-none">{arrivalCity}</h2>
-                <p className="text-[13px] text-on-surface-variant mt-1 font-medium">{arrivalStation}</p>
-              </div>
+              {(departureCity || departureStation) && (
+                <div className="flex-1">
+                  <p className="text-[11px] font-bold text-primary uppercase tracking-[0.1em] mb-1">Xuất phát</p>
+                  {departureCity && <h2 className="text-2xl font-extrabold tracking-tight leading-none">{departureCity}</h2>}
+                  {departureStation && <p className="text-[13px] text-on-surface-variant mt-1 font-medium">{departureStation}</p>}
+                </div>
+              )}
+              {(departureCity || departureStation) && (arrivalCity || arrivalStation) && (
+                <div className="flex flex-col items-center px-4">
+                  <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>trending_flat</span>
+                </div>
+              )}
+              {(arrivalCity || arrivalStation) && (
+                <div className="flex-1 text-right">
+                  <p className="text-[11px] font-bold text-primary uppercase tracking-[0.1em] mb-1">Đến</p>
+                  {arrivalCity && <h2 className="text-2xl font-extrabold tracking-tight leading-none">{arrivalCity}</h2>}
+                  {arrivalStation && <p className="text-[13px] text-on-surface-variant mt-1 font-medium">{arrivalStation}</p>}
+                </div>
+              )}
             </div>
 
             {}
             <div className="grid grid-cols-2 gap-y-6 bg-surface-container-low rounded-xl p-6">
-              <div>
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Ngày đi</p>
-                <p className="font-bold text-on-surface">{date}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Giờ đi</p>
-                <p className="font-bold text-on-surface text-lg">{time}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Ghế ngồi</p>
-                <p className="font-extrabold text-secondary text-2xl tracking-tighter">{seatNumbers}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">SĐT Tài xế</p>
-                <p className="font-bold text-on-surface text-sm">{driverPhone}</p>
-              </div>
+              {date && (
+                <div>
+                  <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Ngày đi</p>
+                  <p className="font-bold text-on-surface">{date}</p>
+                </div>
+              )}
+              {time && (
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Giờ đi</p>
+                  <p className="font-bold text-on-surface text-lg">{time}</p>
+                </div>
+              )}
+              {seatNumbers && (
+                <div>
+                  <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Ghế ngồi</p>
+                  <p className="font-extrabold text-secondary text-2xl tracking-tighter">{seatNumbers}</p>
+                </div>
+              )}
+              {driverPhone && (
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">SĐT Tài xế</p>
+                  <p className="font-bold text-on-surface text-sm">{driverPhone}</p>
+                </div>
+              )}
             </div>
           </div>
 

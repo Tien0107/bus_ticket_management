@@ -112,7 +112,7 @@ export default function StripeConnectCallback() {
       <div className="absolute top-[-10%] left-[-10%] w-[40rem] h-[40rem] rounded-full bg-primary/5 blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[35rem] h-[35rem] rounded-full bg-emerald-500/5 blur-[100px] pointer-events-none"></div>
 
-      <div className="w-full max-w-lg bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl p-8 md:p-10 border border-white/50 shadow-editorial text-center transition-all duration-500 scale-100 animate-fade-in relative z-10">
+      <div className="w-full max-w-lg bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-white/50 shadow-editorial text-center transition-all duration-500 scale-100 animate-fade-in relative z-10">
         
         {/* Icon */}
         <div className="flex justify-center mb-6">
@@ -160,7 +160,7 @@ export default function StripeConnectCallback() {
           )}
         </h1>
 
-        <p className="text-on-surface-variant text-sm md:text-base font-medium mb-8 max-w-sm mx-auto">
+        <p className="text-on-surface-variant text-sm md:text-base font-medium mb-6 max-w-sm mx-auto">
           {isSuccess
             ? "Chúc mừng! Tài khoản Stripe của công ty bạn đã được kết nối thành công. Bạn có thể nhận thanh toán từ khách hàng và thực hiện rút tiền."
             : isError
@@ -169,7 +169,7 @@ export default function StripeConnectCallback() {
         </p>
 
         {/* Details card */}
-        <div className="bg-surface rounded-2xl p-6 border border-surface-container-high/60 text-left space-y-4 mb-8">
+        <div className="bg-surface rounded-2xl p-4 border border-surface-container-high/60 text-left space-y-3 mb-6">
           <h3 className="text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest border-b border-surface-container-high pb-2">
             Chi tiết kết nối
           </h3>

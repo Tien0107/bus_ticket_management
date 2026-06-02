@@ -178,22 +178,21 @@ export default function Routes() {
             <table className="w-full min-w-[820px] text-sm">
               <thead className="bg-surface-container-low">
                 <tr>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Tuyến</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Khoảng cách</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Thời gian</th>
-                  <th className="px-5 py-3 text-right font-bold text-on-surface-variant">Thao tác</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Tuyến</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Khoảng cách</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Thời gian</th>
+                  <th className="px-4 py-2.5 text-right font-bold text-on-surface-variant">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
                 {routes.map((route) =>
               <tr key={route.id} className="hover:bg-surface-container-low/70">
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <p className="font-bold text-on-surface">{route.fromLocation} → {route.toLocation}</p>
-                      <p className="mt-1 text-xs text-on-surface-variant">ID: {route.id}</p>
                     </td>
-                    <td className="px-5 py-4 font-medium text-on-surface">{Number(route.distanceKm || 0).toLocaleString("vi-VN")} km</td>
-                    <td className="px-5 py-4 text-on-surface-variant">{Number(route.durationMinutes || 0).toLocaleString("vi-VN")} phút</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5 font-medium text-on-surface">{Number(route.distanceKm || 0).toLocaleString("vi-VN")} km</td>
+                    <td className="px-4 py-2.5 text-on-surface-variant">{Number(route.durationMinutes || 0).toLocaleString("vi-VN")} phút</td>
+                    <td className="px-4 py-2.5">
                       <div className="flex justify-end">
                         <IconButton icon="edit" label="Sửa tuyến" variant="primary" onClick={() => openEditModal(route)} />
                       </div>
@@ -205,7 +204,7 @@ export default function Routes() {
           </div>
 
           {nextCursor && (
-            <div className="flex justify-center border-t border-outline-variant/30 bg-white px-5 py-4">
+            <div className="flex justify-center border-t border-outline-variant/30 bg-white px-4 py-2.5">
               <button
                 type="button"
                 onClick={handleLoadMore}

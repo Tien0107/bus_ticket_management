@@ -212,36 +212,35 @@ export default function Drivers() {
             <table className="w-full min-w-[820px] text-sm">
               <thead className="bg-surface-container-low">
                 <tr>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Tài xế</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Liên hệ</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Trạng thái</th>
-                  <th className="px-5 py-3 text-right font-bold text-on-surface-variant">Thao tác</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Tài xế</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Liên hệ</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Trạng thái</th>
+                  <th className="px-4 py-2.5 text-right font-bold text-on-surface-variant">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
                 {drivers.map((driver) =>
               <tr key={getDriverId(driver)} className="hover:bg-surface-container-low/70">
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                           <span className="material-symbols-outlined text-[22px]">person</span>
                         </div>
                         <div className="min-w-0">
                           <p className="truncate font-bold text-on-surface">{driver.fullName || "Chưa có tên"}</p>
-                          <p className="mt-1 text-xs text-on-surface-variant">ID: {getDriverId(driver) || "—"}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <p className="font-medium text-on-surface">{driver.email || "—"}</p>
                       <p className="mt-1 text-xs text-on-surface-variant">{driver.phone || "—"}</p>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <StatusBadge tone={statusTone[driver.status] || "slate"}>
                         {statusLabel[driver.status] || driver.status || "—"}
                       </StatusBadge>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <div className="flex justify-end gap-2">
                         <IconButton
                       icon="visibility"
@@ -261,7 +260,7 @@ export default function Drivers() {
           </div>
 
           {nextCursor && (
-            <div className="flex justify-center border-t border-outline-variant/30 bg-white px-5 py-4">
+            <div className="flex justify-center border-t border-outline-variant/30 bg-white px-4 py-2.5">
               <button
                 type="button"
                 onClick={handleLoadMore}

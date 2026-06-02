@@ -426,7 +426,7 @@ export default function Payments() {
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
+        <section className="rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-extrabold text-on-surface">Số dư khả dụng</h2>
@@ -449,7 +449,7 @@ export default function Payments() {
           )}
         </section>
 
-        <section className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
+        <section className="rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-extrabold text-on-surface">Số dư đang chờ</h2>
@@ -498,37 +498,36 @@ export default function Payments() {
             <table className="w-full min-w-[1040px] text-sm">
               <thead className="bg-surface-container-low">
                 <tr>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Mã giao dịch</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Khách hàng</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Phương thức</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Trạng thái</th>
-                  <th className="px-5 py-3 text-right font-bold text-on-surface-variant">Số tiền</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Thời gian</th>
-                  <th className="px-5 py-3 text-right font-bold text-on-surface-variant">Thao tác</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Mã giao dịch</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Khách hàng</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Phương thức</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Trạng thái</th>
+                  <th className="px-4 py-2.5 text-right font-bold text-on-surface-variant">Số tiền</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Thời gian</th>
+                  <th className="px-4 py-2.5 text-right font-bold text-on-surface-variant">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
                 {payments.map((payment) => (
                   <tr key={payment.id || payment.transactionCode} className="hover:bg-surface-container-low/70">
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <p className="font-bold text-on-surface">{payment.transactionCode || "—"}</p>
-                      <p className="mt-1 text-xs text-on-surface-variant">ID: {payment.id || "—"}</p>
                     </td>
-                    <td className="px-5 py-4 text-on-surface-variant">{payment.phone || "—"}</td>
-                    <td className="px-5 py-4 font-medium text-on-surface">{methodLabel[payment.method] || payment.method || "—"}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5 text-on-surface-variant">{payment.phone || "—"}</td>
+                    <td className="px-4 py-2.5 font-medium text-on-surface">{methodLabel[payment.method] || payment.method || "—"}</td>
+                    <td className="px-4 py-2.5">
                       <StatusBadge tone={paymentStatusTone[payment.status] || "slate"}>
                         {paymentStatusLabel[payment.status] || payment.status || "—"}
                       </StatusBadge>
                     </td>
-                    <td className="px-5 py-4 text-right font-extrabold text-on-surface">{formatCurrency(payment.amount)}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5 text-right font-extrabold text-on-surface">{formatCurrency(payment.amount)}</td>
+                    <td className="px-4 py-2.5">
                       <p className="font-medium text-on-surface">{formatDateTime(payment.paidAt)}</p>
                       {payment.expiredAt && (
                         <p className="mt-1 text-xs text-on-surface-variant">Hết hạn: {formatDateTime(payment.expiredAt)}</p>
                       )}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <div className="flex justify-end">
                         <IconButton
                           icon={updatingCode === payment.transactionCode ? "progress_activity" : "sync"}
@@ -546,7 +545,7 @@ export default function Payments() {
           </div>
 
           {nextCursor && (
-            <div className="flex justify-center border-t border-outline-variant/30 bg-white px-5 py-4">
+            <div className="flex justify-center border-t border-outline-variant/30 bg-white px-4 py-2.5">
               <button
                 type="button"
                 onClick={handleLoadMore}
@@ -638,7 +637,7 @@ function StripeConnectPanel({ status, error, loading, onConnect, stripeLoading }
     : "Liên kết Stripe";
 
   return (
-    <section className="mb-6 rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
+    <section className="mb-6 rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex gap-4">
           <span

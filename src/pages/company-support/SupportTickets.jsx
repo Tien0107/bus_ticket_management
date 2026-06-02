@@ -252,10 +252,10 @@ export default function SupportTickets() {
 
   return (
     <div className="flex min-h-screen bg-surface font-body text-on-surface">
-      <aside className="flex w-[260px] shrink-0 flex-col border-r border-surface-container-high bg-white py-6">
-        <div className="mb-8 px-6">
-          <h1 className="text-lg font-black tracking-tight text-primary">Quản trị nhà xe</h1>
-          <p className="mt-1 text-xs font-bold uppercase tracking-wide text-outline">Trung tâm hỗ trợ</p>
+      <aside className="flex w-[240px] shrink-0 flex-col border-r border-surface-container-high bg-white py-4">
+        <div className="mb-6 px-4">
+          <h1 className="text-base font-black tracking-tight text-primary">Quản trị nhà xe</h1>
+          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-outline">Trung tâm hỗ trợ</p>
         </div>
 
         <nav className="flex-1">
@@ -263,7 +263,7 @@ export default function SupportTickets() {
             <Link
               key={item.label}
               to={item.path}
-              className={`flex items-center gap-3 border-r-4 px-6 py-3 text-sm transition-colors ${
+              className={`flex items-center gap-2 border-r-4 px-4 py-2 text-sm transition-colors ${
                 item.active
                   ? "border-primary bg-primary/10 font-extrabold text-primary"
                   : "border-transparent font-semibold text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
@@ -275,7 +275,7 @@ export default function SupportTickets() {
           ))}
         </nav>
 
-        <div className="border-t border-surface-container-high px-6 pt-4">
+        <div className="border-t border-surface-container-high px-4 pt-3">
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-black text-white">
               {(user.fullName || user.username || "U").charAt(0).toUpperCase()}
@@ -296,16 +296,16 @@ export default function SupportTickets() {
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 overflow-auto px-8 py-8">
-        <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <main className="min-w-0 flex-1 overflow-auto px-5 py-5">
+        <div className="mb-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-on-surface">Danh sách vé</h2>
-            <p className="mt-1 text-sm font-medium text-on-surface-variant">
+            <h2 className="text-2xl font-black tracking-tight text-on-surface">Danh sách vé</h2>
+            <p className="mt-0.5 text-xs font-medium text-on-surface-variant">
               Tra cứu, kiểm tra trạng thái thanh toán và hỗ trợ hủy vé khi cần.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex h-11 min-w-[300px] items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-3">
+            <div className="flex h-9 min-w-[260px] items-center gap-1.5 rounded-lg border border-outline-variant/60 bg-white px-2.5">
               <span className="material-symbols-outlined text-[20px] text-outline">search</span>
               <input
                 value={search}
@@ -318,7 +318,7 @@ export default function SupportTickets() {
             <button
               type="button"
               onClick={handleSearch}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-extrabold text-white transition-colors hover:bg-primary/90"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-extrabold text-white transition-colors hover:bg-primary/90"
             >
               <span className="material-symbols-outlined text-[20px]">search</span>
               Tìm
@@ -326,7 +326,7 @@ export default function SupportTickets() {
             <button
               type="button"
               onClick={handleRefresh}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-5 text-sm font-extrabold text-on-surface transition-colors hover:bg-surface-container-low"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant/60 bg-white px-3.5 text-sm font-extrabold text-on-surface transition-colors hover:bg-surface-container-low"
             >
               <span className="material-symbols-outlined text-[20px]">refresh</span>
               Làm mới
@@ -334,35 +334,35 @@ export default function SupportTickets() {
           </div>
         </div>
 
-        <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {[
             { label: "Tổng số vé", value: stats.total.toLocaleString("vi-VN"), icon: "confirmation_number", tone: "text-primary", bg: "bg-primary/10" },
             { label: "Chờ xử lý", value: stats.pending.toLocaleString("vi-VN"), icon: "pending_actions", tone: "text-secondary", bg: "bg-secondary/10" },
             { label: "Đã thanh toán", value: stats.paid.toLocaleString("vi-VN"), icon: "payments", tone: "text-primary", bg: "bg-primary/10" },
             { label: "Đã hủy", value: stats.cancelled.toLocaleString("vi-VN"), icon: "cancel", tone: "text-red-700", bg: "bg-red-50" },
           ].map((stat) => (
-            <div key={stat.label} className="rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-xs font-bold uppercase tracking-wide text-outline">{stat.label}</p>
-                <span className={`material-symbols-outlined rounded-lg p-2 text-[22px] ${stat.bg} ${stat.tone}`}>
+            <div key={stat.label} className="rounded-lg border border-outline-variant/30 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-outline">{stat.label}</p>
+                <span className={`material-symbols-outlined rounded-lg p-1.5 text-[18px] ${stat.bg} ${stat.tone}`}>
                   {stat.icon}
                 </span>
               </div>
-              <p className={`mt-2 text-3xl font-black ${stat.tone}`}>{stat.value}</p>
+              <p className={`mt-1 text-2xl font-black ${stat.tone}`}>{stat.value}</p>
             </div>
           ))}
         </div>
 
-        <section className="mb-6 rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <section className="mb-4 rounded-lg border border-outline-variant/30 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <h3 className="text-lg font-black text-on-surface">Bộ lọc vận hành</h3>
-              <p className="mt-1 text-sm font-medium text-on-surface-variant">
+              <h3 className="text-base font-black text-on-surface">Bộ lọc vận hành</h3>
+              <p className="mt-0.5 text-xs font-medium text-on-surface-variant">
                 Lọc theo trạng thái và loại vé, kết quả tự tải lại khi đổi bộ lọc.
               </p>
             </div>
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {statusFilters.map((filter) => (
                   <button
                     key={filter.value || "all-status"}
@@ -399,7 +399,7 @@ export default function SupportTickets() {
         </section>
 
         <section className="overflow-hidden rounded-lg border border-outline-variant/30 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-surface-container px-5 py-4">
+          <div className="flex items-center justify-between border-b border-surface-container px-4 py-2.5">
             <div>
               <h3 className="text-lg font-black text-on-surface">Lịch sử đặt vé</h3>
               <p className="mt-0.5 text-xs font-semibold text-on-surface-variant">
@@ -430,7 +430,7 @@ export default function SupportTickets() {
                   <thead>
                     <tr className="border-b border-surface-container bg-surface-container-low">
                       {["Mã vé", "Mã đặt chỗ", "Loại vé", "Khởi hành", "Giá gốc", "Giảm", "Tổng tiền", "Trạng thái", ""].map((header) => (
-                        <th key={header} className="px-5 py-3 text-left text-xs font-black uppercase tracking-wide text-outline">
+                        <th key={header} className="px-4 py-2 text-left text-[10px] font-black uppercase tracking-wide text-outline">
                           {header}
                         </th>
                       ))}
@@ -442,12 +442,11 @@ export default function SupportTickets() {
                       const isRoundTrip = ticket.bookingType === "round_trip";
                       return (
                         <tr key={ticket.id} className="border-b border-surface-container/70 hover:bg-surface-container-low/60">
-                          <td className="px-5 py-4">
-                            <p className="font-black text-primary">#{ticket.id}</p>
-                            {ticket.code ? <p className="mt-1 text-xs font-semibold text-outline">{ticket.code}</p> : null}
+                          <td className="px-4 py-2.5">
+                            {ticket.code ? <p className="font-black text-primary">{ticket.code}</p> : <p className="font-black text-primary">Vé</p>}
                           </td>
-                          <td className="px-5 py-4 text-sm font-bold text-on-surface">BK-{ticket.bookingId || "N/A"}</td>
-                          <td className="px-5 py-4">
+                          <td className="px-4 py-2.5 text-sm font-bold text-on-surface">BK-{ticket.bookingId || "N/A"}</td>
+                          <td className="px-4 py-2.5">
                             {(() => {
                               const cfg = getBookingTypeConfig(ticket.bookingType);
                               const isOneWay = cfg.label === "1 chiều";
@@ -468,17 +467,17 @@ export default function SupportTickets() {
                               );
                             })()}
                           </td>
-                          <td className="px-5 py-4 text-sm font-semibold text-on-surface-variant">{formatDateTime(ticket.departureDate)}</td>
-                          <td className="px-5 py-4 text-sm font-bold text-on-surface">{formatVnd(ticket.originalAmount)}</td>
-                          <td className="px-5 py-4 text-sm font-bold text-primary">-{formatVnd(ticket.discountAmount)}</td>
-                          <td className="px-5 py-4 text-sm font-black text-secondary">{formatVnd(ticket.totalAmount)}</td>
-                          <td className="px-5 py-4">
+                          <td className="px-4 py-2.5 text-sm font-semibold text-on-surface-variant">{formatDateTime(ticket.departureDate)}</td>
+                          <td className="px-4 py-2.5 text-sm font-bold text-on-surface">{formatVnd(ticket.originalAmount)}</td>
+                          <td className="px-4 py-2.5 text-sm font-bold text-primary">-{formatVnd(ticket.discountAmount)}</td>
+                          <td className="px-4 py-2.5 text-sm font-black text-secondary">{formatVnd(ticket.totalAmount)}</td>
+                          <td className="px-4 py-2.5">
                             <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${status.className}`}>
                               <span className={`material-symbols-outlined text-[15px] ${status.iconClass || ''}`}>{status.icon}</span>
                               <span className="font-extrabold">{status.label}</span>
                             </span>
                           </td>
-                          <td className="px-5 py-4 text-right">
+                          <td className="px-4 py-2.5 text-right">
                             <div className="flex justify-end gap-1.5">
                               <button
                                 type="button"
@@ -510,12 +509,12 @@ export default function SupportTickets() {
               </div>
 
               {nextCursor && (
-                <div className="flex justify-center border-t border-outline-variant/30 bg-white px-5 py-4">
+                <div className="flex justify-center border-t border-outline-variant/30 bg-white px-4 py-2.5">
                   <button
                     type="button"
                     onClick={handleLoadMore}
                     disabled={loading}
-                    className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-5 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant/60 bg-white px-3 py-1 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <span className="material-symbols-outlined text-[20px]">expand_more</span>
                     {loading ? "Đang tải thêm..." : `Tải thêm ${LIMIT} vé`}
@@ -533,7 +532,7 @@ export default function SupportTickets() {
             <div className="flex items-center justify-between bg-primary px-6 py-5 text-white">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-white/70">Chi tiết vé</p>
-                <h3 className="mt-1 text-2xl font-black">#{viewTicket.id}</h3>
+                <h3 className="mt-1 text-2xl font-black">{viewTicket.code || "Chi tiết vé"}</h3>
               </div>
               <button
                 type="button"
@@ -577,9 +576,9 @@ export default function SupportTickets() {
                 ))}
               </div>
 
-              <div className="mb-5 rounded-lg border border-outline-variant/30 bg-white p-5 shadow-sm">
-                <p className="mb-4 text-xs font-bold uppercase tracking-wide text-outline">Chi tiết thanh toán</p>
-                <div className="space-y-3 text-sm">
+              <div className="mb-4 rounded-lg border border-outline-variant/30 bg-white p-4 shadow-sm">
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-wide text-outline">Chi tiết thanh toán</p>
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between gap-4">
                     <span className="font-semibold text-on-surface-variant">Giá gốc</span>
                     <span className="font-black text-on-surface">{formatVnd(viewTicket.originalAmount)}</span>

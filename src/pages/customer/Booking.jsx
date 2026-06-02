@@ -202,7 +202,7 @@ export default function Booking() {
         };
       }
 
-      if (bookingData.coupon?.id) {
+      if (bookingData.coupon?.id !== undefined && bookingData.coupon?.id !== null) {
         payload.couponId = Number(bookingData.coupon.id);
       }
 

@@ -333,11 +333,11 @@ export default function Schedules() {
             <table className="w-full min-w-[980px] text-sm">
               <thead className="bg-surface-container-low">
                 <tr>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Lịch biểu</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Giờ xuất bến</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Khoảng cách</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Công ty</th>
-                  <th className="px-5 py-3 text-right font-bold text-on-surface-variant">Thao tác</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Lịch biểu</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Giờ xuất bến</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Khoảng cách</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Công ty</th>
+                  <th className="px-4 py-2.5 text-right font-bold text-on-surface-variant">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
@@ -346,11 +346,10 @@ export default function Schedules() {
 
                 return (
                   <tr key={schedule.id} className="hover:bg-surface-container-low/70">
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <p className="font-bold text-on-surface">{schedule.fromLocation} → {schedule.toLocation}</p>
-                      <p className="mt-1 text-xs text-on-surface-variant">ID: {schedule.id}</p>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <p className="font-medium text-on-surface">{schedule.departureTime || "—"}</p>
                       {dateRange &&
                       <p className="mt-1 text-xs text-on-surface-variant">
@@ -358,11 +357,11 @@ export default function Schedules() {
                         </p>
                       }
                     </td>
-                    <td className="px-5 py-4 text-on-surface-variant">
+                    <td className="px-4 py-2.5 text-on-surface-variant">
                       {Number(schedule.distanceKm || 0).toLocaleString("vi-VN")} km · {Number(schedule.durationMinutes || 0).toLocaleString("vi-VN")} phút
                     </td>
-                    <td className="px-5 py-4 text-on-surface-variant">{schedule.name || `#${schedule.companyId || "—"}`}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5 text-on-surface-variant">{schedule.name || `#${schedule.companyId || "—"}`}</td>
+                    <td className="px-4 py-2.5">
                       <div className="flex justify-end gap-2">
                         <IconButton
                           icon="pin_drop"

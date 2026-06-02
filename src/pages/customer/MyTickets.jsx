@@ -85,7 +85,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat("vi-VN", {
 
 const normalizeStatus = (status) => String(status || "").toLowerCase();
 
-const getTicketCode = (ticket) => ticket?.code || `#${ticket?.id ?? ""}`;
+const getTicketCode = (ticket) => ticket?.code || "Vé";
 
 const formatMoney = (value) => {
   if (typeof value !== "number") return "Chưa có";
@@ -97,6 +97,13 @@ const formatDateTime = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Chưa có";
   return dateTimeFormatter.format(date);
+};
+
+const formatDateOnly = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
 
 const getStatusLabel = (status) => statusLabels[normalizeStatus(status)] || status || "Không rõ";
@@ -169,9 +176,9 @@ function DetailRow({ label, value }) {
     return null;
   }
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 rounded-xl bg-white border border-outline-variant/20 px-3 py-2 shadow-sm">
       <dt className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-bold text-on-surface">{val}</dd>
+      <dd className="mt-0.5 break-words text-sm font-semibold text-on-surface">{val}</dd>
     </div>
   );
 }
@@ -385,8 +392,8 @@ export default function MyTickets() {
         title: method === "cash" ? "Giữ chỗ thành công (Tiền mặt)" : "Thanh toán thành công!",
         body:
           method === "cash"
-            ? `Đơn giữ chỗ #${getPaymentOrderId(ticket) || ""} đã được ghi nhận. Vui lòng thanh toán tiền mặt tại quầy trước giờ xe xuất bến.`
-            : `Vé của bạn cho đơn hàng #${getPaymentOrderId(ticket) || ""} đã được thanh toán thành công.`,
+            ? `Đơn giữ chỗ ${ticket.code || getPaymentOrderId(ticket) || ""} đã được ghi nhận. Vui lòng thanh toán tiền mặt tại quầy trước giờ xe xuất bến.`
+            : `Vé của bạn cho đơn hàng ${ticket.code || getPaymentOrderId(ticket) || ""} đã được thanh toán thành công.`,
         data: JSON.stringify({ path: "/profile/tickets" }),
       });
     } catch (notificationError) {
@@ -612,10 +619,10 @@ export default function MyTickets() {
         type="button"
         onClick={() => handleFilterChange(field, option.value)}
         disabled={loading || loadingMore}
-        className={`inline-flex h-10 items-center rounded-xl border px-4 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+        className={`inline-flex h-7 items-center rounded-full border px-3 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98] ${
           isActive
             ? "border-primary bg-primary text-white shadow-sm"
-            : "border-outline-variant/50 bg-surface-container-lowest text-on-surface-variant hover:bg-primary/10 hover:text-primary"
+            : "border-outline-variant/40 bg-white text-on-surface-variant hover:border-primary/40 hover:text-primary"
         }`}
       >
         {option.label}
@@ -629,12 +636,12 @@ export default function MyTickets() {
     const isBusy = Boolean(paymentLoadingKey) || processingCardPayment;
 
     return (
-      <div className="border-t border-secondary/15 bg-secondary/5 px-4 py-2">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-[10px]">
-            <span className="font-extrabold text-secondary">Chờ thanh toán</span>
+      <div className="border-t border-secondary/20 bg-secondary/5 px-2 py-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm">
+          <div className="font-semibold text-secondary">
+            Chờ thanh toán
             {isMeaningfulValue(ticket.expiredAt) && (
-              <span className="ml-1.5 font-semibold text-on-surface-variant/80">Hạn: {formatDateTime(ticket.expiredAt)}</span>
+              <span className="ml-1 text-on-surface-variant/70 font-medium">Hạn {formatDateTime(ticket.expiredAt)}</span>
             )}
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -642,28 +649,28 @@ export default function MyTickets() {
               type="button"
               onClick={() => handlePaymentClick(ticket, "vnpay")}
               disabled={isBusy}
-              className="inline-flex h-7 items-center gap-1 rounded-md bg-primary px-2 text-[10px] font-bold text-white shadow-sm transition-all hover:bg-primary/90 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-9 min-w-[96px] flex-1 items-center justify-center gap-1.5 rounded bg-primary px-3 text-sm font-extrabold text-white transition active:bg-primary/90 disabled:opacity-60 sm:w-[104px] sm:flex-none"
             >
-              <span className="material-symbols-outlined text-[13px]">qr_code_2</span>
-              {paymentLoadingKey === `${ticket.id}:vnpay` ? "Đang mở..." : "VNPay"}
+              <span className="material-symbols-outlined text-base">qr_code_2</span>
+              {paymentLoadingKey === `${ticket.id}:vnpay` ? "..." : "VNPay"}
             </button>
             <button
               type="button"
               onClick={() => handlePaymentClick(ticket, "stripe")}
               disabled={isBusy}
-              className="inline-flex h-7 items-center gap-1 rounded-md border border-primary/25 bg-white px-2 text-[10px] font-bold text-primary ring-1 ring-primary/15 transition-all hover:bg-primary/5 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-9 min-w-[96px] flex-1 items-center justify-center gap-1.5 rounded border border-primary/30 bg-white px-3 text-sm font-extrabold text-primary transition hover:bg-primary/5 disabled:opacity-60 sm:w-[104px] sm:flex-none"
             >
-              <span className="material-symbols-outlined text-[13px]">credit_card</span>
-              {paymentLoadingKey === `${ticket.id}:stripe` ? "Đang tải..." : "Thẻ"}
+              <span className="material-symbols-outlined text-base">credit_card</span>
+              Thẻ
             </button>
             <button
               type="button"
               onClick={() => handlePaymentClick(ticket, "cash")}
               disabled={isBusy}
-              className="inline-flex h-7 items-center gap-1 rounded-md border border-secondary/25 bg-white px-2 text-[10px] font-bold text-secondary ring-1 ring-secondary/15 transition-all hover:bg-secondary/5 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-9 min-w-[96px] flex-1 items-center justify-center gap-1.5 rounded border border-secondary/30 bg-white px-3 text-sm font-extrabold text-secondary transition hover:bg-secondary/5 active:bg-secondary/5 disabled:opacity-60 sm:w-[104px] sm:flex-none"
             >
-              <span className="material-symbols-outlined text-[13px]">payments</span>
-              {paymentLoadingKey === `${ticket.id}:cash` ? "Đang xử lý..." : "Tiền mặt"}
+              <span className="material-symbols-outlined text-base">payments</span>
+              Tiền mặt
             </button>
           </div>
         </div>
@@ -674,152 +681,149 @@ export default function MyTickets() {
   const renderTicketCard = (ticket) => {
     const status = normalizeStatus(ticket.status);
     const isCancelDisabled = !canCancelTicket(ticket) || cancelLoading;
-    const fromLoc = ticket.fromLocation || ticket.departureLocation || "";
-    const toLoc = ticket.toLocation || ticket.arrivalLocation || "";
+
+    // Clean null data completely
+    const rawFrom = ticket.fromLocation || ticket.departureLocation;
+    const rawTo = ticket.toLocation || ticket.arrivalLocation;
+    const meaningfulFrom = isMeaningfulValue(rawFrom) ? rawFrom : null;
+    const meaningfulTo = isMeaningfulValue(rawTo) ? rawTo : null;
+    const hasRoute = meaningfulFrom || meaningfulTo;
+
+    const hasDate = isMeaningfulValue(ticket.departureDate);
+    const dateOnly = hasDate ? formatDateOnly(ticket.departureDate) : null;
+    const timeOnly = isMeaningfulValue(ticket.departureTime) ? ticket.departureTime : "";
+    const totalDisplay = formatMoney(ticket.totalAmount);
+    const hasPrice = isMeaningfulValue(totalDisplay);
+
+    const openDetail = (e) => {
+      if (e && e.target.closest("button")) return;
+      handleOpenDetail(ticket);
+    };
 
     return (
       <article
         key={`${ticket.id}-${ticket.bookingId}`}
-        className="group overflow-hidden rounded-3xl border border-outline-variant/25 bg-surface-container-lowest shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-primary/30 hover:shadow-xl"
+        onClick={openDetail}
+        className="group cursor-pointer overflow-hidden rounded-2xl border border-outline-variant/15 bg-white shadow-sm transition-all duration-200 active:scale-[0.985] hover:-translate-y-px hover:border-primary/25 hover:shadow-lg"
       >
-        {/* Header: code + status */}
-        <div className="flex items-center justify-between gap-3 border-b border-outline-variant/15 bg-surface-container px-5 py-3">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2 border-b border-outline-variant/10 px-4 py-2.5 bg-surface-container/60">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <span className="material-symbols-outlined text-[20px]">confirmation_number</span>
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <span className="material-symbols-outlined text-base">confirmation_number</span>
             </div>
             <div className="min-w-0">
-              <div className="font-mono text-sm font-extrabold tracking-[0.5px] text-on-surface">{getTicketCode(ticket)}</div>
-              {isMeaningfulValue(ticket.bookingId) && (
-                <div className="text-[11px] font-semibold text-on-surface-variant">Đơn #{ticket.bookingId}</div>
-              )}
+              <div className="font-mono text-sm font-extrabold tracking-tight text-on-surface">{getTicketCode(ticket)}</div>
             </div>
           </div>
-          <span className={`rounded-full px-3.5 py-1 text-xs font-extrabold shadow-sm ${getStatusBadgeClass(status)}`}>
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-extrabold ring-1 ${getStatusBadgeClass(status)}`}>
             {getStatusLabel(status)}
           </span>
         </div>
 
-        {/* Route visual + schedule info in list: always show key trip info (ngày khởi hành, giờ, etc.) */}
-        <div className="px-5 py-3">
-          <div className="flex items-center gap-3">
-            {/* From */}
-            <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-black uppercase tracking-[1px] text-on-surface-variant/70">Từ</div>
-              <div className="mt-0.5 truncate text-[15px] font-extrabold leading-tight text-on-surface" title={fromLoc || "—"}>{fromLoc || "—"}</div>
-            </div>
+        {/* Content - proper sizes */}
+        <div className="px-4 py-3">
+          {/* Route */}
+          {hasRoute && (
+            <div className="flex items-center gap-2 text-sm">
+              {meaningfulFrom && (
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.5px] text-on-surface-variant/60">Từ</div>
+                  <div className="mt-0.5 truncate font-semibold text-on-surface leading-tight" title={meaningfulFrom}>{meaningfulFrom}</div>
+                </div>
+              )}
 
-            {/* Arrow + transport icon */}
-            <div className="flex shrink-0 flex-col items-center px-1 pt-2">
-              <div className="flex items-center gap-1 text-primary">
-                <span className="material-symbols-outlined text-xl">directions_bus</span>
-              </div>
-              <div className="mt-0.5 h-px w-8 bg-gradient-to-r from-primary/40 via-primary to-primary/40" />
-            </div>
+              {meaningfulFrom && meaningfulTo && (
+                <div className="flex flex-col items-center pt-0.5 text-primary/60 shrink-0">
+                  <span className="material-symbols-outlined text-base leading-none">directions_bus</span>
+                  <div className="h-px w-5 bg-gradient-to-r from-transparent via-primary/40 to-transparent mt-0.5" />
+                </div>
+              )}
 
-            {/* To */}
-            <div className="min-w-0 flex-1 text-right">
-              <div className="text-[10px] font-black uppercase tracking-[1px] text-on-surface-variant/70">Đến</div>
-              <div className="mt-0.5 truncate text-[15px] font-extrabold leading-tight text-on-surface" title={toLoc || "—"}>{toLoc || "—"}</div>
+              {meaningfulTo && (
+                <div className="min-w-0 flex-1 text-right">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.5px] text-on-surface-variant/60">Đến</div>
+                  <div className="mt-0.5 truncate font-semibold text-on-surface leading-tight" title={meaningfulTo}>{meaningfulTo}</div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
-          {/* Date + time row: show departure date, time etc. in list view */}
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            {ticket.departureDate && (
-              <div className="inline-flex items-center gap-1.5 rounded-lg bg-surface-container-high/60 px-2.5 py-1">
-                <span className="material-symbols-outlined text-[15px] text-on-surface-variant">schedule</span>
-                <span className="font-bold text-on-surface">{formatDateTime(ticket.departureDate)}</span>
+          {/* Departure highlight */}
+          {hasDate && (
+            <div className={`mt-3 flex items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 px-3 py-2 ${(!timeOnly && !hasPrice) ? 'justify-start' : 'justify-between'}`}>
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-base">event</span>
+                <div>
+                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-primary/70">Ngày đi</div>
+                  <div className="text-sm font-extrabold tabular-nums leading-none text-on-surface mt-0.5">{dateOnly}</div>
+                </div>
               </div>
-            )}
-            {ticket.departureTime && (
-              <div className="inline-flex items-center gap-1 rounded-lg bg-primary/5 px-2.5 py-1 text-primary">
-                <span className="material-symbols-outlined text-[15px]">departure_board</span>
-                <span className="font-extrabold">{ticket.departureTime}</span>
-              </div>
-            )}
-            {ticket.tripStatus && isMeaningfulValue(ticket.tripStatus) && (
-              <div className="ml-auto text-xs font-bold text-on-surface-variant/80">
-                {tripStatusLabels[ticket.tripStatus] || ticket.tripStatus}
-              </div>
-            )}
-          </div>
+
+              {timeOnly && (
+                <div className="text-right">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Giờ</div>
+                  <div className="font-mono text-sm font-extrabold text-primary tabular-nums leading-none mt-0.5">{timeOnly}</div>
+                </div>
+              )}
+
+              {hasPrice && (
+                <div className="text-right pl-3 border-l border-primary/15">
+                  <div className="text-[10px] font-medium text-on-surface-variant/70">Tổng tiền</div>
+                  <div className="text-sm font-extrabold tabular-nums text-[#E65100] leading-none mt-0.5">{totalDisplay}</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Meta row: only render bar + fields that have real data */}
-        {(() => {
-          const totalDisplay = formatMoney(ticket.totalAmount);
-          const hasOptionalMeta = isMeaningfulValue(ticket.bookingType) || isMeaningfulValue(ticket.seatNumber) || isMeaningfulValue(ticket.plateNumber) || isMeaningfulValue(ticket.type);
-          // In list always try to show price + any optional fields that exist (core info like date/time/route are shown above)
-          if (!hasOptionalMeta && !isMeaningfulValue(totalDisplay)) return null;
-          return (
-            <div className="flex flex-wrap items-start gap-x-5 gap-y-2 border-t border-outline-variant/15 bg-surface-container-low/60 px-5 py-2.5 text-sm">
-              {isMeaningfulValue(ticket.bookingType) && (
-                <div className="min-w-[70px]">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/70">Loại vé</div>
-                  <div className="mt-0.5 font-extrabold text-on-surface">{bookingTypeLabels[ticket.bookingType] || ticket.bookingType}</div>
-                </div>
-              )}
-              {isMeaningfulValue(ticket.seatNumber) && (
-                <div className="min-w-[50px]">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/70">Ghế</div>
-                  <div className="mt-0.5 font-extrabold text-on-surface">{ticket.seatNumber}</div>
-                </div>
-              )}
-              {(isMeaningfulValue(ticket.plateNumber) || isMeaningfulValue(ticket.type)) && (
-                <div className="min-w-[70px]">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/70">Xe</div>
-                  <div className="mt-0.5 font-extrabold text-on-surface truncate">{ticket.plateNumber || ticket.type}</div>
-                </div>
-              )}
-              <div className="ml-auto md:ml-0 text-right">
-                <div className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/70">Tổng tiền</div>
-                <div className="mt-0.5 text-lg font-extrabold text-[#FF6D00] tabular-nums">{isMeaningfulValue(totalDisplay) ? totalDisplay : "—"}</div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Action buttons - compact so they don't dominate the card height */}
-        <div className="flex flex-wrap items-center gap-1.5 border-t border-outline-variant/15 bg-surface-container px-4 py-2">
-          {canReviewTicket(ticket) ? (
+        {/* Action bar - standard buttons */}
+        <div 
+          className="flex items-center gap-2 border-t border-outline-variant/10 bg-surface-container-low/70 px-3 py-2" 
+          onClick={(e) => e.stopPropagation()}
+        >
+          {canReviewTicket(ticket) && (
             <button
               type="button"
               onClick={() => handleOpenReview(ticket)}
-              className="inline-flex h-7 flex-1 min-w-[64px] items-center justify-center gap-1 rounded-lg border border-secondary/30 bg-secondary/15 px-2 text-[10px] font-extrabold text-secondary shadow-sm transition-all hover:bg-secondary/25 hover:border-secondary/40 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-secondary/30 bg-secondary/10 px-2.5 py-1.5 text-sm font-semibold text-secondary transition active:bg-secondary/15 whitespace-nowrap"
             >
-              <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
               <span>Đánh giá</span>
             </button>
-          ) : null}
+          )}
+
           <button
             type="button"
             onClick={() => handleOpenDetail(ticket)}
-            className="inline-flex h-7 flex-1 min-w-[64px] items-center justify-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-2 text-[10px] font-extrabold text-primary transition-all hover:bg-primary/10 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-sm font-semibold text-white transition active:bg-primary/90 whitespace-nowrap"
           >
-            <span className="material-symbols-outlined text-[14px]">visibility</span>
+            <span className="material-symbols-outlined text-sm">visibility</span>
             <span>Chi tiết</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setCancelTarget(ticket)}
-            disabled={isCancelDisabled}
-            className="inline-flex h-7 flex-1 min-w-[64px] items-center justify-center gap-1 rounded-lg border border-error/30 bg-error-container/70 px-2 text-[10px] font-extrabold text-error transition-all hover:bg-error-container active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <span className="material-symbols-outlined text-[14px]">delete</span>
-            <span>Hủy</span>
-          </button>
+
+          {!canReviewTicket(ticket) && canCancelTicket(ticket) && (
+            <button
+              type="button"
+              onClick={() => setCancelTarget(ticket)}
+              disabled={isCancelDisabled}
+              className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-error/30 bg-error-container/70 px-2.5 py-1.5 text-sm font-semibold text-error transition active:bg-error-container whitespace-nowrap"
+            >
+              <span className="material-symbols-outlined text-sm">delete</span>
+              <span>Hủy</span>
+            </button>
+          )}
         </div>
 
-        {/* Payment actions (pending) */}
+        {/* Payment pending strip - modern */}
         {renderPaymentActions(ticket)}
       </article>
     );
   };
 
   return (
-    <div className="bg-surface min-h-screen pt-24 pb-12 px-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="bg-surface min-h-screen pt-20 pb-8 px-4 sm:px-5">
+      <div className="max-w-5xl mx-auto">
         <CustomerProfileSectionHeader
           title="Vé đã đặt"
           action={
@@ -827,9 +831,9 @@ export default function MyTickets() {
               type="button"
               onClick={() => fetchTickets({ filters: appliedFilters })}
               disabled={loading || loadingMore}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-primary/15 bg-white px-3 text-sm font-extrabold text-primary transition hover:bg-primary/5 hover:border-primary/30 min-h-[36px]"
             >
-              <span className={`material-symbols-outlined text-[18px] ${loading ? "animate-spin" : ""}`}>
+              <span className={`material-symbols-outlined text-sm ${loading ? "animate-spin" : ""}`}>
                 {loading ? "progress_activity" : "refresh"}
               </span>
               Làm mới
@@ -838,73 +842,72 @@ export default function MyTickets() {
         />
         <CustomerProfileNav />
 
-        <section className="mb-6 rounded-3xl border border-outline-variant/25 bg-surface-container-lowest p-5 shadow-sm">
-          <div className="space-y-4">
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-on-surface-variant">
-                <span className="material-symbols-outlined text-[17px]">swap_horiz</span>
-                Loại đặt vé
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {BOOKING_TYPE_OPTIONS.map((option) => renderFilterButton("type", option))}
-              </div>
+        {/* Modern filters */}
+        <section className="mb-2 rounded-2xl border border-outline-variant/15 bg-white p-2.5 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[1px] text-on-surface-variant/70 min-w-[70px]">
+              <span className="material-symbols-outlined text-xs">swap_horiz</span>
+              <span>Loại vé</span>
             </div>
+            <div className="flex flex-wrap gap-1">
+              {BOOKING_TYPE_OPTIONS.map((option) => renderFilterButton("type", option))}
+            </div>
+          </div>
 
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-on-surface-variant">
-                <span className="material-symbols-outlined text-[17px]">fact_check</span>
-                Trạng thái vé
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {TICKET_STATUS_OPTIONS.map((option) => renderFilterButton("status", option))}
-              </div>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center border-t border-outline-variant/10 pt-2">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[1px] text-on-surface-variant/70 min-w-[70px]">
+              <span className="material-symbols-outlined text-xs">fact_check</span>
+              <span>Trạng thái</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {TICKET_STATUS_OPTIONS.map((option) => renderFilterButton("status", option))}
             </div>
           </div>
         </section>
 
         {tickets.length > 0 ? (
-          <p className="mb-3 text-xs font-extrabold uppercase tracking-widest text-on-surface-variant/70">
+          <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[1px] text-on-surface-variant/70">
             {tickets.length} vé{activeFilterCount ? " • đang lọc" : ""}
           </p>
         ) : null}
 
         {loading && tickets.length === 0 ? (
-          <div className="rounded-3xl border border-outline-variant/25 bg-surface-container-lowest p-10 text-center shadow-sm">
-            <div className="mx-auto mb-4 h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-            <p className="font-bold text-on-surface-variant">Đang tải danh sách vé...</p>
+          <div className="rounded-2xl border border-outline-variant/15 bg-white p-5 text-center shadow-sm">
+            <div className="mx-auto mb-2 h-6 w-6 rounded-full border-[3px] border-primary/15 border-t-primary animate-spin" />
+            <p className="font-semibold text-on-surface-variant text-xs">Đang tải danh sách vé...</p>
           </div>
         ) : error && tickets.length === 0 ? (
-          <div className="rounded-3xl border border-error/20 bg-error-container/40 p-6 text-error">
-            <div className="flex items-start gap-3">
-              <span className="material-symbols-outlined text-[24px]">error</span>
+          <div className="rounded-2xl border border-error/15 bg-error-container/30 p-4 text-error">
+            <div className="flex items-start gap-2">
+              <span className="material-symbols-outlined text-xl mt-0.5">error</span>
               <div className="min-w-0">
-                <h2 className="font-black">Không thể tải danh sách vé</h2>
-                <p className="mt-1 text-sm font-semibold">{error}</p>
+                <h2 className="font-extrabold text-sm">Không thể tải danh sách vé</h2>
+                <p className="mt-0.5 text-xs font-medium">{error}</p>
                 <button
                   type="button"
                   onClick={() => fetchTickets({ filters: appliedFilters })}
-                  className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-error px-4 text-sm font-bold text-white transition-colors hover:bg-error/90"
+                  className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-xl bg-error px-4 text-sm font-extrabold text-white transition hover:bg-error/90 min-h-[36px]"
                 >
-                  <span className="material-symbols-outlined text-[18px]">refresh</span>
+                  <span className="material-symbols-outlined text-sm">refresh</span>
                   Thử lại
                 </button>
               </div>
             </div>
           </div>
         ) : tickets.length === 0 ? (
-          <div className="rounded-3xl border border-outline-variant/25 bg-surface-container-lowest p-14 text-center shadow-sm">
-            <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-container">
-              <span className="material-symbols-outlined text-5xl text-on-surface-variant/60">confirmation_number</span>
+          <div className="rounded-2xl border border-outline-variant/15 bg-white p-5 text-center shadow-sm">
+            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container">
+              <span className="material-symbols-outlined text-3xl text-on-surface-variant/50">confirmation_number</span>
             </div>
-            <h2 className="text-xl font-black text-on-surface">Chưa có vé nào</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm font-medium text-on-surface-variant">
-              Danh sách vé của bạn sẽ xuất hiện tại đây sau khi đặt hoặc thanh toán thành công.
+            <h2 className="text-sm font-extrabold text-on-surface">Chưa có vé nào</h2>
+            <p className="mx-auto mt-1 max-w-md text-xs text-on-surface-variant">
+              Vé của bạn sẽ xuất hiện tại đây sau khi đặt vé thành công.
             </p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-3">
             {error ? (
-              <div className="rounded-xl border border-error/20 bg-error-container/40 px-4 py-3 text-sm font-bold text-error">
+              <div className="rounded-2xl border border-error/20 bg-error-container/40 px-3 py-2 text-xs font-bold text-error">
                 {error}
               </div>
             ) : null}
@@ -913,70 +916,83 @@ export default function MyTickets() {
         )}
 
         {tickets.length > 0 && nextCursor != null ? (
-          <div className="mt-6 flex justify-center">
+          <div className="mt-3 flex justify-center">
             <button
               type="button"
               onClick={handleLoadMore}
               disabled={loadingMore}
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-primary/20 bg-surface-container-lowest px-5 text-sm font-bold text-primary shadow-sm transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-primary/20 bg-white px-4 text-sm font-extrabold text-primary transition-all hover:bg-primary/5 hover:border-primary/30 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60 min-h-[36px]"
             >
-              <span className={`material-symbols-outlined text-[18px] ${loadingMore ? "animate-spin" : ""}`}>
+              <span className={`material-symbols-outlined text-sm ${loadingMore ? "animate-spin" : ""}`}>
                 {loadingMore ? "progress_activity" : "expand_more"}
               </span>
-              {loadingMore ? "Đang tải..." : "Tải thêm"}
+              {loadingMore ? "Tải thêm..." : "Tải thêm vé"}
             </button>
           </div>
         ) : null}
 
         {detailOpen ? (
           <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-            <section className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-surface-container-lowest shadow-2xl">
-              <header className="flex items-center justify-between border-b border-outline-variant/30 px-5 py-4">
-                <div>
-                  <h2 className="text-lg font-black text-on-surface">Chi tiết vé</h2>
-                  <p className="text-sm font-semibold text-on-surface-variant">
-                    {detailTicket ? getTicketCode(detailTicket) : "Đang tải..."}
-                  </p>
+            <section className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl border border-outline-variant/20">
+              <header className="flex items-center justify-between border-b border-outline-variant/20 px-4 py-3 bg-surface-container/80">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
+                    <span className="material-symbols-outlined text-lg">confirmation_number</span>
+                  </div>
+                  <div>
+                    <h2 className="text-base font-extrabold text-on-surface">Chi tiết vé</h2>
+                    <p className="text-xs font-semibold text-on-surface-variant -mt-0.5">
+                      {detailTicket ? getTicketCode(detailTicket) : "Đang tải..."}
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={closeDetail}
                   disabled={detailLoading}
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex h-8 w-8 items-center justify-center rounded-xl text-on-surface-variant hover:bg-surface-container transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   aria-label="Đóng"
                 >
-                  <span className="material-symbols-outlined">close</span>
+                  <span className="material-symbols-outlined text-lg">close</span>
                 </button>
               </header>
 
-              <div className="max-h-[calc(90vh-84px)] overflow-y-auto p-5">
+              <div className="max-h-[calc(90vh-80px)] overflow-y-auto p-4">
                 {detailLoading ? (
-                  <div className="flex min-h-48 flex-col items-center justify-center gap-4">
-                    <div className="h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-                    <p className="font-bold text-on-surface-variant">Đang tải chi tiết vé...</p>
+                  <div className="flex min-h-40 flex-col items-center justify-center gap-3">
+                    <div className="h-8 w-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                    <p className="text-sm font-semibold text-on-surface-variant">Đang tải chi tiết vé...</p>
                   </div>
                 ) : detailError ? (
                   <div className="rounded-xl border border-error/20 bg-error-container/40 p-4 text-sm font-bold text-error">
                     {detailError}
                   </div>
                 ) : detailTicket ? (
-                  <div className="space-y-5">
-                    <div className="flex flex-col gap-3 rounded-xl border border-primary/10 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
-                      {(detailTicket.fromLocation || detailTicket.departureLocation || detailTicket.toLocation || detailTicket.arrivalLocation) && (
-                        <div>
-                          <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Tuyến</p>
-                          <h3 className="mt-1 text-xl font-black text-on-surface">
-                            {(detailTicket.fromLocation || detailTicket.departureLocation || "—")} - {(detailTicket.toLocation || detailTicket.arrivalLocation || "—")}
-                          </h3>
-                        </div>
-                      )}
-                      <span className={`self-start rounded-full px-3 py-1 text-xs font-extrabold sm:self-center ${getStatusBadgeClass(detailTicket.status)}`}>
+                  <div className="space-y-4">
+                    {/* Route summary - premium */}
+                    <div className="flex flex-col gap-2 rounded-2xl border border-primary/10 bg-primary/5 p-3 sm:flex-row sm:items-center sm:justify-between">
+                      {(() => {
+                        const mFrom = detailTicket.fromLocation || detailTicket.departureLocation;
+                        const mTo = detailTicket.toLocation || detailTicket.arrivalLocation;
+                        const hasRoute = isMeaningfulValue(mFrom) || isMeaningfulValue(mTo);
+                        if (!hasRoute) return null;
+                        return (
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant/70">Tuyến đường</p>
+                            <h3 className="mt-1 text-lg font-extrabold text-on-surface leading-tight">
+                              {isMeaningfulValue(mFrom) ? mFrom : ""}{isMeaningfulValue(mFrom) && isMeaningfulValue(mTo) ? " → " : ""}{isMeaningfulValue(mTo) ? mTo : ""}
+                            </h3>
+                          </div>
+                        );
+                      })()}
+                      <span className={`self-start rounded-full px-3 py-1 text-xs font-extrabold sm:self-center ring-1 ${getStatusBadgeClass(detailTicket.status)}`}>
                         {getStatusLabel(detailTicket.status)}
                       </span>
                     </div>
 
-                    <dl className="grid gap-4 sm:grid-cols-2">
-                      <DetailRow label="Mã vé" value={detailTicket.code || `#${detailTicket.id}`} />
+                    {/* Info grid - nicer cards */}
+                    <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                      <DetailRow label="Mã vé" value={detailTicket.code || "—"} />
                       <DetailRow label="Loại booking" value={bookingTypeLabels[detailTicket.bookingType] || detailTicket.bookingType} />
                       <DetailRow label="Ngày khởi hành" value={formatDateTime(detailTicket.departureDate)} />
                       <DetailRow label="Giờ đi" value={detailTicket.departureTime} />
@@ -986,19 +1002,20 @@ export default function MyTickets() {
                       {detailTicket.originalAmount > 0 && <DetailRow label="Giá gốc" value={formatMoney(detailTicket.originalAmount)} />}
                       {detailTicket.discountAmount > 0 && <DetailRow label="Giảm giá" value={formatMoney(detailTicket.discountAmount)} />}
                       <DetailRow label="Tổng tiền" value={formatMoney(detailTicket.totalAmount)} />
-                    </dl>
+                    </div>
 
                     {renderPaymentActions(detailTicket)}
 
+                    {/* Actions - standard */}
                     {canReviewTicket(detailTicket) || canCancelTicket(detailTicket) ? (
-                      <div className="flex flex-wrap justify-end gap-1.5 border-t border-outline-variant/30 pt-3">
+                      <div className="flex flex-wrap justify-end gap-2 border-t border-outline-variant/30 pt-3">
                         {canReviewTicket(detailTicket) ? (
                           <button
                             type="button"
                             onClick={() => handleOpenReview(detailTicket)}
-                            className="inline-flex h-7 items-center gap-1 rounded-lg border border-secondary/30 bg-secondary/15 px-2.5 text-[10px] font-extrabold text-secondary shadow-sm transition-all hover:bg-secondary/25 hover:border-secondary/40 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-secondary/30 bg-secondary/10 px-3 py-1.5 text-sm font-semibold text-secondary transition active:bg-secondary/15"
                           >
-                            <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                             Đánh giá
                           </button>
                         ) : null}
@@ -1007,10 +1024,10 @@ export default function MyTickets() {
                           type="button"
                           onClick={() => setCancelTarget(detailTicket)}
                           disabled={cancelLoading}
-                          className="inline-flex h-7 items-center gap-1 rounded-lg border border-error/30 bg-error-container/70 px-2.5 text-[10px] font-extrabold text-error transition-all hover:bg-error-container active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-error/30 bg-error-container/60 px-3 py-1.5 text-sm font-semibold text-error transition active:bg-error-container disabled:opacity-50"
                         >
-                          <span className="material-symbols-outlined text-[14px]">delete</span>
-                          Hủy vé
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                          Hủy
                         </button>
                         ) : null}
                       </div>

@@ -277,32 +277,32 @@ export default function StoppingPoints() {
             <table className="w-full min-w-[860px] text-sm">
               <thead className="bg-surface-container-low">
                 <tr>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Thứ tự</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Trạm</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Đón</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Trả</th>
-                  <th className="px-5 py-3 text-right font-bold text-on-surface-variant">Thao tác</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Thứ tự</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Trạm</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Đón</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Trả</th>
+                  <th className="px-4 py-2.5 text-right font-bold text-on-surface-variant">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
                 {stoppingPoints.map((point) =>
               <tr key={point.id} className="hover:bg-surface-container-low/70">
-                    <td className="px-5 py-4 font-extrabold text-on-surface">#{point.stopOrder}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5 font-extrabold text-on-surface">#{point.stopOrder}</td>
+                    <td className="px-4 py-2.5">
                       <p className="font-bold text-on-surface">{point.address || "—"}</p>
-                      <p className="mt-1 text-xs text-on-surface-variant">{point.city || "—"} · ID: {point.id}</p>
+                      <p className="mt-1 text-xs text-on-surface-variant">{point.city || "—"}</p>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <StatusBadge tone={point.allowPickup ? "emerald" : "slate"}>
                         {point.allowPickup ? "Cho phép" : "Không"}
                       </StatusBadge>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <StatusBadge tone={point.allowDropoff ? "blue" : "slate"}>
                         {point.allowDropoff ? "Cho phép" : "Không"}
                       </StatusBadge>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <div className="flex justify-end">
                         <IconButton icon="edit" label="Sửa điểm dừng" variant="primary" onClick={() => openEditModal(point)} />
                       </div>

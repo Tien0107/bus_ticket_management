@@ -30,7 +30,11 @@ export const prepareTrip = (data) => {
 
 
 export const checkCoupon = (params) => {
-    return axiosClient.get("/customer/coupon/check", { params });
+    return axiosClient.get("/customer/coupon/check", { params: compactParams(params) });
+};
+
+export const getCoupons = (params) => {
+    return axiosClient.get("/customer/coupon", { params: compactParams(params) });
 };
 
 

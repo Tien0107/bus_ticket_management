@@ -1,22 +1,22 @@
 import React from "react";
 
-export const operatorSurfaceClass = "min-h-screen bg-[#f7f9f7] px-5 py-6 lg:px-8";
+export const operatorSurfaceClass = "min-h-screen bg-[#f7f9f7] px-4 py-4 lg:px-6";
 
 export function OperatorPageShell({ eyebrow, title, description, actions, children, maxWidth = "max-w-7xl" }) {
   return (
     <div className={operatorSurfaceClass}>
       <div className={`mx-auto ${maxWidth}`}>
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
             {eyebrow && (
-              <p className="mb-2 text-sm font-bold uppercase tracking-wide text-primary">{eyebrow}</p>
+              <p className="mb-1 text-xs font-bold uppercase tracking-wide text-primary">{eyebrow}</p>
             )}
-            <h1 className="text-3xl font-extrabold tracking-tight text-on-surface lg:text-4xl">{title}</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-on-surface lg:text-3xl">{title}</h1>
             {description && (
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-on-surface-variant lg:text-base">{description}</p>
+              <p className="mt-1 max-w-3xl text-xs leading-5 text-on-surface-variant lg:text-sm">{description}</p>
             )}
           </div>
-          {actions && <div className="flex flex-wrap gap-3">{actions}</div>}
+          {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
         </div>
         {children}
       </div>
@@ -28,7 +28,7 @@ export function PrimaryButton({ icon, children, className = "", ...props }) {
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
       {...props}
     >
       {icon && <span className="material-symbols-outlined text-[20px]">{icon}</span>}
@@ -41,7 +41,7 @@ export function SecondaryButton({ icon, children, className = "", ...props }) {
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-4 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-3.5 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
       {...props}
     >
       {icon && <span className="material-symbols-outlined text-[20px]">{icon}</span>}
@@ -64,10 +64,10 @@ export function IconButton({ icon, label, variant = "secondary", className = "",
       type="button"
       aria-label={label}
       title={label}
-      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${variantClass} ${className}`}
+      className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${variantClass} ${className}`}
       {...props}
     >
-      <span className="material-symbols-outlined text-[20px] leading-none">{icon}</span>
+      <span className="material-symbols-outlined text-[18px] leading-none">{icon}</span>
     </button>
   );
 }
@@ -84,14 +84,14 @@ export function StatCard({ icon, label, value, tone = "primary" }) {
   }[tone] || "bg-primary/10 text-primary";
 
   return (
-    <div className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
+    <div className="rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-on-surface-variant">{label}</p>
-          <p className="mt-2 truncate text-3xl font-extrabold text-on-surface">{value}</p>
+          <p className="text-xs font-medium text-on-surface-variant">{label}</p>
+          <p className="mt-0.5 truncate text-2xl font-extrabold text-on-surface">{value}</p>
         </div>
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${toneClass}`}>
-          <span className="material-symbols-outlined text-[24px]">{icon}</span>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${toneClass}`}>
+          <span className="material-symbols-outlined text-[20px]">{icon}</span>
         </span>
       </div>
     </div>
@@ -100,20 +100,20 @@ export function StatCard({ icon, label, value, tone = "primary" }) {
 
 export function ToolbarCard({ children }) {
   return (
-    <div className="mb-6 rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm">{children}</div>
+    <div className="mb-4 rounded-xl border border-outline-variant/30 bg-white p-3 shadow-sm">{children}</div>
   );
 }
 
 export function SearchInput({ value, onChange, placeholder }) {
   return (
     <div className="relative">
-      <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">search</span>
+      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
       <input
         type="text"
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-outline-variant/50 bg-white py-3 pl-12 pr-4 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10"
+        className="w-full rounded-lg border border-outline-variant/50 bg-white py-2.5 pl-10 pr-3 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-3 focus:ring-primary/10"
       />
     </div>
   );
@@ -122,7 +122,7 @@ export function SearchInput({ value, onChange, placeholder }) {
 export function SelectControl(props) {
   return (
     <select
-      className="w-full rounded-lg border border-outline-variant/50 bg-white px-4 py-3 text-sm font-medium text-on-surface outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+      className="w-full rounded-lg border border-outline-variant/50 bg-white px-3 py-2.5 text-sm font-medium text-on-surface outline-none transition-all focus:border-primary focus:ring-3 focus:ring-primary/10"
       {...props}
     />
   );
@@ -130,25 +130,25 @@ export function SelectControl(props) {
 
 export function LoadingState({ label = "Đang tải dữ liệu..." }) {
   return (
-    <div className="rounded-xl border border-outline-variant/30 bg-white p-10 text-center shadow-sm">
-      <div className="mx-auto h-11 w-11 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-      <p className="mt-4 text-sm font-medium text-on-surface-variant">{label}</p>
+    <div className="rounded-xl border border-outline-variant/30 bg-white p-6 text-center shadow-sm">
+      <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+      <p className="mt-3 text-xs font-medium text-on-surface-variant">{label}</p>
     </div>
   );
 }
 
 export function ErrorState({ message }) {
   return (
-    <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">{message}</div>
+    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{message}</div>
   );
 }
 
 export function EmptyState({ icon = "inbox", title, description }) {
   return (
-    <div className="rounded-xl border border-dashed border-outline-variant/60 bg-white p-10 text-center">
-      <span className="material-symbols-outlined text-5xl text-outline">{icon}</span>
-      <p className="mt-3 font-bold text-on-surface">{title}</p>
-      {description && <p className="mt-1 text-sm text-on-surface-variant">{description}</p>}
+    <div className="rounded-xl border border-dashed border-outline-variant/60 bg-white p-6 text-center">
+      <span className="material-symbols-outlined text-4xl text-outline">{icon}</span>
+      <p className="mt-2 font-bold text-on-surface text-sm">{title}</p>
+      {description && <p className="mt-0.5 text-xs text-on-surface-variant">{description}</p>}
     </div>
   );
 }
@@ -181,26 +181,26 @@ export function ModalShell({
   panelOverflowClassName = "overflow-hidden",
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3 backdrop-blur-sm">
       <div className={`flex max-h-[90vh] w-full ${maxWidth} flex-col ${panelOverflowClassName} rounded-xl bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)]`}>
-        <div className="border-b border-outline-variant/20 px-5 py-4">
-          <div className="flex items-start justify-between gap-4">
+        <div className="border-b border-outline-variant/20 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-xl font-extrabold text-on-surface">{title}</h2>
-              {subtitle && <p className="mt-1 text-sm text-on-surface-variant">{subtitle}</p>}
+              <h2 className="text-lg font-extrabold text-on-surface">{title}</h2>
+              {subtitle && <p className="mt-0.5 text-xs text-on-surface-variant">{subtitle}</p>}
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
               aria-label="Đóng"
             >
-              <span className="material-symbols-outlined">close</span>
+              <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
           </div>
         </div>
-        <div className={`${bodyClassName} p-5`}>{children}</div>
-        {footer && <div className="border-t border-outline-variant/20 p-5">{footer}</div>}
+        <div className={`${bodyClassName} p-4`}>{children}</div>
+        {footer && <div className="border-t border-outline-variant/20 p-4">{footer}</div>}
       </div>
     </div>
   );
@@ -216,7 +216,7 @@ export function Field({ label, children }) {
 }
 
 export const inputClass =
-  "w-full rounded-lg border border-outline-variant/50 bg-white px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-surface-container-low disabled:text-on-surface-variant";
+  "w-full rounded-lg border border-outline-variant/50 bg-white px-3 py-2.5 text-sm font-medium outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-3 focus:ring-primary/10 disabled:bg-surface-container-low disabled:text-on-surface-variant";
 
 export const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN", {

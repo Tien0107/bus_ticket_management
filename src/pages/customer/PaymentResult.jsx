@@ -62,7 +62,7 @@ export default function PaymentResult() {
       <div className="absolute top-[-10%] left-[-10%] w-[40rem] h-[40rem] rounded-full bg-primary/5 blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[35rem] h-[35rem] rounded-full bg-secondary/5 blur-[100px] pointer-events-none"></div>
 
-      <div className="w-full max-w-lg bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl p-8 md:p-10 border border-white/50 shadow-editorial text-center transition-all duration-500 scale-100 animate-fade-in relative z-10">
+      <div className="w-full max-w-lg bg-surface-container-lowest/80 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-white/50 shadow-editorial text-center transition-all duration-500 scale-100 animate-fade-in relative z-10">
         
         {}
         <div className="flex justify-center mb-6">
@@ -106,14 +106,14 @@ export default function PaymentResult() {
           }
         </h1>
 
-        <p className="text-on-surface-variant text-sm md:text-base font-medium mb-8 max-w-sm mx-auto">
+        <p className="text-on-surface-variant text-sm md:text-base font-medium mb-6 max-w-sm mx-auto">
           {isSuccess ?
           "Cảm ơn bạn đã lựa chọn BusGo. Giao dịch của bạn đã hoàn tất và vé xe đang được hệ thống xử lý." :
           "Có lỗi xảy ra trong quá trình thanh toán bằng cổng VNPay hoặc giao dịch đã bị hủy bỏ."}
         </p>
 
         {}
-        <div className="bg-surface rounded-2xl p-6 border border-surface-container-high/60 text-left space-y-4 mb-8">
+        <div className="bg-surface rounded-2xl p-4 border border-surface-container-high/60 text-left space-y-3 mb-6">
           <h3 className="text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest border-b border-surface-container-high pb-2">
             Chi tiết giao dịch
           </h3>

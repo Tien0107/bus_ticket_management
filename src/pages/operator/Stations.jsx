@@ -163,18 +163,17 @@ export default function Stations() {
             <table className="w-full min-w-[760px] text-sm">
               <thead className="bg-surface-container-low">
                 <tr>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Địa chỉ</th>
-                  <th className="px-5 py-3 text-left font-bold text-on-surface-variant">Thành phố</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Địa chỉ</th>
+                  <th className="px-4 py-2.5 text-left font-bold text-on-surface-variant">Thành phố</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
                 {filteredStations.map((station) =>
               <tr key={station.id} className="hover:bg-surface-container-low/70">
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                       <p className="font-bold text-on-surface">{station.address || "—"}</p>
-                      <p className="mt-1 text-xs text-on-surface-variant">ID: {station.id}</p>
                     </td>
-                    <td className="px-5 py-4 font-medium text-on-surface">{station.city || "—"}</td>
+                    <td className="px-4 py-2.5 font-medium text-on-surface">{station.city || "—"}</td>
                   </tr>
               )}
               </tbody>
@@ -182,7 +181,7 @@ export default function Stations() {
           </div>
 
           {nextCursor && (
-            <div className="flex justify-center border-t border-outline-variant/30 bg-white px-5 py-4">
+            <div className="flex justify-center border-t border-outline-variant/30 bg-white px-4 py-2.5">
               <button
                 type="button"
                 onClick={handleLoadMore}

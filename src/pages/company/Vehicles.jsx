@@ -283,13 +283,13 @@ export default function Vehicles() {
           const status = vehicle.status || "inactive";
 
           return (
-            <article key={vehicle.id} className="rounded-xl border border-outline-variant/30 bg-white p-5 shadow-sm transition-all hover:border-primary/40 hover:shadow-md">
-                <div className="mb-5 flex items-start justify-between gap-4">
+            <article key={vehicle.id} className="rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md">
+                <div className="mb-3 flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-2xl font-extrabold text-on-surface">
+                    <p className="truncate text-xl font-extrabold text-on-surface">
                       {vehicle.plateNumber || vehicle.vehicleNumber || "Chưa có biển số"}
                     </p>
-                    <p className="mt-1 text-sm text-on-surface-variant">
+                    <p className="mt-0.5 text-xs text-on-surface-variant">
                       {vehicleTypeLabel[vehicle.type] || vehicle.type || "Chưa phân loại"}
                     </p>
                   </div>
@@ -309,7 +309,7 @@ export default function Vehicles() {
                   </div>
                 </div>
 
-                <div className="mt-5 flex justify-end gap-2">
+                <div className="mt-3 flex justify-end gap-2">
                   <IconButton icon="edit" label="Sửa xe" onClick={() => handleEdit(vehicle)} />
                   <IconButton icon="delete_outline" label="Gỡ cấu hình ghế" variant="danger" onClick={() => handleOpenDeleteSeats(vehicle)} />
                 </div>

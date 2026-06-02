@@ -5,6 +5,22 @@ import { useToast } from "../../context/ToastContext";
 
 const getApiMessage = (err, fallback) => err.response?.data?.message || err.message || fallback;
 
+const resolvePreparedCompanyId = (preparedData, fallback) => {
+  const candidates = [
+    preparedData?.companyId,
+    preparedData?.company?.id,
+    preparedData?.schedule?.companyId,
+    preparedData?.schedule?.company?.id,
+    preparedData?.tripSchedule?.companyId,
+    preparedData?.tripSchedule?.company?.id,
+    preparedData?.trip?.companyId,
+    preparedData?.trip?.company?.id,
+    fallback
+  ];
+
+  return candidates.find((value) => Number.isFinite(Number(value)) && Number(value) > 0);
+};
+
 export default function BookingSeatStep({
   bookingData,
   setBookingData,
@@ -91,6 +107,7 @@ export default function BookingSeatStep({
         }
 
         let realTripId = bookingData.tripId;
+        let companyIdFromPrepare = bookingData.companyId;
         if (!realTripId) {
           const prepareRes = await prepareTrip({
             scheduleId: Number(bookingData.scheduleId),
@@ -99,6 +116,7 @@ export default function BookingSeatStep({
           });
           const preparedData = prepareRes.data?.data || prepareRes.data;
           realTripId = preparedData?.id || prepareRes.id;
+          companyIdFromPrepare = resolvePreparedCompanyId(preparedData, bookingData.companyId);
         }
 
         const pickupRes = await getPickupPoints(bookingData.scheduleId);
@@ -108,7 +126,12 @@ export default function BookingSeatStep({
         setPickups(pickData);
 
         setBookingData((prev) => {
-          let nextState = { ...prev, tripId: realTripId };
+          let nextState = { 
+            ...prev, 
+            tripId: realTripId,
+            companyId: Number(companyIdFromPrepare) || prev.companyId,
+            preparedCompanyId: Number(companyIdFromPrepare) || prev.preparedCompanyId || prev.companyId
+          };
           if (pickData.length > 0 && !prev.pickupId) {
             nextState.pickupId = pickData[0].stationId;
             nextState.pickupOrder = pickData[0].stopOrder;
@@ -239,30 +262,38 @@ export default function BookingSeatStep({
     const isSelected = bookingData.selectedSeats.some((s) => s.seatNumber === seat.seatNumber);
     const isBooked = isSeatBooked(seat);
     const stateClass = isBooked ?
-    "cursor-not-allowed border-outline-variant/25 bg-surface-container-high/70 text-on-surface-variant/35 shadow-none" :
+    "cursor-not-allowed border-outline-variant/30 bg-surface-container text-on-surface-variant/35 shadow-none" :
     isSelected ?
-    "border-primary bg-primary/5 text-primary shadow-[0_14px_30px_rgba(0,110,28,0.16)] ring-4 ring-primary/10" :
-    "border-outline-variant/45 bg-white text-on-surface shadow-[0_8px_20px_rgba(26,28,28,0.06)] hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_14px_28px_rgba(26,28,28,0.10)]";
-    const pillowClass = isBooked ?
-    "border-outline-variant/15 bg-white/35" :
+    "border-primary bg-primary text-white shadow-[0_14px_28px_rgba(0,110,28,0.18)] ring-4 ring-primary/15" :
+    "border-outline-variant/45 bg-white text-on-surface shadow-[0_8px_18px_rgba(26,28,28,0.06)] hover:-translate-y-0.5 hover:border-primary/45 hover:bg-primary/5 hover:shadow-[0_14px_26px_rgba(26,28,28,0.10)]";
+    const iconClass = isBooked ?
+    "text-on-surface-variant/35" :
     isSelected ?
-    "border-primary/25 bg-white" :
-    "border-outline-variant/35 bg-surface-container-lowest";
-    const lineClass = isSelected ? "bg-primary/20" : isBooked ? "bg-outline-variant/20" : "bg-outline-variant/25";
+    "text-white" :
+    "text-primary/75";
+    const labelClass = isBooked ?
+    "bg-white/40 text-on-surface-variant/45" :
+    isSelected ?
+    "bg-white/20 text-white ring-1 ring-white/20" :
+    "bg-surface-container-low text-on-surface ring-1 ring-outline-variant/25";
 
     return (
       <button
         key={seat.id || getSeatLabel(seat)}
         type="button"
-        className={`group relative flex h-[82px] w-[62px] shrink-0 items-end justify-center rounded-[18px] border pb-3 text-sm font-extrabold transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15 ${stateClass}`}
+        className={`group relative z-10 flex h-[78px] w-[58px] shrink-0 flex-col items-center justify-between overflow-hidden rounded-[10px] border-2 px-2 py-2 text-xs font-extrabold transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15 ${stateClass}`}
         disabled={isBooked}
         onClick={() => handleSeatClick(seat)}
         aria-pressed={isSelected}
         title={`Ghế ${getSeatLabel(seat)}`}>
-        
-        <span className={`absolute left-2 right-2 top-2 h-5 rounded-xl border ${pillowClass}`} />
-        <span className={`absolute left-3 right-3 top-10 h-px ${lineClass}`} />
-        <span className="relative z-10 leading-none">{getSeatLabel(seat)}</span>
+
+        <span className="pointer-events-none absolute inset-x-2 top-1 h-1 rounded-[3px] bg-current/10" />
+        <span className={`material-symbols-outlined mt-1 text-[26px] leading-none ${iconClass}`}>
+          airline_seat_recline_extra
+        </span>
+        <span className={`relative z-10 flex h-5 min-w-[36px] items-center justify-center rounded-[6px] px-1.5 leading-none ${labelClass}`}>
+          {getSeatLabel(seat)}
+        </span>
       </button>);
 
   };
@@ -273,19 +304,19 @@ export default function BookingSeatStep({
     "border-primary/15 bg-primary/5 text-primary";
 
     return (
-      <div className="rounded-3xl border border-outline-variant/25 bg-white p-4 shadow-[0_18px_42px_rgba(26,28,28,0.06)]">
-        <div className="mb-5 flex items-center justify-between border-b border-outline-variant/20 pb-4">
-          <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold ${titleClass}`}>
+      <div className="rounded-2xl border border-outline-variant/25 bg-white p-4 shadow-[0_18px_42px_rgba(26,28,28,0.06)]">
+        <div className="mb-4 flex items-center justify-between border-b border-outline-variant/20 pb-3">
+          <span className={`inline-flex items-center rounded-lg border px-3 py-1 text-xs font-extrabold ${titleClass}`}>
             {title}
           </span>
           <span className="text-xs font-bold text-on-surface-variant/70">{deckSeats.length} ghế</span>
         </div>
         {deckSeats.length === 0 ?
-        <p className="rounded-2xl bg-surface-container-low px-4 py-6 text-center text-sm font-medium text-on-surface-variant">
+        <p className="rounded-xl bg-surface-container-low px-4 py-6 text-center text-sm font-medium text-on-surface-variant">
             Không có ghế tầng này
           </p> :
 
-        <div className="grid grid-cols-2 justify-items-center gap-x-7 gap-y-6 rounded-2xl bg-surface-container-low px-4 py-5">
+        <div className="relative grid grid-cols-2 justify-items-center gap-x-8 gap-y-4 rounded-xl border border-outline-variant/15 bg-surface-container-low px-4 py-5 before:pointer-events-none before:absolute before:bottom-4 before:left-1/2 before:top-4 before:z-0 before:w-3 before:-translate-x-1/2 before:rounded-full before:bg-white/80 before:ring-1 before:ring-outline-variant/20">
             {deckSeats.map(renderSleeperSeat)}
           </div>
         }
@@ -455,15 +486,20 @@ export default function BookingSeatStep({
 
               {!seatError &&
               <>
-              <div className="mb-6 flex flex-wrap items-center justify-center gap-4 rounded-2xl border border-outline-variant/20 bg-white px-4 py-3 shadow-[0_10px_28px_rgba(26,28,28,0.05)]">
+              <div className="mb-6 flex flex-wrap items-center justify-center gap-4 rounded-xl border border-outline-variant/20 bg-white px-4 py-3 shadow-[0_10px_28px_rgba(26,28,28,0.05)]">
                 <div className="flex items-center gap-2">
-                  <div className="h-9 w-7 rounded-xl border border-outline-variant/45 bg-white shadow-sm"></div>
+                  <div className="flex h-9 w-7 items-center justify-center rounded-[7px] border-2 border-outline-variant/45 bg-white shadow-sm">
+                    <span className="material-symbols-outlined text-[16px] text-primary/70">airline_seat_recline_extra</span>
+                  </div>
                   <span className="text-xs font-semibold text-on-surface-variant">Trống</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="h-9 w-7 rounded-xl border border-primary bg-primary/5 shadow-sm ring-2 ring-primary/10"></div>
+                  <div className="flex h-9 w-7 items-center justify-center rounded-[7px] border-2 border-primary bg-primary text-white shadow-sm ring-2 ring-primary/15">
+                    <span className="material-symbols-outlined text-[16px]">airline_seat_recline_extra</span>
+                  </div>
                   <span className="text-xs font-semibold text-on-surface-variant">Đang chọn</span>
                 </div>
+
               </div>
 
               {seats.length === 0 && !loadingSeats ?
