@@ -55,6 +55,15 @@ const formatDate = (value) => {
   });
 };
 
+const formatDateKey = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const formatDuration = (minutes) => {
   const totalMinutes = Number(minutes || 0);
   if (!totalMinutes) return "--";
@@ -176,8 +185,7 @@ const DriverDashboard = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("scheduled");
   const [selectedDate, setSelectedDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
+    return formatDateKey(new Date());
   });
 
   useEffect(() => {
@@ -209,7 +217,7 @@ const DriverDashboard = () => {
           if (normalizedTrip.hasPassengerCount || !trip.id) return normalizedTrip;
 
           try {
-            const passengersRes = await getAllTripPassengers(trip.id, { limit: 100 });
+            const passengersRes = await getAllTripPassengers(trip.id);
             const passengers = Array.isArray(passengersRes.data?.passengers) ? passengersRes.data.passengers : [];
             return normalizeTrip({ ...trip, passengerCount: passengers.length });
           } catch {

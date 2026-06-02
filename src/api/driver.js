@@ -90,8 +90,13 @@ export const updateTrip = (tripId, data) => {
 
 
 
-export const getTripPassengers = (tripId, params) => {
-  return axiosClient.get(`/driver/trip/${tripId}/passenger`, { params });
+const TRIP_PASSENGER_PAGE_LIMIT = 10;
+
+export const getTripPassengers = (tripId, params = {}) => {
+  const { limit: _limit, ...restParams } = params;
+  return axiosClient.get(`/driver/trip/${tripId}/passenger`, {
+    params: { ...restParams, limit: TRIP_PASSENGER_PAGE_LIMIT }
+  });
 };
 
 export const getAllTripPassengers = async (tripId, params = {}) => {
@@ -101,7 +106,6 @@ export const getAllTripPassengers = async (tripId, params = {}) => {
 
   do {
     const response = await getTripPassengers(tripId, {
-      limit: 100,
       ...params,
       ...(next ? { next } : {})
     });

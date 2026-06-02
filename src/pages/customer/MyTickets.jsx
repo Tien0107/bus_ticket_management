@@ -634,44 +634,73 @@ export default function MyTickets() {
     if (!canPayPendingTicket(ticket, nowMs)) return null;
 
     const isBusy = Boolean(paymentLoadingKey) || processingCardPayment;
+    const paymentOptions = [
+      {
+        key: "vnpay",
+        label: "VNPay",
+        icon: "qr_code_2",
+        className: "border-primary bg-primary text-white shadow-sm hover:bg-primary/90",
+      },
+      {
+        key: "stripe",
+        label: "Thẻ",
+        icon: "credit_card",
+        className: "border-primary/25 bg-white text-primary hover:border-primary/45 hover:bg-primary/5",
+      },
+      {
+        key: "cash",
+        label: "Tiền mặt",
+        icon: "payments",
+        className: "border-secondary/30 bg-white text-secondary hover:border-secondary/45 hover:bg-secondary/5",
+      },
+    ];
 
     return (
-      <div className="border-t border-secondary/20 bg-secondary/5 px-2 py-2">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm">
-          <div className="font-semibold text-secondary">
-            Chờ thanh toán
-            {isMeaningfulValue(ticket.expiredAt) && (
-              <span className="ml-1 text-on-surface-variant/70 font-medium">Hạn {formatDateTime(ticket.expiredAt)}</span>
-            )}
+      <div
+        className="border-t border-outline-variant/15 bg-gradient-to-r from-amber-50/80 via-white to-primary/5 px-4 py-3"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-secondary ring-1 ring-secondary/20">
+              <span className="material-symbols-outlined text-[20px] leading-none">account_balance_wallet</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-wide text-on-surface-variant/70">Phương thức thanh toán</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-800 ring-1 ring-amber-200">
+                  Chờ thanh toán
+                </span>
+                {isMeaningfulValue(ticket.expiredAt) && (
+                  <span className="text-xs font-semibold text-on-surface-variant">
+                    Hạn {formatDateTime(ticket.expiredAt)}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => handlePaymentClick(ticket, "vnpay")}
-              disabled={isBusy}
-              className="inline-flex h-9 min-w-[96px] flex-1 items-center justify-center gap-1.5 rounded bg-primary px-3 text-sm font-extrabold text-white transition active:bg-primary/90 disabled:opacity-60 sm:w-[104px] sm:flex-none"
-            >
-              <span className="material-symbols-outlined text-base">qr_code_2</span>
-              {paymentLoadingKey === `${ticket.id}:vnpay` ? "..." : "VNPay"}
-            </button>
-            <button
-              type="button"
-              onClick={() => handlePaymentClick(ticket, "stripe")}
-              disabled={isBusy}
-              className="inline-flex h-9 min-w-[96px] flex-1 items-center justify-center gap-1.5 rounded border border-primary/30 bg-white px-3 text-sm font-extrabold text-primary transition hover:bg-primary/5 disabled:opacity-60 sm:w-[104px] sm:flex-none"
-            >
-              <span className="material-symbols-outlined text-base">credit_card</span>
-              Thẻ
-            </button>
-            <button
-              type="button"
-              onClick={() => handlePaymentClick(ticket, "cash")}
-              disabled={isBusy}
-              className="inline-flex h-9 min-w-[96px] flex-1 items-center justify-center gap-1.5 rounded border border-secondary/30 bg-white px-3 text-sm font-extrabold text-secondary transition hover:bg-secondary/5 active:bg-secondary/5 disabled:opacity-60 sm:w-[104px] sm:flex-none"
-            >
-              <span className="material-symbols-outlined text-base">payments</span>
-              Tiền mặt
-            </button>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:min-w-[420px]">
+            {paymentOptions.map((option) => {
+              const loadingThis = paymentLoadingKey === `${ticket.id}:${option.key}`;
+
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => handlePaymentClick(ticket, option.key)}
+                  disabled={isBusy}
+                  className={`inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${option.className}`}
+                >
+                  {loadingThis ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current/25 border-t-current" />
+                  ) : (
+                    <span className="material-symbols-outlined text-[18px] leading-none">{option.icon}</span>
+                  )}
+                  <span className="truncate">{loadingThis ? "Đang mở..." : option.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

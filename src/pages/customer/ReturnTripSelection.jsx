@@ -1,10 +1,75 @@
 import React, { useState, useEffect } from "react";
 import { getTripSchedules } from "../../api/customer";
 
+const getTodayStr = () => new Date().toISOString().split("T")[0];
+
+const normalizeDate = (d) => {
+  if (!d) return "";
+  const s = String(d).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // try parse other formats (e.g. "5-6", "05/06/2025", "05-06-2025")
+  // attempt DD-MM or DD/MM with current year as fallback for test data
+  const m = s.match(/^(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?$/);
+  if (m) {
+    let [, dd, mm, yy] = m;
+    const now = new Date();
+    const y = yy ? (yy.length === 2 ? 2000 + parseInt(yy,10) : parseInt(yy,10)) : now.getFullYear();
+    const mmPad = String(mm).padStart(2, "0");
+    const ddPad = String(dd).padStart(2, "0");
+    const candidate = `${y}-${mmPad}-${ddPad}`;
+    // validate it parses to a real date
+    const test = new Date(candidate + "T00:00:00");
+    if (!isNaN(test.getTime())) return candidate;
+  }
+  const parsed = new Date(s);
+  if (isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().split("T")[0];
+};
+
+const getDatePlusDays = (dateStr, days) => {
+  const norm = normalizeDate(dateStr);
+  if (!norm) return getTodayStr();
+  // Safe calendar arithmetic using UTC to avoid local timezone off-by-one bugs
+  const [year, month, day] = norm.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  d.setUTCDate(d.getUTCDate() + days);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+};
+
 export default function ReturnTripSelection({ outboundData, setReturnBookingData, setBookingPhase, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [schedules, setSchedules] = useState([]);
-  const [date, setDate] = useState(outboundData.returnDate || outboundData.date || "");
+
+  const todayStr = getTodayStr();
+  const outboundDate = normalizeDate(outboundData.date) || todayStr;
+  const isOutboundToday = outboundDate === todayStr;
+  // Luôn đặt ngày về tối thiểu là ngày sau ngày đi (không cho phép cùng ngày với khứ hồi)
+  const minReturnDate = getDatePlusDays(outboundDate, 1);
+
+  const [date, setDate] = useState(() => {
+    // Optimistic init with bump if needed (based on props at mount time)
+    let initial = normalizeDate(outboundData.returnDate) || normalizeDate(outboundData.date) || "";
+    if (!initial || initial < minReturnDate) {
+      initial = minReturnDate;
+    }
+    return initial;
+  });
+
+  // Safety net: force the return date to jump to minReturnDate if it's not already after mount or if props update
+  // This ensures it "nhảy" even if initializer didn't catch the right value for some reason (e.g. timing, state shape, format)
+  useEffect(() => {
+    const minD = getDatePlusDays(outboundData.date || todayStr, 1);
+    setDate((prev) => {
+      const p = normalizeDate(prev) || "";
+      if (!p || p < minD) {
+        return minD;
+      }
+      return prev;
+    });
+  }, [outboundData.date, outboundData.returnDate]);
 
 
   const outboundSchedule = outboundData.schedule || {};
@@ -82,10 +147,17 @@ export default function ReturnTripSelection({ outboundData, setReturnBookingData
         <input
           type="date"
           value={date}
-          min={outboundData.date}
-          onChange={(e) => setDate(e.target.value)}
+          min={minReturnDate}
+          onChange={(e) => {
+            const newVal = normalizeDate(e.target.value);
+            const minD = minReturnDate;
+            setDate(newVal && newVal < minD ? minD : newVal);
+          }}
           className="bg-white border border-outline-variant/30 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none font-medium w-full max-w-xs" />
-        
+        <p className="mt-1 text-xs font-medium text-on-surface-variant">
+          Ngày về tối thiểu là ngày sau ngày khởi hành.
+          {isOutboundToday && " (Ngày đi hôm nay → ngày về từ ngày mai)"}
+        </p>
       </div>
 
       {loading ?

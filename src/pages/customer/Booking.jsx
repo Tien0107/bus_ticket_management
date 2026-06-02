@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { createNotification } from "../../api/notification";
 import { loadStripe } from "@stripe/stripe-js";
@@ -55,6 +55,17 @@ export default function Booking() {
   const [pendingOrderId, setPendingOrderId] = useState(null);
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [processingCardPayment, setProcessingCardPayment] = useState(false);
+
+  // Chặn khứ hồi cho ngày hiện tại: nếu khởi tạo với isRoundTrip + date=today thì tắt cờ khứ hồi
+  useEffect(() => {
+    const t = new Date().toISOString().split("T")[0];
+    if (isRoundTrip && (bookingData.date || "") === t) {
+      setIsRoundTrip(false);
+      setBookingPhase("outbound");
+      // Không tự động tăng ngày (tránh bump ngày hiện tại), chỉ cảnh báo nếu cần
+      // addToast("Khứ hồi không hỗ trợ ngày hiện tại.", "warning"); // tránh toast ngay khi mount
+    }
+  }, []); // chạy 1 lần khi mount
 
   const performStripePayment = async (orderId, selectedPaymentMethodId = null) => {
     const paymentRes = await createPaymentMethod(orderId, "stripe");
@@ -340,6 +351,11 @@ export default function Booking() {
           setBookingData={bookingPhase === "outbound" ? setBookingData : setReturnBookingData}
           onNext={() => {
             if (isRoundTrip && bookingPhase === "outbound") {
+              const t = new Date().toISOString().split("T")[0];
+              if ((bookingData.date || "") === t) {
+                addToast("Khứ hồi không áp dụng cho ngày hiện tại. Tiếp tục với vé một chiều.", "warning");
+                return handleProceedToCheckout();
+              }
               setBookingPhase("returnSelection");
             } else {
               return handleProceedToCheckout();

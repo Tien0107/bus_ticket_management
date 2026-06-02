@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { getAllTripPassengers, getDriverTripsAllStatuses, getTripRoute, updateTrip } from "../../api/driver";
+import { getDriverTripsAllStatuses, getTripPassengers, getTripRoute, updateTrip } from "../../api/driver";
 import { useToast } from "../../context/ToastContext";
 import PassengerList from "../../components/driver/PassengerList";
 import CheckInPanel from "../../components/driver/CheckInPanel";
+
+const PASSENGER_PAGE_LIMIT = 10;
 
 const normalizeStatus = (status) => {
   const map = {
@@ -55,6 +57,28 @@ const formatDate = (value) => {
   });
 };
 
+const formatDateKey = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getDateKey = (value) => {
+  if (!value) return "";
+  if (value instanceof Date) return formatDateKey(value);
+
+  const rawValue = String(value);
+  const dateMatch = rawValue.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (dateMatch) return dateMatch[1];
+
+  return formatDateKey(new Date(rawValue));
+};
+
+const getTodayKey = () => formatDateKey(new Date());
+
 const formatDuration = (minutes) => {
   const totalMinutes = Number(minutes || 0);
   if (!totalMinutes) return "--";
@@ -65,8 +89,6 @@ const formatDuration = (minutes) => {
   if (!remainingMinutes) return `${hours} giờ`;
   return `${hours} giờ ${remainingMinutes} phút`;
 };
-const wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration));
-
 const isCheckedInStatus = (status) => {
   const normalizedStatus = String(status || "").toLowerCase();
   return ["checked_in", "checked-in", "checkedin", "confirmed", "present"].includes(normalizedStatus);
@@ -82,6 +104,7 @@ const normalizeTrip = (trip = {}) => {
     destination: trip.toLocation || trip.destination || "Điểm đến",
     departureTime: trip.departureTime || "--:--",
     departureDate: trip.departureDate || trip.date || "",
+    dateKey: getDateKey(trip.departureDate || trip.date),
     displayDate: formatDate(trip.departureDate || trip.date),
     passengerCount: Number(rawPassengerCount || 0),
     hasPassengerCount: rawPassengerCount !== undefined && rawPassengerCount !== null,
@@ -105,8 +128,13 @@ const normalizePassengers = (rawPassengers) => {
       "pending";
     const ticketStatus =
       passenger.ticketStatus ||
+      passenger.ticket_status ||
       passenger.ticket?.status ||
+      passenger.ticket?.ticketStatus ||
+      passenger.ticket?.ticket_status ||
       passenger.Ticket?.status ||
+      passenger.Ticket?.ticketStatus ||
+      passenger.Ticket?.ticket_status ||
       passenger.booking?.status ||
       passenger.Booking?.status ||
       "pending";
@@ -128,6 +156,41 @@ const normalizePassengers = (rawPassengers) => {
       passenger.id ||
       passenger.ticketId;
 
+    const bookingTypeRaw =
+      passenger.bookingType ||
+      passenger.booking_type ||
+      passenger.booking?.bookingType ||
+      passenger.booking?.booking_type ||
+      passenger.booking?.type ||
+      passenger.Booking?.bookingType ||
+      passenger.Booking?.booking_type ||
+      passenger.ticket?.bookingType ||
+      passenger.ticket?.booking_type ||
+      passenger.Ticket?.bookingType ||
+      passenger.Ticket?.booking_type ||
+      "one_way";
+    const bookingType = String(bookingTypeRaw).toLowerCase();
+
+    const totalAmount = Number(
+      passenger.totalAmount ??
+        passenger.total_amount ??
+        passenger.amount ??
+        passenger.price ??
+        passenger.booking?.totalAmount ??
+        passenger.booking?.total_amount ??
+        passenger.booking?.amount ??
+        passenger.Booking?.totalAmount ??
+        passenger.Booking?.total_amount ??
+        passenger.Booking?.amount ??
+        passenger.ticket?.totalAmount ??
+        passenger.ticket?.total_amount ??
+        passenger.Ticket?.totalAmount ??
+        passenger.Ticket?.total_amount ??
+        passenger.ticket?.amount ??
+        passenger.Ticket?.amount ??
+        0
+    );
+
     return {
       id: passengerId,
       ticketId: passenger.ticketId || passenger.ticket?.id || passenger.Ticket?.id || passenger.id,
@@ -140,8 +203,46 @@ const normalizePassengers = (rawPassengers) => {
       rawStatus: checkInStatus,
       ticketStatus,
       status: checkedIn ? "checked_in" : normalizedCheckInStatus === "no_show" ? "no_show" : "pending",
+      bookingType,
+      totalAmount,
     };
   });
+};
+
+const getNextCursorValue = (value) =>
+  value === undefined || value === null || value === 0 || value === "" ? null : value;
+
+const extractPassengerPage = (response) => {
+  const data = response?.data;
+  const nestedData = data?.data;
+  const passengers = Array.isArray(data?.passengers)
+    ? data.passengers
+    : Array.isArray(nestedData?.passengers)
+    ? nestedData.passengers
+    : Array.isArray(data)
+    ? data
+    : Array.isArray(nestedData)
+    ? nestedData
+    : [];
+
+  return {
+    passengers,
+    next: getNextCursorValue(data?.next ?? nestedData?.next),
+  };
+};
+
+const getPassengerKey = (passenger, index) =>
+  String(passenger.id ?? passenger.ticketId ?? passenger.ticket ?? `${passenger.name}-${passenger.seat}-${index}`);
+
+const mergePassengerPages = (currentPassengers, nextPassengers) => {
+  const merged = new Map();
+  currentPassengers.forEach((passenger, index) => {
+    merged.set(getPassengerKey(passenger, index), passenger);
+  });
+  nextPassengers.forEach((passenger, index) => {
+    merged.set(getPassengerKey(passenger, currentPassengers.length + index), passenger);
+  });
+  return Array.from(merged.values());
 };
 
 const normalizeRoute = (rawRoute) => {
@@ -195,12 +296,14 @@ export default function TripDetail() {
   const [showCheckInPanel, setShowCheckInPanel] = useState(false);
   const [selectedPassengerId, setSelectedPassengerId] = useState(null);
   const [updating, setUpdating] = useState(false);
+  const [passengerNextCursor, setPassengerNextCursor] = useState(null);
+  const [loadingMorePassengers, setLoadingMorePassengers] = useState(false);
 
   const fetchTripDetails = useCallback(async ({ silent = false, apply = true } = {}) => {
     try {
       if (!silent) setLoading(true);
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = getTodayKey();
       const dateCandidates = [stateTripDate, today, null].filter(
         (value, index, array) => index === array.findIndex((item) => item === value)
       );
@@ -223,7 +326,7 @@ export default function TripDetail() {
 
       const [tripData, passengersRes, routeRes] = await Promise.all([
         tripPromise,
-        getAllTripPassengers(tripId, { limit: 100 }),
+        getTripPassengers(tripId, { limit: PASSENGER_PAGE_LIMIT }),
         getTripRoute(tripId),
       ]);
 
@@ -232,26 +335,24 @@ export default function TripDetail() {
         return [];
       }
 
-      const rawPassengers = Array.isArray(passengersRes.data?.passengers)
-        ? passengersRes.data.passengers
-        : Array.isArray(passengersRes.data)
-        ? passengersRes.data
-        : [];
-
+      const passengerPage = extractPassengerPage(passengersRes);
       const rawRoute = routeRes.data?.route || routeRes.data?.stops || routeRes.data || [];
-
-      const normalizedPassengers = normalizePassengers(rawPassengers);
+      const normalizedPassengers = normalizePassengers(passengerPage.passengers);
 
       if (apply) {
         setTrip(normalizeTrip(tripData));
         setPassengers(normalizedPassengers);
+        setPassengerNextCursor(passengerPage.next);
         setRoute(normalizeRoute(rawRoute));
         setError(null);
       }
 
       return normalizedPassengers;
     } catch {
-      if (apply) setError("Không thể tải chi tiết chuyến");
+      if (apply) {
+        setError("Không thể tải chi tiết chuyến");
+        setPassengerNextCursor(null);
+      }
       return [];
     } finally {
       if (!silent) setLoading(false);
@@ -263,6 +364,11 @@ export default function TripDetail() {
   }, [fetchTripDetails]);
 
   const handleStartTrip = async () => {
+    if (trip?.dateKey !== getTodayKey()) {
+      addToast("Chỉ được bắt đầu chuyến trong ngày khởi hành.", "warning");
+      return;
+    }
+
     try {
       setUpdating(true);
       await updateTrip(tripId, { status: "running" });
@@ -276,6 +382,11 @@ export default function TripDetail() {
   };
 
   const handleCompleteTrip = async () => {
+    if (passengerNextCursor) {
+      addToast("Vui lòng tải hết danh sách hành khách trước khi kết thúc chuyến.", "warning");
+      return;
+    }
+
     if (pendingCount > 0) {
       addToast(`Còn ${pendingCount} hành khách chưa check-in. Vui lòng check-in hết trước khi kết thúc chuyến.`, "warning");
       return;
@@ -298,6 +409,27 @@ export default function TripDetail() {
     setShowCheckInPanel(true);
   };
 
+  const handleLoadMorePassengers = useCallback(async () => {
+    if (!passengerNextCursor || loadingMorePassengers) return;
+
+    try {
+      setLoadingMorePassengers(true);
+      const response = await getTripPassengers(tripId, {
+        limit: PASSENGER_PAGE_LIMIT,
+        next: passengerNextCursor,
+      });
+      const passengerPage = extractPassengerPage(response);
+      const normalizedPassengers = normalizePassengers(passengerPage.passengers);
+
+      setPassengers((currentPassengers) => mergePassengerPages(currentPassengers, normalizedPassengers));
+      setPassengerNextCursor(passengerPage.next);
+    } catch {
+      addToast("Không thể tải thêm hành khách", "error");
+    } finally {
+      setLoadingMorePassengers(false);
+    }
+  }, [addToast, loadingMorePassengers, passengerNextCursor, tripId]);
+
   const handleCheckInSuccess = async (passengerId, ticket) => {
     const checkedPassengerId = passengerId || selectedPassengerId;
 
@@ -315,16 +447,6 @@ export default function TripDetail() {
     setShowCheckInPanel(false);
     setSelectedPassengerId(null);
 
-    await wait(500);
-    const refreshedPassengers = await fetchTripDetails({ silent: true, apply: false });
-    const refreshedPassenger = refreshedPassengers.find(
-      (passenger) => Number(passenger.id) === Number(checkedPassengerId)
-    );
-
-    if (refreshedPassenger?.status === "checked_in") {
-      await fetchTripDetails({ silent: true });
-    }
-
     return true;
   };
 
@@ -332,6 +454,7 @@ export default function TripDetail() {
     () => passengers.filter((passenger) => passenger.status === "checked_in").length,
     [passengers]
   );
+  const passengerCount = trip?.passengerCount || passengers.length;
   const pendingCount = Math.max(passengers.length - checkedInCount, 0);
   const checkInProgress = passengers.length ? Math.round((checkedInCount / passengers.length) * 100) : 0;
 
@@ -365,6 +488,7 @@ export default function TripDetail() {
   }
 
   const currentStatus = statusMeta[trip.status] || statusMeta.scheduled;
+  const canStartTrip = trip.dateKey === getTodayKey();
 
   return (
     <div className="min-h-screen bg-surface px-4 py-4 lg:px-6">
@@ -393,15 +517,22 @@ export default function TripDetail() {
 
             <div className="flex flex-col gap-3 sm:flex-row">
               {trip.status === "scheduled" && (
-                <button
-                  type="button"
-                  onClick={handleStartTrip}
-                  disabled={updating}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
-                >
-                  <span className="material-symbols-outlined text-[20px]">play_arrow</span>
-                  Bắt đầu chuyến
-                </button>
+                <div className="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    onClick={handleStartTrip}
+                    disabled={updating || !canStartTrip}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-surface-container-high disabled:text-on-surface-variant disabled:opacity-80"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">play_arrow</span>
+                    Bắt đầu chuyến
+                  </button>
+                  {!canStartTrip && (
+                    <p className="max-w-[220px] text-xs font-medium text-on-surface-variant">
+                      Chỉ mở vào ngày khởi hành.
+                    </p>
+                  )}
+                </div>
               )}
               {trip.status === "running" && (
                 <button
@@ -428,7 +559,7 @@ export default function TripDetail() {
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <InfoTile icon="confirmation_number" label="Hành khách" value={`${passengers.length || trip.passengerCount}/${trip.totalSeats}`} />
+            <InfoTile icon="confirmation_number" label="Hành khách" value={`${passengerCount}/${trip.totalSeats}`} />
             <InfoTile icon="task_alt" label="Đã check-in" value={`${checkedInCount}/${passengers.length || trip.passengerCount || 0}`} />
             <InfoTile icon="directions_bus" label="Biển số" value={trip.plateNumber || trip.vehicleNumber || "Chưa gán"} />
             <InfoTile icon="schedule" label="Thời lượng" value={formatDuration(trip.durationMinutes)} />
@@ -438,7 +569,11 @@ export default function TripDetail() {
             <div className="mb-3 flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-on-surface">Tiến độ check-in</p>
-                <p className="mt-1 text-sm text-on-surface-variant">{pendingCount} hành khách còn chờ xác nhận</p>
+                <p className="mt-1 text-sm text-on-surface-variant">
+                  {passengerNextCursor
+                    ? `${pendingCount} hành khách đã tải còn chờ xác nhận`
+                    : `${pendingCount} hành khách còn chờ xác nhận`}
+                </p>
               </div>
               <p className="text-2xl font-bold text-primary">{checkInProgress}%</p>
             </div>
@@ -448,47 +583,98 @@ export default function TripDetail() {
           </div>
         </section>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1fr_360px]">
-          <PassengerList passengers={passengers} onCheckIn={handleOpenCheckIn} />
+        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_330px]">
+          <PassengerList
+            passengers={passengers}
+            hasMore={Boolean(passengerNextCursor)}
+            loadingMore={loadingMorePassengers}
+            onCheckIn={handleOpenCheckIn}
+            onLoadMore={handleLoadMorePassengers}
+          />
 
-          <aside className="rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-on-surface">Tuyến đường</h2>
-                <p className="mt-1 text-sm text-on-surface-variant">{route.length} điểm dừng</p>
+          <aside className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
+            <div className="border-b border-outline-variant/20 bg-surface-container-low/70 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-xl font-bold text-on-surface">Tuyến đường</h2>
+                  <p className="mt-1 text-sm text-on-surface-variant">{route.length} điểm dừng</p>
+                </div>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-primary ring-1 ring-outline-variant/25">
+                  <span className="material-symbols-outlined text-[22px] leading-none">route</span>
+                </div>
               </div>
-              <span className="material-symbols-outlined text-primary">route</span>
+
+              {route.length > 1 && (
+                <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-xs">
+                  <div className="min-w-0">
+                    <p className="font-bold uppercase text-emerald-700">Điểm đầu</p>
+                    <p className="mt-1 truncate font-semibold text-on-surface">{route[0].name}</p>
+                  </div>
+                  <span className="h-px w-8 bg-outline-variant/60" aria-hidden="true" />
+                  <div className="min-w-0 text-right">
+                    <p className="font-bold uppercase text-red-700">Điểm cuối</p>
+                    <p className="mt-1 truncate font-semibold text-on-surface">{route[route.length - 1].name}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {route.length > 0 ? (
-              <div className="space-y-0">
+              <div className="max-h-[620px] overflow-y-auto px-4 py-4">
                 {route.map((stop, index) => {
                   const first = index === 0;
                   const last = index === route.length - 1;
+                  const stopTone = first
+                    ? "bg-emerald-500 text-white ring-emerald-100"
+                    : last
+                    ? "bg-red-500 text-white ring-red-100"
+                    : "bg-primary/10 text-primary ring-primary/10";
+                  const stopLabel = first ? "Bắt đầu" : last ? "Kết thúc" : `Điểm ${index + 1}`;
 
                   return (
-                    <div key={`${stop.name}-${index}`} className="flex gap-3">
+                    <div key={`${stop.name}-${index}`} className="grid grid-cols-[42px_1fr] gap-3">
                       <div className="flex flex-col items-center">
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
-                          first ? "bg-emerald-500 text-white" : last ? "bg-red-500 text-white" : "bg-primary/10 text-primary"
-                        }`}>
+                        <div className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full text-sm font-black ring-4 ${stopTone}`}>
                           {index + 1}
                         </div>
-                        {!last && <div className="h-14 w-px bg-outline-variant/60" />}
+                        {!last && (
+                          <div className="my-1 min-h-12 flex-1 w-px bg-gradient-to-b from-outline-variant/70 to-outline-variant/20" />
+                        )}
                       </div>
-                      <div className="min-w-0 pb-5">
-                        <p className="truncate font-semibold text-on-surface">{stop.name}</p>
-                        <p className="mt-1 truncate text-sm text-on-surface-variant">{stop.address || stop.city || "Chưa có địa chỉ"}</p>
-                        {stop.time && <p className="mt-1 text-xs font-medium text-primary">{stop.time}</p>}
+
+                      <div className={`min-w-0 ${last ? "pb-0" : "pb-5"}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="min-w-0 break-words text-sm font-black leading-5 text-on-surface">{stop.name}</p>
+                          <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black ring-1 ${
+                            first
+                              ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
+                              : last
+                              ? "bg-red-50 text-red-700 ring-red-100"
+                              : "bg-surface-container-low text-on-surface-variant ring-outline-variant/40"
+                          }`}>
+                            {stopLabel}
+                          </span>
+                        </div>
+                        <p className="mt-1 break-words text-xs leading-5 text-on-surface-variant">
+                          {stop.address || stop.city || "Chưa có địa chỉ"}
+                        </p>
+                        {stop.time && (
+                          <span className="mt-2 inline-flex rounded-md bg-primary/5 px-2.5 py-1 text-xs font-bold text-primary ring-1 ring-primary/10">
+                            {stop.time}
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-outline-variant/50 p-4 text-center">
-                <span className="material-symbols-outlined text-4xl text-outline">route</span>
-                <p className="mt-2 text-sm text-on-surface-variant">Chưa có dữ liệu tuyến đường</p>
+              <div className="p-4">
+                <div className="rounded-lg border border-dashed border-outline-variant/50 p-5 text-center">
+                  <span className="material-symbols-outlined text-4xl text-outline">route</span>
+                  <p className="mt-2 text-sm font-semibold text-on-surface">Chưa có dữ liệu tuyến đường</p>
+                  <p className="mt-1 text-xs text-on-surface-variant">Route của chuyến sẽ hiển thị tại đây.</p>
+                </div>
               </div>
             )}
           </aside>
@@ -500,8 +686,11 @@ export default function TripDetail() {
         passengers={passengers}
         isOpen={showCheckInPanel}
         initialPassengerId={selectedPassengerId}
+        hasMore={Boolean(passengerNextCursor)}
+        loadingMore={loadingMorePassengers}
         onClose={() => setShowCheckInPanel(false)}
         onCheckInSuccess={handleCheckInSuccess}
+        onLoadMore={handleLoadMorePassengers}
       />
     </div>
   );

@@ -40,6 +40,9 @@ export default function BookingSeatStep({
   const [seatError, setSeatError] = useState("");
   const { addToast } = useToast();
 
+  const todayStr = new Date().toISOString().split("T")[0];
+  const outboundIsToday = bookingData.date === todayStr;
+
   const handleNextClick = async () => {
     setIsSubmitting(true);
     await onNext();
@@ -537,19 +540,28 @@ export default function BookingSeatStep({
             </div>
           </div>
           <div className="flex gap-4">
-            {bookingPhase === "outbound" && !isRoundTrip &&
-            <button
-              disabled={bookingData.selectedSeats.length === 0 || !bookingData.pickupId || !bookingData.dropoffId}
-              onClick={() => {
-                setIsRoundTrip(true);
-                setBookingPhase("returnSelection");
-              }}
-              className="bg-secondary text-white px-6 py-3.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center gap-2">
-              
-                <span className="material-symbols-outlined text-sm">swap_horiz</span>
-                Khứ hồi
-              </button>
-            }
+            {bookingPhase === "outbound" && !isRoundTrip && (
+              outboundIsToday ? (
+                <div
+                  className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/40 bg-surface-container-low px-4 py-3.5 text-xs font-medium text-on-surface-variant"
+                  title="Khứ hồi không áp dụng cho ngày hiện tại. Chọn ngày khởi hành từ ngày mai để đặt vé khứ hồi.">
+                  <span className="material-symbols-outlined text-base">info</span>
+                  Khứ hồi chỉ từ ngày mai
+                </div>
+              ) : (
+                <button
+                  disabled={bookingData.selectedSeats.length === 0 || !bookingData.pickupId || !bookingData.dropoffId}
+                  onClick={() => {
+                    setIsRoundTrip(true);
+                    setBookingPhase("returnSelection");
+                  }}
+                  className="bg-secondary text-white px-6 py-3.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center gap-2">
+                  
+                    <span className="material-symbols-outlined text-sm">swap_horiz</span>
+                    Khứ hồi
+                  </button>
+              )
+            )}
             <button
               disabled={bookingData.selectedSeats.length === 0 || !bookingData.pickupId || !bookingData.dropoffId || isSubmitting}
               onClick={handleNextClick}

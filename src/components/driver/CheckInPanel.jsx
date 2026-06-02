@@ -8,7 +8,54 @@ const getApiMessage = (error) =>
   error.message ||
   "Check-in that bai";
 
-const CheckInPanel = ({ tripId, passengers = [], onCheckInSuccess, isOpen, onClose, initialPassengerId = null }) => {
+const bookingTypeConfig = {
+  round_trip: {
+    label: "2 chiều",
+    className: "bg-blue-50 text-blue-700 ring-blue-100",
+  },
+  one_way: {
+    label: "1 chiều",
+    className: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+  },
+};
+
+const ticketStatusMeta = {
+  reserved: "Chưa thanh toán",
+  pending: "Chờ thanh toán",
+  paid: "Đã thanh toán",
+  checked_in: "Đã lên xe",
+  cancelled: "Đã hủy",
+  expired: "Hết hạn",
+};
+
+const getBookingType = (type) => {
+  const key = String(type || "one_way").toLowerCase();
+  return bookingTypeConfig[key] || bookingTypeConfig.one_way;
+};
+
+const getTicketStatusLabel = (status) => {
+  const key = String(status || "").toLowerCase();
+  return ticketStatusMeta[key] || status || "Không rõ";
+};
+
+const formatAmount = (value) => {
+  if (value === undefined || value === null || value === "") return "—";
+  const num = Number(value);
+  if (Number.isNaN(num)) return "—";
+  return `${num.toLocaleString("vi-VN")}đ`;
+};
+
+const CheckInPanel = ({
+  tripId,
+  passengers = [],
+  hasMore = false,
+  loadingMore = false,
+  onCheckInSuccess,
+  onClose,
+  onLoadMore,
+  isOpen,
+  initialPassengerId = null
+}) => {
   const { addToast } = useToast();
   const [selectedPassenger, setSelectedPassenger] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -23,11 +70,20 @@ const CheckInPanel = ({ tripId, passengers = [], onCheckInSuccess, isOpen, onClo
     const keyword = searchTerm.trim().toLowerCase();
     if (!keyword) return pendingPassengers;
 
-    return pendingPassengers.filter((passenger) =>
-      [passenger.name, passenger.phone, passenger.ticket, passenger.seat]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(keyword))
-    );
+    return pendingPassengers.filter((passenger) => {
+      const values = [
+        passenger.name,
+        passenger.phone,
+        passenger.ticket,
+        passenger.seat,
+        passenger.bookingType,
+        getBookingType(passenger.bookingType).label,
+        passenger.ticketStatus,
+        getTicketStatusLabel(passenger.ticketStatus),
+        formatAmount(passenger.totalAmount),
+      ];
+      return values.filter(Boolean).some((value) => String(value).toLowerCase().includes(keyword));
+    });
   }, [pendingPassengers, searchTerm]);
 
   React.useEffect(() => {
@@ -103,6 +159,7 @@ const CheckInPanel = ({ tripId, passengers = [], onCheckInSuccess, isOpen, onClo
           <div className="mt-5 grid max-h-[360px] gap-3 overflow-y-auto pr-1">
             {filteredPassengers.map((passenger) => {
               const active = selectedPassenger?.id === passenger.id;
+              const bookingType = getBookingType(passenger.bookingType);
 
               return (
                 <button
@@ -121,6 +178,17 @@ const CheckInPanel = ({ tripId, passengers = [], onCheckInSuccess, isOpen, onClo
                       <p className="mt-1 text-sm text-on-surface-variant">
                         Vé {passenger.ticket} · Ghế {passenger.seat}
                       </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 whitespace-nowrap ${bookingType.className}`}>
+                          {bookingType.label}
+                        </span>
+                        <span className="whitespace-nowrap text-xs font-black text-on-surface">
+                          {formatAmount(passenger.totalAmount)}
+                        </span>
+                        <span className="whitespace-nowrap text-xs font-bold text-on-surface-variant">
+                          {getTicketStatusLabel(passenger.ticketStatus)}
+                        </span>
+                      </div>
                       <p className="mt-2 truncate text-xs text-on-surface-variant">
                         {passenger.pickupPoint} → {passenger.dropoffPoint}
                       </p>
@@ -148,6 +216,22 @@ const CheckInPanel = ({ tripId, passengers = [], onCheckInSuccess, isOpen, onClo
                 </p>
               </div>
             )}
+
+            {hasMore && (
+              <button
+                type="button"
+                onClick={onLoadMore}
+                disabled={loadingMore}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary/25 bg-primary/5 px-4 py-2.5 text-sm font-black text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loadingMore ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary/25 border-t-primary" />
+                ) : (
+                  <span className="h-2 w-2 rotate-45 border-b-2 border-r-2 border-current" aria-hidden="true" />
+                )}
+                {loadingMore ? "Đang tải..." : "Tải thêm 10 hành khách"}
+              </button>
+            )}
           </div>
 
           {selectedPassenger && (
@@ -165,6 +249,18 @@ const CheckInPanel = ({ tripId, passengers = [], onCheckInSuccess, isOpen, onClo
                 <div>
                   <p className="text-on-surface-variant">Ghế</p>
                   <p className="mt-1 font-bold text-on-surface">{selectedPassenger.seat}</p>
+                </div>
+                <div>
+                  <p className="text-on-surface-variant">Loại</p>
+                  <p className="mt-1 font-bold text-on-surface">{getBookingType(selectedPassenger.bookingType).label}</p>
+                </div>
+                <div>
+                  <p className="text-on-surface-variant">Tổng tiền</p>
+                  <p className="mt-1 font-bold text-on-surface">{formatAmount(selectedPassenger.totalAmount)}</p>
+                </div>
+                <div>
+                  <p className="text-on-surface-variant">Trạng thái vé</p>
+                  <p className="mt-1 font-bold text-on-surface">{getTicketStatusLabel(selectedPassenger.ticketStatus)}</p>
                 </div>
               </div>
             </div>
