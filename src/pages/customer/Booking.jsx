@@ -10,6 +10,7 @@ import {
 "../../api/customer";
 import BookingSeatStep from "./BookingSeatStep";
 import BookingCheckoutStep from "./BookingCheckoutStep";
+import CardPaymentProcessingOverlay from "../../components/payment/CardPaymentProcessingOverlay";
 import SelectPaymentCardModal from "../../components/payment/SelectPaymentCardModal";
 import ReturnTripSelection from "./ReturnTripSelection";
 import { useToast } from "../../context/ToastContext";
@@ -17,6 +18,8 @@ import { getStoredUser } from "../../utils/authStorage";
 
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export default function Booking() {
   const { tripId } = useParams();
@@ -56,6 +59,7 @@ export default function Booking() {
   const [pendingOrderId, setPendingOrderId] = useState(null);
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [processingCardPayment, setProcessingCardPayment] = useState(false);
+  const [cardPaymentStage, setCardPaymentStage] = useState("starting");
 
   // Chặn khứ hồi cho ngày hiện tại: nếu khởi tạo với isRoundTrip + date=today thì tắt cờ khứ hồi
   useEffect(() => {
@@ -69,57 +73,61 @@ export default function Booking() {
   }, []); // chạy 1 lần khi mount
 
   const performStripePayment = async (orderId, selectedPaymentMethodId = null) => {
+    setCardPaymentStage("session");
     const paymentRes = await createPaymentMethod(orderId, "stripe");
     const clientSecret = paymentRes.data?.clientSecret;
     if (!clientSecret) {
       addToast("Đặt vé thành công nhưng không nhận được clientSecret thanh toán thẻ.");
       navigateToTickets();
-      return;
+      return { navigated: true };
     }
     if (!stripePromise) {
-      addToast("Thiếu cấu hình Stripe key (REACT_APP_STRIPE_PUBLISHABLE_KEY).");
+      addToast("Thiếu cấu hình cổng thanh toán thẻ (REACT_APP_STRIPE_PUBLISHABLE_KEY).");
       navigateToTickets();
-      return;
+      return { navigated: true };
     }
     const stripe = await stripePromise;
     if (!stripe) {
-      addToast("Không thể khởi tạo Stripe.");
+      addToast("Không thể khởi tạo cổng thanh toán thẻ.");
       navigateToTickets();
-      return;
+      return { navigated: true };
     }
+    setCardPaymentStage("confirm");
     const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
       payment_method: selectedPaymentMethodId || undefined
     });
     if (error) {
       addToast("Thanh toán thẻ thất bại: " + (error.message || "Unknown error"));
       navigateToTickets();
-      return;
+      return { navigated: true };
     }
     if (paymentIntent?.status === "succeeded") {
+      setCardPaymentStage("finalizing");
       try {
-        const currentUser = getStoredUser(null);
-        if (currentUser?.id) {
-          await createNotification({
-            userId: currentUser.id,
-            title: "Thanh toán thành công!",
-            body: `Vé của bạn cho đơn hàng #${orderId || ""} đã được thanh toán thành công qua thẻ Stripe.`,
-            data: JSON.stringify({ path: "/profile/tickets" })
-          });
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const currentUser = JSON.parse(userStr);
+          if (currentUser?.id) {
+            await createNotification({
+              userId: currentUser.id,
+              title: "Thanh toán thành công!",
+              body: `Vé của bạn cho đơn hàng #${orderId || ""} đã được thanh toán thành công qua thẻ.`,
+              data: JSON.stringify({ path: "/profile/tickets" })
+            });
+          }
         }
       } catch (notifErr) {
         console.warn("Failed to create Stripe payment notification:", notifErr);
       }
 
-      addToast("Thanh toán bằng thẻ thành công!", "success");
       setShowCardModal(false);
-      // Chờ 2-3s để webhook/backend cập nhật trạng thái vé trước khi chuyển trang
-      setTimeout(() => {
-        navigateToTickets();
-      }, 2500);
-      return;
+      await wait(2500);
+      navigateToTickets();
+      return { navigated: true };
     } else {
       addToast(`Thanh toán trả về trạng thái: ${paymentIntent?.status || "unknown"}`);
       navigateToTickets();
+      return { navigated: true };
     }
   };
 
@@ -150,7 +158,9 @@ export default function Booking() {
   };
 
   const handleSelectCardAndPay = async (card) => {
+    let navigated = false;
     try {
+      setCardPaymentStage("starting");
       setProcessingCardPayment(true);
       const paymentMethodId = card?.stripePaymentMethodId || card?.id;
       if (!paymentMethodId || !pendingOrderId) {
@@ -159,29 +169,41 @@ export default function Booking() {
       }
       await setDefaultPaymentMethod(paymentMethodId);
       setShowCardModal(false);
-      await performStripePayment(pendingOrderId, paymentMethodId);
+      const result = await performStripePayment(pendingOrderId, paymentMethodId);
+      navigated = Boolean(result?.navigated);
     } catch (err) {
       addToast("Không thể đặt thẻ mặc định để thanh toán: " + (err.response?.data?.message || err.message));
       navigateToTickets();
+      navigated = true;
     } finally {
-      setProcessingCardPayment(false);
+      if (!navigated) {
+        setProcessingCardPayment(false);
+        setCardPaymentStage("starting");
+      }
     }
   };
 
   const handlePayWithNewCard = async (paymentMethodId) => {
+    let navigated = false;
     try {
+      setCardPaymentStage("starting");
       setProcessingCardPayment(true);
       if (!paymentMethodId || !pendingOrderId) {
         addToast("Thiếu thông tin thẻ hoặc đơn hàng.");
         return;
       }
       setShowCardModal(false);
-      await performStripePayment(pendingOrderId, paymentMethodId);
+      const result = await performStripePayment(pendingOrderId, paymentMethodId);
+      navigated = Boolean(result?.navigated);
     } catch (err) {
       addToast("Không thể thanh toán bằng thẻ mới: " + (err.response?.data?.message || err.message));
       navigateToTickets();
+      navigated = true;
     } finally {
-      setProcessingCardPayment(false);
+      if (!navigated) {
+        setProcessingCardPayment(false);
+        setCardPaymentStage("starting");
+      }
     }
   };
 
@@ -406,6 +428,7 @@ export default function Booking() {
         onContinueWithPaymentMethodId={handlePayWithNewCard}
         continuing={processingCardPayment}
       />
+      {processingCardPayment && <CardPaymentProcessingOverlay stage={cardPaymentStage} />}
       
     </div>);
 

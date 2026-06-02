@@ -71,7 +71,7 @@ export default function AddCardStripeForm({ onClose, onAdded }) {
           : null;
 
       if (!paymentMethodId) {
-        setError("Không lấy được paymentMethodId từ Stripe.");
+        setError("Không nhận được mã phương thức thanh toán từ cổng thẻ.");
         return;
       }
 

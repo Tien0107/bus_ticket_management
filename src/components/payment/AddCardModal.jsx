@@ -32,7 +32,7 @@ export default function AddCardModal({ open, onClose, onAdded }) {
 
         {!hasStripeKey ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 text-red-700 p-4 text-sm font-medium">
-            Thiếu cấu hình Stripe. Vui lòng thêm biến môi trường
+            Thiếu cấu hình cổng thanh toán thẻ. Vui lòng thêm biến môi trường
             <span className="font-bold"> REACT_APP_STRIPE_PUBLISHABLE_KEY</span>.
           </div>
         ) : (

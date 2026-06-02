@@ -4,6 +4,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import CustomerProfileNav from "../../components/profile/CustomerProfileNav";
 import CustomerProfileSectionHeader from "../../components/profile/CustomerProfileSectionHeader";
 import ConfirmModal from "../../components/common/ConfirmModal";
+import CardPaymentProcessingOverlay from "../../components/payment/CardPaymentProcessingOverlay";
 import SelectPaymentCardModal from "../../components/payment/SelectPaymentCardModal";
 import ReviewTripModal from "../../components/reviews/ReviewTripModal";
 import { useToast } from "../../context/ToastContext";
@@ -21,6 +22,7 @@ import { getStoredToken, getStoredUser } from "../../utils/authStorage";
 const LIMIT = 10;
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const INITIAL_FILTERS = {
   type: "",
@@ -206,6 +208,7 @@ export default function MyTickets() {
   const [loadingCards, setLoadingCards] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [processingCardPayment, setProcessingCardPayment] = useState(false);
+  const [cardPaymentStage, setCardPaymentStage] = useState("starting");
   const [reviewTicket, setReviewTicket] = useState(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -490,10 +493,13 @@ export default function MyTickets() {
     const orderId = getPaymentOrderId(ticket);
     if (!orderId) {
       addToast("Không tìm thấy mã booking để thanh toán.", "error");
+      setProcessingCardPayment(false);
+      setCardPaymentStage("starting");
       return;
     }
 
     try {
+      setCardPaymentStage("session");
       setProcessingCardPayment(true);
       const response = await createPaymentMethod(orderId, "stripe");
       const clientSecret = response.data?.clientSecret;
@@ -504,16 +510,17 @@ export default function MyTickets() {
       }
 
       if (!stripePromise) {
-        addToast("Thiếu cấu hình Stripe key (REACT_APP_STRIPE_PUBLISHABLE_KEY).", "error");
+        addToast("Thiếu cấu hình cổng thanh toán thẻ (REACT_APP_STRIPE_PUBLISHABLE_KEY).", "error");
         return;
       }
 
       const stripe = await stripePromise;
       if (!stripe) {
-        addToast("Không thể khởi tạo Stripe.", "error");
+        addToast("Không thể khởi tạo cổng thanh toán thẻ.", "error");
         return;
       }
 
+      setCardPaymentStage("confirm");
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: selectedPaymentMethodId || undefined,
       });
@@ -524,24 +531,24 @@ export default function MyTickets() {
       }
 
       if (paymentIntent?.status === "succeeded") {
+        setCardPaymentStage("finalizing");
         await createPaymentNotification(ticket, "stripe");
 
-        // Optimistic update: vé hiện "Đã thanh toán" ngay lập tức
         setTickets((prev) =>
           prev.map((t) =>
             String(t.id) === String(ticket.id) ? { ...t, status: "paid" } : t
           )
         );
 
-        addToast("Thanh toán bằng thẻ thành công!", "success");
         setShowCardModal(false);
         setPaymentTicket(null);
 
-        // Refresh ngay + refresh lại sau 2-3s để bắt webhook Stripe
-        fetchTickets({ filters: appliedFilters });
+        addToast("Thanh toán bằng thẻ thành công!", "success");
+        await fetchTickets({ filters: appliedFilters });
         setTimeout(() => {
           fetchTickets({ filters: appliedFilters });
         }, 2800);
+        await wait(2500);
 
         return;
       }
@@ -551,6 +558,7 @@ export default function MyTickets() {
       addToast("Thanh toán thẻ thất bại: " + (err.response?.data?.message || err.message), "error");
     } finally {
       setProcessingCardPayment(false);
+      setCardPaymentStage("starting");
     }
   };
 
@@ -562,12 +570,14 @@ export default function MyTickets() {
     }
 
     try {
+      setCardPaymentStage("starting");
       setProcessingCardPayment(true);
       await setDefaultPaymentMethod(paymentMethodId);
-      setProcessingCardPayment(false);
+      setShowCardModal(false);
       await performStripePayment(paymentTicket, paymentMethodId);
     } catch (err) {
       setProcessingCardPayment(false);
+      setCardPaymentStage("starting");
       addToast("Không thể đặt thẻ mặc định để thanh toán: " + (err.response?.data?.message || err.message), "error");
     }
   };
@@ -578,6 +588,9 @@ export default function MyTickets() {
       return;
     }
 
+    setCardPaymentStage("starting");
+    setProcessingCardPayment(true);
+    setShowCardModal(false);
     await performStripePayment(paymentTicket, paymentMethodId);
   };
 
@@ -1093,6 +1106,7 @@ export default function MyTickets() {
           onGoToManageCards={() => navigate("/profile/payment-methods")}
           continuing={processingCardPayment}
         />
+        {processingCardPayment && <CardPaymentProcessingOverlay stage={cardPaymentStage} />}
 
         <ReviewTripModal
           isOpen={!!reviewTicket}
