@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getDrivers, getRoutes, getStations, getTripPrices, getTripSchedules, getVehicles } from "../../api/operator";
+import {
+  dedupeDriversByContact,
+  getAllDrivers,
+  getAllRoutes,
+  getAllStations,
+  getAllTripPrices,
+  getAllTripSchedules,
+  getAllVehicles } from "../../api/operator";
 import { useToast } from "../../context/ToastContext";
 import { ErrorState, LoadingState, OperatorPageShell, StatCard } from "./OperatorUI";
 
@@ -60,12 +67,12 @@ export default function OperatorDashboard() {
     try {
       setLoading(true);
       const [routesRes, stationsRes, schedulesRes, pricesRes, driversRes, vehiclesRes] = await Promise.allSettled([
-      getRoutes({ limit: 10 }),
-      getStations({ limit: 10 }),
-      getTripSchedules({ limit: 10, orderBy: "asc" }),
-      getTripPrices({ limit: 10 }),
-      getDrivers({ limit: 10 }),
-      getVehicles({ limit: 10, status: "active" })]
+      getAllRoutes(),
+      getAllStations(),
+      getAllTripSchedules({ orderBy: "asc" }),
+      getAllTripPrices(),
+      getAllDrivers(),
+      getAllVehicles({ status: "active" })]
       );
 
       setData({
@@ -73,7 +80,7 @@ export default function OperatorDashboard() {
         stations: stationsRes.status === "fulfilled" ? stationsRes.value.data?.stations || [] : [],
         schedules: schedulesRes.status === "fulfilled" ? schedulesRes.value.data?.trip || [] : [],
         prices: pricesRes.status === "fulfilled" ? pricesRes.value.data?.prices || [] : [],
-        drivers: driversRes.status === "fulfilled" ? driversRes.value.data?.drivers || [] : [],
+        drivers: driversRes.status === "fulfilled" ? dedupeDriversByContact(driversRes.value.data?.drivers || []) : [],
         vehicles: vehiclesRes.status === "fulfilled" ? vehiclesRes.value.data?.vehicles || [] : []
       });
       setError("");

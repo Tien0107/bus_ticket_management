@@ -14,6 +14,41 @@ export const getDriverTrips = (params = {}) => {
   });
 };
 
+export const getDriverStats = () => {
+  return axiosClient.get("/driver/me/stat");
+};
+
+const getNextCursor = (response) => {
+  const next = response?.data?.next;
+  return next === undefined || next === null || next === 0 || next === "" ? null : next;
+};
+
+export const getAllDriverTrips = async (params = {}) => {
+  const trips = [];
+  let next = params.next || null;
+  let pageCount = 0;
+
+  do {
+    const response = await getDriverTrips({
+      limit: 100,
+      ...params,
+      ...(next ? { next } : {})
+    });
+
+    const pageTrips = Array.isArray(response.data?.trips)
+      ? response.data.trips
+      : Array.isArray(response.data)
+      ? response.data
+      : [];
+
+    trips.push(...pageTrips);
+    next = getNextCursor(response);
+    pageCount += 1;
+  } while (next && pageCount < 50);
+
+  return { data: { trips, next } };
+};
+
 
 export const getDriverTripsAllStatuses = async (date = null) => {
   try {
@@ -24,7 +59,7 @@ export const getDriverTripsAllStatuses = async (date = null) => {
     const promises = statuses.map((status) => {
       const params = { status };
       if (date) params.date = date;
-      return getDriverTrips(params)
+      return getAllDriverTrips(params)
         .then((response) => response?.data?.trips || [])
         .catch(() => []);
     });
@@ -59,9 +94,46 @@ export const getTripPassengers = (tripId, params) => {
   return axiosClient.get(`/driver/trip/${tripId}/passenger`, { params });
 };
 
+export const getAllTripPassengers = async (tripId, params = {}) => {
+  const passengers = [];
+  let next = params.next || null;
+  let pageCount = 0;
 
-export const checkInPassenger = (tripId, passengerId, status = "checked_in") => {
-  return axiosClient.put(`/driver/trip/${tripId}/passenger/${passengerId}/check-in`, { status });
+  do {
+    const response = await getTripPassengers(tripId, {
+      limit: 100,
+      ...params,
+      ...(next ? { next } : {})
+    });
+
+    const pagePassengers = Array.isArray(response.data?.passengers)
+      ? response.data.passengers
+      : Array.isArray(response.data)
+      ? response.data
+      : [];
+
+    passengers.push(...pagePassengers);
+    next = getNextCursor(response);
+    pageCount += 1;
+  } while (next && pageCount < 50);
+
+  return { data: { passengers, next } };
+};
+
+
+export const checkInPassenger = async (tripId, passengerId, status = "checked_in") => {
+  const endpoint = `/driver/trip/${tripId}/passenger/${passengerId}/check-in`;
+
+  try {
+    return await axiosClient.put(endpoint, { status });
+  } catch (error) {
+    const code = error.response?.status;
+    const canRetryWithSwaggerStatus = status !== "reserved" && [400, 422, 500].includes(code);
+
+    if (!canRetryWithSwaggerStatus) throw error;
+
+    return axiosClient.put(endpoint, { status: "reserved" });
+  }
 };
 
 

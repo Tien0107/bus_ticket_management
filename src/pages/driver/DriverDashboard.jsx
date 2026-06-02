@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getDriverTripsAllStatuses } from "../../api/driver";
+import { getAllTripPassengers, getDriverStats, getDriverTripsAllStatuses } from "../../api/driver";
 
 const statusMeta = {
   scheduled: {
@@ -55,14 +55,20 @@ const formatDate = (value) => {
   });
 };
 
-const formatMoney = (value) => {
-  const amount = Number(value || 0);
-  if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
-  return amount.toLocaleString("vi-VN");
+const formatDuration = (minutes) => {
+  const totalMinutes = Number(minutes || 0);
+  if (!totalMinutes) return "--";
+
+  const hours = Math.floor(totalMinutes / 60);
+  const remainingMinutes = totalMinutes % 60;
+  if (!hours) return `${remainingMinutes} phút`;
+  if (!remainingMinutes) return `${hours} giờ`;
+  return `${hours} giờ ${remainingMinutes} phút`;
 };
 
 const normalizeTrip = (trip) => {
   const status = normalizeStatus(trip.status);
+  const rawPassengerCount = trip.passengerCount ?? trip.passenger_count ?? trip.ticketCount ?? trip.ticket_count;
 
   return {
     ...trip,
@@ -71,9 +77,11 @@ const normalizeTrip = (trip) => {
     displayDate: formatDate(trip.departureDate || trip.date),
     departure: trip.fromLocation || trip.departure || "Điểm đi",
     destination: trip.toLocation || trip.destination || "Điểm đến",
-    passengerCount: Number(trip.passengerCount || 0),
+    passengerCount: Number(rawPassengerCount || 0),
+    hasPassengerCount: rawPassengerCount !== undefined && rawPassengerCount !== null,
     totalSeats: Number(trip.totalSeats || 45),
-    revenue: Number(trip.revenue || 0),
+    distanceKm: Number(trip.distanceKm || trip.distance_km || 0),
+    durationMinutes: Number(trip.durationMinutes || trip.duration_minutes || 0),
     departureTime: trip.departureTime || "--:--",
   };
 };
@@ -94,7 +102,9 @@ const StatCard = ({ icon, label, value, tone = "text-primary" }) => (
 
 const TripCard = ({ trip }) => {
   const meta = statusMeta[trip.status] || statusMeta.scheduled;
-  const occupancy = trip.totalSeats ? Math.min(100, Math.round((trip.passengerCount / trip.totalSeats) * 100)) : 0;
+  const occupancy = trip.hasPassengerCount && trip.totalSeats
+    ? Math.min(100, Math.round((trip.passengerCount / trip.totalSeats) * 100))
+    : 0;
 
   return (
     <Link
@@ -135,11 +145,13 @@ const TripCard = ({ trip }) => {
       <div className="mt-5 grid grid-cols-3 gap-3 text-sm">
         <div>
           <p className="text-on-surface-variant">Ghế</p>
-          <p className="mt-1 font-semibold text-on-surface">{trip.passengerCount}/{trip.totalSeats}</p>
+          <p className="mt-1 font-semibold text-on-surface">
+            {trip.hasPassengerCount ? trip.passengerCount : "--"}/{trip.totalSeats}
+          </p>
         </div>
         <div>
-          <p className="text-on-surface-variant">Doanh thu</p>
-          <p className="mt-1 font-semibold text-on-surface">{formatMoney(trip.revenue)} đ</p>
+          <p className="text-on-surface-variant">Thời lượng</p>
+          <p className="mt-1 font-semibold text-on-surface">{formatDuration(trip.durationMinutes)}</p>
         </div>
         <div>
           <p className="text-on-surface-variant">Xe</p>
@@ -159,6 +171,7 @@ const TripCard = ({ trip }) => {
 const DriverDashboard = () => {
   const [user, setUser] = useState(null);
   const [trips, setTrips] = useState([]);
+  const [driverStats, setDriverStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("scheduled");
@@ -170,8 +183,15 @@ const DriverDashboard = () => {
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) setUser(JSON.parse(stored));
+  }, []);
+
+  useEffect(() => {
     fetchTrips(selectedDate);
   }, [selectedDate]);
+
+  useEffect(() => {
+    fetchDriverStats();
+  }, []);
 
   const fetchTrips = async (date) => {
     try {
@@ -183,12 +203,36 @@ const DriverDashboard = () => {
         ? response.data.data
         : [];
 
-      setTrips(tripsData.map(normalizeTrip));
+      const enrichedTrips = await Promise.all(
+        tripsData.map(async (trip) => {
+          const normalizedTrip = normalizeTrip(trip);
+          if (normalizedTrip.hasPassengerCount || !trip.id) return normalizedTrip;
+
+          try {
+            const passengersRes = await getAllTripPassengers(trip.id, { limit: 100 });
+            const passengers = Array.isArray(passengersRes.data?.passengers) ? passengersRes.data.passengers : [];
+            return normalizeTrip({ ...trip, passengerCount: passengers.length });
+          } catch {
+            return normalizedTrip;
+          }
+        })
+      );
+
+      setTrips(enrichedTrips);
       setError(null);
     } catch {
       setError("Không thể tải danh sách chuyến");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDriverStats = async () => {
+    try {
+      const response = await getDriverStats();
+      setDriverStats(response.data?.current || null);
+    } catch {
+      setDriverStats(null);
     }
   };
 
@@ -202,8 +246,9 @@ const DriverDashboard = () => {
     scheduled: groupedTrips.scheduled.length,
     running: groupedTrips.running.length,
     passengers: trips.reduce((sum, trip) => sum + trip.passengerCount, 0),
-    revenue: trips.reduce((sum, trip) => sum + trip.revenue, 0),
-  }), [groupedTrips, trips]);
+    completedMonth: Number(driverStats?.completedTripCount || 0),
+    cancelledMonth: Number(driverStats?.cancelledTripCount || 0),
+  }), [driverStats, groupedTrips, trips]);
 
   const tabs = [
     { id: "scheduled", label: "Sắp chạy", icon: "event_upcoming", count: groupedTrips.scheduled.length },
@@ -246,11 +291,12 @@ const DriverDashboard = () => {
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <StatCard icon="event_upcoming" label="Chuyến sắp chạy" value={stats.scheduled} />
           <StatCard icon="directions_bus" label="Đang chạy" value={stats.running} tone="text-emerald-600" />
           <StatCard icon="groups" label="Tổng hành khách" value={stats.passengers} />
-          <StatCard icon="payments" label="Tổng doanh thu" value={`${formatMoney(stats.revenue)} đ`} />
+          <StatCard icon="task_alt" label="Hoàn thành tháng" value={stats.completedMonth} tone="text-slate-700" />
+          <StatCard icon="cancel" label="Đã hủy tháng" value={stats.cancelledMonth} tone="text-red-600" />
         </div>
 
         {activeTrip && (
@@ -262,7 +308,7 @@ const DriverDashboard = () => {
                   {activeTrip.departure} → {activeTrip.destination}
                 </h2>
                 <p className="mt-2 text-sm text-white/85">
-                  {activeTrip.departureTime} · {activeTrip.passengerCount}/{activeTrip.totalSeats} hành khách
+                  {activeTrip.departureTime} · {activeTrip.hasPassengerCount ? activeTrip.passengerCount : "--"}/{activeTrip.totalSeats} hành khách
                 </p>
               </div>
               <Link

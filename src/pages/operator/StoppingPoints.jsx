@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   createStoppingPoint,
-  getRoutes,
-  getStations,
+  getAllRoutes,
+  getAllStations,
+  getAllTripSchedules,
   getStoppingPoints,
-  getTripSchedules,
   updateStoppingPoint } from
 "../../api/operator";
 import { useToast } from "../../context/ToastContext";
@@ -30,8 +30,6 @@ const emptyForm = {
   allowDropoff: true,
   stopOrder: ""
 };
-
-const OPTION_LIMIT = 100;
 
 const findRouteForSchedule = (schedule, routes) => {
   if (!schedule) return null;
@@ -129,9 +127,9 @@ export default function StoppingPoints() {
     try {
       setLoading(true);
       const [stationsRes, schedulesRes, routesRes] = await Promise.all([
-      getStations({ limit: OPTION_LIMIT }),
-      getTripSchedules({ limit: OPTION_LIMIT, orderBy: "asc" }),
-      getRoutes({ limit: OPTION_LIMIT })]
+      getAllStations(),
+      getAllTripSchedules({ orderBy: "asc" }),
+      getAllRoutes()]
       );
 
       const stationList = Array.isArray(stationsRes.data?.stations) ? stationsRes.data.stations : [];
@@ -205,14 +203,7 @@ export default function StoppingPoints() {
       return;
     }
 
-    const companyId = editingPoint?.companyId || schedule?.companyId || getStoredCompanyId();
-    if (!companyId) {
-      addToast({ type: "error", title: "Không tìm thấy công ty để lưu điểm dừng" });
-      return;
-    }
-
     const payload = {
-      companyId: Number(companyId),
       scheduleId: Number(scheduleId),
       allowPickup: Boolean(formData.allowPickup),
       allowDropoff: Boolean(formData.allowDropoff),
@@ -223,7 +214,13 @@ export default function StoppingPoints() {
 
     try {
       if (editingPoint) {
-        await updateStoppingPoint(scheduleId, editingPoint.id, payload);
+        const companyId = editingPoint.companyId || schedule?.companyId || getStoredCompanyId();
+        if (!companyId) {
+          addToast({ type: "error", title: "Không tìm thấy công ty để cập nhật điểm dừng" });
+          return;
+        }
+
+        await updateStoppingPoint(scheduleId, editingPoint.id, { companyId: Number(companyId), ...payload });
         addToast({ type: "success", title: "Cập nhật điểm dừng thành công" });
       } else {
         await createStoppingPoint(scheduleId, payload);

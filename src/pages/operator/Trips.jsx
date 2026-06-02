@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { getDrivers, getRoutes, getTrips, getVehicles, updateTrip } from "../../api/operator";
+import { dedupeDriversByContact, getAllDrivers, getAllRoutes, getAllTrips, getAllVehicles, updateTrip } from "../../api/operator";
 import { createNotification } from "../../api/notification";
 import { useToast } from "../../context/ToastContext";
 import {
@@ -102,6 +102,7 @@ trip.plateNumber ?? trip.plate_number ?? trip.vehicle?.plateNumber ?? trip.vehic
 const getTripTotalSeats = (trip = {}) =>
 trip.totalSeats ?? trip.total_seats ?? trip.vehicle?.totalSeats ?? trip.vehicle?.total_seats ?? 0;
 const getVehiclePlateNumber = (vehicle = {}) => vehicle.plateNumber ?? vehicle.plate_number ?? "";
+const canEditTrip = (trip = {}) => trip.status === "scheduled";
 
 const findRouteByLocations = (source, routes) => {
   if (!source) return null;
@@ -250,11 +251,11 @@ export default function Trips() {
   const fetchOptions = async () => {
     try {
       const [driversRes, vehiclesRes, routesRes] = await Promise.all([
-      getDrivers({ limit: 10, status: "active" }),
-      getVehicles({ limit: 10, status: "active" }),
-      getRoutes({ limit: 10 })]
+      getAllDrivers({ status: "active" }),
+      getAllVehicles({ status: "active" }),
+      getAllRoutes()]
       );
-      setDrivers(Array.isArray(driversRes.data?.drivers) ? driversRes.data.drivers : []);
+      setDrivers(dedupeDriversByContact(Array.isArray(driversRes.data?.drivers) ? driversRes.data.drivers : []));
       setVehicles(Array.isArray(vehiclesRes.data?.vehicles) ? vehiclesRes.data.vehicles : []);
       setRoutes(Array.isArray(routesRes.data?.routes) ? routesRes.data.routes : []);
     } catch (err) {
@@ -267,14 +268,13 @@ export default function Trips() {
     try {
       setLoading(true);
       const params = {
-        limit: 10,
         orderBy: "asc",
         status: filterStatus !== "all" ? filterStatus : undefined,
         date: filterDate || undefined
       };
       Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 
-      const response = await getTrips(scheduleId, params);
+      const response = await getAllTrips(scheduleId, params);
       const tripItems = Array.isArray(response.data?.trips) ?
       response.data.trips :
       Array.isArray(response.data?.trip) ?
@@ -310,6 +310,15 @@ export default function Trips() {
   };
 
   const openEditModal = (trip) => {
+    if (!canEditTrip(trip)) {
+      addToast({
+        type: "warning",
+        title: "Không thể cập nhật chuyến",
+        message: "Chỉ có thể cập nhật chuyến khi còn ở trạng thái sắp chạy."
+      });
+      return;
+    }
+
     const departureDate = getTripDepartureDate(trip);
     const tripPlateNumber = String(getTripPlateNumber(trip)).trim();
     const matchedVehicle = vehicles.find(
@@ -360,6 +369,16 @@ export default function Trips() {
 
   const handleSave = async () => {
     if (!editingTrip) return;
+
+    if (!canEditTrip(editingTrip)) {
+      addToast({
+        type: "warning",
+        title: "Không thể cập nhật chuyến",
+        message: "Chuyến đã bắt đầu chạy nên không thể cập nhật tài xế hoặc thông tin chuyến."
+      });
+      return;
+    }
+
     if (!formData.driverId || !formData.departureDate) {
       addToast({ type: "warning", title: "Thiếu tài xế hoặc ngày chạy" });
       return;
@@ -500,6 +519,7 @@ export default function Trips() {
                 {trips.map((trip) => {
                 const displayDate = getTripDepartureDate(trip) || filterDate;
                 const driverName = getTripDriverName(trip);
+                const editable = canEditTrip(trip);
 
                 return (
                   <tr key={trip.id} className="hover:bg-surface-container-low/70">
@@ -538,7 +558,13 @@ export default function Trips() {
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex justify-end">
-                        <IconButton icon="edit" label="Sửa chuyến" variant="primary" onClick={() => openEditModal(trip)} />
+                        <IconButton
+                          icon="edit"
+                          label={editable ? "Sửa chuyến" : "Chỉ sửa được chuyến sắp chạy"}
+                          variant={editable ? "primary" : "secondary"}
+                          disabled={!editable}
+                          onClick={() => openEditModal(trip)}
+                        />
                       </div>
                     </td>
                   </tr>);

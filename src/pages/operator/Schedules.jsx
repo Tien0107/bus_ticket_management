@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import {
   createTripSchedule,
   deleteTripSchedule,
-  getRoutes,
+  getAllRoutes,
+  getAllTripSchedules,
   getStoppingPoints,
   getTrips,
-  getTripSchedules,
   updateTripSchedule } from
 "../../api/operator";
 import { useToast } from "../../context/ToastContext";
@@ -126,8 +126,8 @@ export default function Schedules() {
     try {
       setLoading(true);
       const [schedulesRes, routesRes] = await Promise.all([
-      getTripSchedules({ limit: 10, orderBy: "asc" }),
-      getRoutes({ limit: 10 })]
+      getAllTripSchedules({ orderBy: "asc" }),
+      getAllRoutes()]
       );
       const schedulesData = Array.isArray(schedulesRes.data?.trip) ? schedulesRes.data.trip : [];
       setSchedules(schedulesData.map(hydrateScheduleDates));

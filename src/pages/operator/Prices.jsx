@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   createTripPrice,
   deleteTripPrice,
-  getRoutes,
-  getStations,
-  getTripPrices,
+  getAllRoutes,
+  getAllStations,
+  getAllTripPrices,
   updateTripPrice } from
 "../../api/operator";
 import { useToast } from "../../context/ToastContext";
@@ -33,8 +33,6 @@ const emptyForm = {
   price: "",
   status: true
 };
-
-const OPTION_LIMIT = 100;
 
 const getStoredCompanyId = () => {
   try {
@@ -117,8 +115,8 @@ export default function Prices() {
   const fetchBaseData = async () => {
     try {
       const [routesRes, stationsRes] = await Promise.all([
-      getRoutes({ limit: OPTION_LIMIT }),
-      getStations({ limit: OPTION_LIMIT })]
+      getAllRoutes(),
+      getAllStations()]
       );
       setRoutes(Array.isArray(routesRes.data?.routes) ? routesRes.data.routes : []);
       setStations(Array.isArray(stationsRes.data?.stations) ? stationsRes.data.stations : []);
@@ -133,11 +131,10 @@ export default function Prices() {
       setLoading(true);
       const params = {
         routeId: appliedRouteId !== "all" ? Number(appliedRouteId) : undefined,
-        limit: 10
       };
       Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 
-      const response = await getTripPrices(params);
+      const response = await getAllTripPrices(params);
       setPrices(Array.isArray(response.data?.prices) ? response.data.prices : []);
       setError("");
     } catch (err) {
@@ -206,14 +203,7 @@ export default function Prices() {
       return;
     }
 
-    const companyId = editingPrice?.companyId || getStoredCompanyId();
-    if (!companyId) {
-      addToast({ type: "error", title: "Không tìm thấy công ty để lưu bảng giá" });
-      return;
-    }
-
     const payload = {
-      companyId: Number(companyId),
       routeId: Number(formData.routeId),
       fromStationId: Number(formData.fromStationId),
       toStationId: Number(formData.toStationId),
@@ -223,7 +213,13 @@ export default function Prices() {
 
     try {
       if (editingPrice) {
-        await updateTripPrice(editingPrice.id, payload);
+        const companyId = editingPrice.companyId || getStoredCompanyId();
+        if (!companyId) {
+          addToast({ type: "error", title: "Không tìm thấy công ty để cập nhật bảng giá" });
+          return;
+        }
+
+        await updateTripPrice(editingPrice.id, { companyId: Number(companyId), ...payload });
         addToast({ type: "success", title: "Cập nhật bảng giá thành công" });
       } else {
         await createTripPrice(payload);

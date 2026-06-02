@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { getDriverTripsAllStatuses, getTripPassengers, getTripRoute, updateTrip } from "../../api/driver";
+import { getAllTripPassengers, getDriverTripsAllStatuses, getTripRoute, updateTrip } from "../../api/driver";
 import { useToast } from "../../context/ToastContext";
 import PassengerList from "../../components/driver/PassengerList";
 import CheckInPanel from "../../components/driver/CheckInPanel";
@@ -55,7 +55,16 @@ const formatDate = (value) => {
   });
 };
 
-const formatMoney = (value) => Number(value || 0).toLocaleString("vi-VN");
+const formatDuration = (minutes) => {
+  const totalMinutes = Number(minutes || 0);
+  if (!totalMinutes) return "--";
+
+  const hours = Math.floor(totalMinutes / 60);
+  const remainingMinutes = totalMinutes % 60;
+  if (!hours) return `${remainingMinutes} phút`;
+  if (!remainingMinutes) return `${hours} giờ`;
+  return `${hours} giờ ${remainingMinutes} phút`;
+};
 const wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration));
 
 const isCheckedInStatus = (status) => {
@@ -63,18 +72,24 @@ const isCheckedInStatus = (status) => {
   return ["checked_in", "checked-in", "checkedin", "confirmed", "present"].includes(normalizedStatus);
 };
 
-const normalizeTrip = (trip = {}) => ({
-  ...trip,
-  status: normalizeStatus(trip.status),
-  departure: trip.fromLocation || trip.departure || "Điểm đi",
-  destination: trip.toLocation || trip.destination || "Điểm đến",
-  departureTime: trip.departureTime || "--:--",
-  departureDate: trip.departureDate || trip.date || "",
-  displayDate: formatDate(trip.departureDate || trip.date),
-  passengerCount: Number(trip.passengerCount || 0),
-  totalSeats: Number(trip.totalSeats || 45),
-  revenue: Number(trip.revenue || 0),
-});
+const normalizeTrip = (trip = {}) => {
+  const rawPassengerCount = trip.passengerCount ?? trip.passenger_count ?? trip.ticketCount ?? trip.ticket_count;
+
+  return {
+    ...trip,
+    status: normalizeStatus(trip.status),
+    departure: trip.fromLocation || trip.departure || "Điểm đi",
+    destination: trip.toLocation || trip.destination || "Điểm đến",
+    departureTime: trip.departureTime || "--:--",
+    departureDate: trip.departureDate || trip.date || "",
+    displayDate: formatDate(trip.departureDate || trip.date),
+    passengerCount: Number(rawPassengerCount || 0),
+    hasPassengerCount: rawPassengerCount !== undefined && rawPassengerCount !== null,
+    totalSeats: Number(trip.totalSeats || 45),
+    distanceKm: Number(trip.distanceKm || trip.distance_km || 0),
+    durationMinutes: Number(trip.durationMinutes || trip.duration_minutes || 0),
+  };
+};
 
 const normalizePassengers = (rawPassengers) => {
   if (!Array.isArray(rawPassengers)) return [];
@@ -208,7 +223,7 @@ export default function TripDetail() {
 
       const [tripData, passengersRes, routeRes] = await Promise.all([
         tripPromise,
-        getTripPassengers(tripId, { limit: 10 }),
+        getAllTripPassengers(tripId, { limit: 100 }),
         getTripRoute(tripId),
       ]);
 
@@ -261,13 +276,18 @@ export default function TripDetail() {
   };
 
   const handleCompleteTrip = async () => {
+    if (pendingCount > 0) {
+      addToast(`Còn ${pendingCount} hành khách chưa check-in. Vui lòng check-in hết trước khi kết thúc chuyến.`, "warning");
+      return;
+    }
+
     try {
       setUpdating(true);
       await updateTrip(tripId, { status: "completed" });
       setTrip((current) => ({ ...current, status: "completed" }));
       addToast("Hoàn thành chuyến thành công", "success");
-    } catch {
-      addToast("Hoàn thành chuyến thất bại", "error");
+    } catch (error) {
+      addToast(error.response?.data?.message || "Hoàn thành chuyến thất bại", "error");
     } finally {
       setUpdating(false);
     }
@@ -411,7 +431,7 @@ export default function TripDetail() {
             <InfoTile icon="confirmation_number" label="Hành khách" value={`${passengers.length || trip.passengerCount}/${trip.totalSeats}`} />
             <InfoTile icon="task_alt" label="Đã check-in" value={`${checkedInCount}/${passengers.length || trip.passengerCount || 0}`} />
             <InfoTile icon="directions_bus" label="Biển số" value={trip.plateNumber || trip.vehicleNumber || "Chưa gán"} />
-            <InfoTile icon="payments" label="Doanh thu" value={`${formatMoney(trip.revenue)} đ`} />
+            <InfoTile icon="schedule" label="Thời lượng" value={formatDuration(trip.durationMinutes)} />
           </div>
 
           <div className="mt-6 rounded-xl bg-surface-container-low p-4">

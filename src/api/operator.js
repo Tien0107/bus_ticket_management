@@ -107,3 +107,75 @@ export const getDrivers = (params = {}) => {
 export const operatorSignUp = (data) => {
   return axiosClient.post("/operator-dispatcher/sign-up", data);
 };
+
+const getNextCursor = (response) => {
+  const next = response?.data?.next;
+  return next === undefined || next === null || next === 0 || next === "" ? null : next;
+};
+
+const getFirstArray = (data, keys) => {
+  for (const key of keys) {
+    if (Array.isArray(data?.[key])) return data[key];
+    if (Array.isArray(data?.data?.[key])) return data.data[key];
+  }
+
+  return Array.isArray(data) ? data : [];
+};
+
+const getAllPages = async (request, keys, params = {}, outputKey = keys[0]) => {
+  const items = [];
+  let next = params.next || null;
+  let pageCount = 0;
+
+  do {
+    const response = await request({
+      limit: 100,
+      ...params,
+      ...(next ? { next } : {})
+    });
+
+    items.push(...getFirstArray(response.data, keys));
+    next = getNextCursor(response);
+    pageCount += 1;
+  } while (next && pageCount < 50);
+
+  return { data: { [outputKey]: items, next } };
+};
+
+export const getAllRoutes = (params = {}) => getAllPages(getRoutes, ["routes"], params);
+export const getAllStations = (params = {}) => getAllPages(getStations, ["stations"], params);
+export const getAllTripPrices = (params = {}) => getAllPages(getTripPrices, ["prices"], params);
+export const getAllTripSchedules = (params = {}) => getAllPages(getTripSchedules, ["trip", "tripSchedules"], params, "trip");
+export const getAllVehicles = (params = {}) => getAllPages(getVehicles, ["vehicles"], params);
+export const getAllDrivers = (params = {}) => getAllPages(getDrivers, ["drivers"], params);
+export const getAllTrips = (scheduleId, params = {}) => getAllPages((pageParams) => getTrips(scheduleId, pageParams), ["trips", "trip"], params, "trips");
+
+const normalizePhone = (value) => String(value || "").replace(/\D/g, "");
+
+const getDriverDedupeKey = (driver = {}) => {
+  const phone = normalizePhone(driver.phone || driver.phoneNumber);
+  if (phone) return `phone:${phone}`;
+
+  const email = String(driver.email || "").trim().toLowerCase();
+  if (email) return `email:${email}`;
+
+  return `id:${driver.id}`;
+};
+
+const getDriverScore = (driver = {}) =>
+  Number(driver.completedTripCount || 0) + Number(driver.cancelledTripCount || 0);
+
+export const dedupeDriversByContact = (drivers = []) => {
+  const uniqueMap = new Map();
+
+  drivers.forEach((driver) => {
+    const key = getDriverDedupeKey(driver);
+    const current = uniqueMap.get(key);
+
+    if (!current || getDriverScore(driver) > getDriverScore(current)) {
+      uniqueMap.set(key, driver);
+    }
+  });
+
+  return Array.from(uniqueMap.values());
+};
