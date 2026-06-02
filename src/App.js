@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import StripeConnectCallback from "./pages/stripe/StripeConnectCallback";
+import StripeConnectSuccess from "./pages/stripe/StripeConnectSuccess";
 import PaymentResult from "./pages/customer/PaymentResult";
 
 
@@ -133,6 +134,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/company-signup" element={<Navigate to="/register?type=company" replace />} />
           <Route path="/stripe/connect/callback" element={<StripeConnectCallback />} />
+          <Route path="/stripe/connect/success" element={<StripeConnectSuccess />} />
           <Route
               path="/payment-result"
               element={
