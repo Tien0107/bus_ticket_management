@@ -64,20 +64,33 @@ const formatDateKey = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const formatDuration = (minutes) => {
-  const totalMinutes = Number(minutes || 0);
-  if (!totalMinutes) return "--";
-
-  const hours = Math.floor(totalMinutes / 60);
-  const remainingMinutes = totalMinutes % 60;
-  if (!hours) return `${remainingMinutes} phút`;
-  if (!remainingMinutes) return `${hours} giờ`;
-  return `${hours} giờ ${remainingMinutes} phút`;
+const formatMoney = (value) => {
+  const amount = Number(value || 0);
+  if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M đ`;
+  return `${amount.toLocaleString("vi-VN")} đ`;
 };
+
+const getPassengerTotalAmount = (passenger = {}) =>
+  Number(
+    passenger.totalAmount ??
+      passenger.total_amount ??
+      passenger.amount ??
+      passenger.price ??
+      passenger.ticket?.totalAmount ??
+      passenger.ticket?.total_amount ??
+      passenger.Ticket?.totalAmount ??
+      passenger.Ticket?.total_amount ??
+      passenger.booking?.totalAmount ??
+      passenger.booking?.total_amount ??
+      passenger.Booking?.totalAmount ??
+      passenger.Booking?.total_amount ??
+      0
+  );
 
 const normalizeTrip = (trip) => {
   const status = normalizeStatus(trip.status);
   const rawPassengerCount = trip.passengerCount ?? trip.passenger_count ?? trip.ticketCount ?? trip.ticket_count;
+  const rawRevenue = trip.revenue ?? trip.totalRevenue ?? trip.total_revenue;
 
   return {
     ...trip,
@@ -91,6 +104,8 @@ const normalizeTrip = (trip) => {
     totalSeats: Number(trip.totalSeats || 45),
     distanceKm: Number(trip.distanceKm || trip.distance_km || 0),
     durationMinutes: Number(trip.durationMinutes || trip.duration_minutes || 0),
+    revenue: Number(rawRevenue || 0),
+    hasRevenue: rawRevenue !== undefined && rawRevenue !== null,
     departureTime: trip.departureTime || "--:--",
   };
 };
@@ -159,8 +174,8 @@ const TripCard = ({ trip }) => {
           </p>
         </div>
         <div>
-          <p className="text-on-surface-variant">Thời lượng</p>
-          <p className="mt-0.5 font-semibold text-on-surface">{formatDuration(trip.durationMinutes)}</p>
+          <p className="text-on-surface-variant">Doanh thu</p>
+          <p className="mt-0.5 font-semibold text-on-surface">{trip.hasRevenue ? formatMoney(trip.revenue) : "--"}</p>
         </div>
         <div>
           <p className="text-on-surface-variant">Xe</p>
@@ -214,12 +229,17 @@ const DriverDashboard = () => {
       const enrichedTrips = await Promise.all(
         tripsData.map(async (trip) => {
           const normalizedTrip = normalizeTrip(trip);
-          if (normalizedTrip.hasPassengerCount || !trip.id) return normalizedTrip;
+          if (!trip.id) return normalizedTrip;
 
           try {
             const passengersRes = await getAllTripPassengers(trip.id);
             const passengers = Array.isArray(passengersRes.data?.passengers) ? passengersRes.data.passengers : [];
-            return normalizeTrip({ ...trip, passengerCount: passengers.length });
+            const revenue = passengers.reduce((sum, passenger) => sum + getPassengerTotalAmount(passenger), 0);
+            return normalizeTrip({
+              ...trip,
+              passengerCount: normalizedTrip.hasPassengerCount ? normalizedTrip.passengerCount : passengers.length,
+              revenue
+            });
           } catch {
             return normalizedTrip;
           }
@@ -254,6 +274,7 @@ const DriverDashboard = () => {
     scheduled: groupedTrips.scheduled.length,
     running: groupedTrips.running.length,
     passengers: trips.reduce((sum, trip) => sum + trip.passengerCount, 0),
+    revenue: trips.reduce((sum, trip) => sum + trip.revenue, 0),
     completedMonth: Number(driverStats?.completedTripCount || 0),
     cancelledMonth: Number(driverStats?.cancelledTripCount || 0),
   }), [driverStats, groupedTrips, trips]);
@@ -299,10 +320,11 @@ const DriverDashboard = () => {
           </div>
         </div>
 
-        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <StatCard icon="event_upcoming" label="Chuyến sắp chạy" value={stats.scheduled} />
           <StatCard icon="directions_bus" label="Đang chạy" value={stats.running} tone="text-emerald-600" />
           <StatCard icon="groups" label="Tổng hành khách" value={stats.passengers} />
+          <StatCard icon="payments" label="Tổng doanh thu" value={formatMoney(stats.revenue)} tone="text-primary" />
           <StatCard icon="task_alt" label="Hoàn thành tháng" value={stats.completedMonth} tone="text-slate-700" />
           <StatCard icon="cancel" label="Đã hủy tháng" value={stats.cancelledMonth} tone="text-red-600" />
         </div>

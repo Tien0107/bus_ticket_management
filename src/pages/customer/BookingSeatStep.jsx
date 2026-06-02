@@ -78,7 +78,7 @@ export default function BookingSeatStep({
       const compId = bookingData.companyId || schedule.companyId || schedule.company?.id;
       if (!compId) return;
       try {
-        const res = await getTripScheduleRatings({ companyId: compId, limit: 100 });
+        const res = await getTripScheduleRatings({ companyId: compId, limit: 10 });
         if (!active) return;
         const comments = res.data?.comments || [];
         if (comments.length > 0) {

@@ -20,7 +20,7 @@ const statusMeta = {
 
 const ticketStatusMeta = {
   reserved: {
-    label: "Chưa thanh toán",
+    label: "Đã giữ chỗ",
     className: "bg-sky-50 text-sky-700 ring-sky-100",
   },
   pending: {

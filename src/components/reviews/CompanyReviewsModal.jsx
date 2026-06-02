@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { getTripScheduleRatings } from "../../api/customer";
 
 const PAGE_LIMIT = 10;
-const SUMMARY_LIMIT = 100;
+const SUMMARY_LIMIT = 10;
 const MAX_SUMMARY_PAGES = 20;
 
 const extractReviews = (data) => {

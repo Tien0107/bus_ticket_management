@@ -30,7 +30,7 @@ export const getAllDriverTrips = async (params = {}) => {
 
   do {
     const response = await getDriverTrips({
-      limit: 100,
+      limit: 10,
       ...params,
       ...(next ? { next } : {})
     });
@@ -125,18 +125,18 @@ export const getAllTripPassengers = async (tripId, params = {}) => {
 };
 
 
-export const checkInPassenger = async (tripId, passengerId, status = "checked_in") => {
+export const checkInPassenger = async (tripId, passengerId, status = "reserved") => {
   const endpoint = `/driver/trip/${tripId}/passenger/${passengerId}/check-in`;
 
   try {
     return await axiosClient.put(endpoint, { status });
   } catch (error) {
     const code = error.response?.status;
-    const canRetryWithSwaggerStatus = status !== "reserved" && [400, 422, 500].includes(code);
+    const canRetryWithLegacyStatus = status !== "checked_in" && [400, 422, 500].includes(code);
 
-    if (!canRetryWithSwaggerStatus) throw error;
+    if (!canRetryWithLegacyStatus) throw error;
 
-    return axiosClient.put(endpoint, { status: "reserved" });
+    return axiosClient.put(endpoint, { status: "checked_in" });
   }
 };
 

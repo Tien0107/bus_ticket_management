@@ -89,6 +89,9 @@ const formatDuration = (minutes) => {
   if (!remainingMinutes) return `${hours} giờ`;
   return `${hours} giờ ${remainingMinutes} phút`;
 };
+
+const formatMoney = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
+
 const isCheckedInStatus = (status) => {
   const normalizedStatus = String(status || "").toLowerCase();
   return ["checked_in", "checked-in", "checkedin", "confirmed", "present"].includes(normalizedStatus);
@@ -454,6 +457,10 @@ export default function TripDetail() {
     () => passengers.filter((passenger) => passenger.status === "checked_in").length,
     [passengers]
   );
+  const totalRevenue = useMemo(
+    () => passengers.reduce((sum, passenger) => sum + Number(passenger.totalAmount || 0), 0),
+    [passengers]
+  );
   const passengerCount = trip?.passengerCount || passengers.length;
   const pendingCount = Math.max(passengers.length - checkedInCount, 0);
   const checkInProgress = passengers.length ? Math.round((checkedInCount / passengers.length) * 100) : 0;
@@ -558,10 +565,11 @@ export default function TripDetail() {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <InfoTile icon="confirmation_number" label="Hành khách" value={`${passengerCount}/${trip.totalSeats}`} />
             <InfoTile icon="task_alt" label="Đã check-in" value={`${checkedInCount}/${passengers.length || trip.passengerCount || 0}`} />
             <InfoTile icon="directions_bus" label="Biển số" value={trip.plateNumber || trip.vehicleNumber || "Chưa gán"} />
+            <InfoTile icon="payments" label={passengerNextCursor ? "Doanh thu đã tải" : "Doanh thu"} value={formatMoney(totalRevenue)} />
             <InfoTile icon="schedule" label="Thời lượng" value={formatDuration(trip.durationMinutes)} />
           </div>
 

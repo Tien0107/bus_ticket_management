@@ -21,7 +21,7 @@ const Promotions = () => {
     const fetchPromotions = async () => {
       try {
         setLoading(true);
-        const response = await getPromotions({ limit: 100, status: true });
+        const response = await getPromotions({ limit: 10, status: true });
         const items = response.data?.items || response.data?.data || [];
         setPromotions(Array.isArray(items) ? items : []);
         setError(null);

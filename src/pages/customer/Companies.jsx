@@ -16,14 +16,14 @@ const Companies = () => {
     const fetchCompanies = async () => {
       try {
         setLoading(true);
-        const response = await getCompanies({ limit: 100 });
+        const response = await getCompanies({ limit: 10 });
         const data = response.data?.companies || response.data?.data || [];
         const baseCompanies = Array.isArray(data) ? data : [];
 
         const companiesWithRatings = await Promise.all(
           baseCompanies.map(async (company) => {
             try {
-              const res = await getTripScheduleRatings({ companyId: company.id || company._id, limit: 100 });
+              const res = await getTripScheduleRatings({ companyId: company.id || company._id, limit: 10 });
               const comments = res.data?.comments || [];
               if (comments.length === 0) return { ...company, rating: 0, totalReviews: 0 };
 

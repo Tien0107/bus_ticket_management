@@ -50,7 +50,7 @@ export default function RoutesPage() {
           const companyRatings = {};
           await Promise.all(uniqueCompanyIds.map(async (cId) => {
             try {
-              const res = await getTripScheduleRatings({ companyId: cId, limit: 100 });
+              const res = await getTripScheduleRatings({ companyId: cId, limit: 10 });
               const comments = res.data?.comments || [];
               if (comments.length > 0) {
                 let sum = 0;

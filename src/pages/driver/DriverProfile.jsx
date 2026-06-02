@@ -132,7 +132,7 @@ const DriverProfile = () => {
       if (!targetCompanyId) return false;
 
       try {
-        const response = await axiosClient.get("/public/company", { params: { limit: 100 } });
+        const response = await axiosClient.get("/public/company", { params: { limit: 10 } });
         const companies = Array.isArray(response.data?.companies) ?
         response.data.companies :
         Array.isArray(response.data) ?

@@ -20,7 +20,7 @@ const bookingTypeConfig = {
 };
 
 const ticketStatusMeta = {
-  reserved: "Chưa thanh toán",
+  reserved: "Đã giữ chỗ",
   pending: "Chờ thanh toán",
   paid: "Đã thanh toán",
   checked_in: "Đã lên xe",
@@ -97,7 +97,7 @@ const CheckInPanel = ({
 
     try {
       setLoading(true);
-      const response = await checkInPassenger(tripId, selectedPassenger.id, "checked_in");
+      const response = await checkInPassenger(tripId, selectedPassenger.id);
       const success = await onCheckInSuccess?.(selectedPassenger.id, response.data?.ticket || response.data);
 
       if (success !== false) {

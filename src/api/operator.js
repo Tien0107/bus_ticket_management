@@ -129,7 +129,7 @@ const getAllPages = async (request, keys, params = {}, outputKey = keys[0]) => {
 
   do {
     const response = await request({
-      limit: 100,
+      limit: 10,
       ...params,
       ...(next ? { next } : {})
     });
