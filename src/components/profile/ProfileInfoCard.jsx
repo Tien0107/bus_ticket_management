@@ -71,6 +71,7 @@ const formatCooldownMessage = (field, info) => {
   return `Bạn vừa cập nhật thông tin liên hệ. Vui lòng thử lại sau ${info.remainingHours} giờ ${info.remainingMinutes} phút.`;
 };
 
+const hasContactValue = (value) => Boolean(String(value || "").trim());
 
 const OTPInput = ({ value, onChange, disabled }) => {
   const [otp, setOtp] = React.useState(Array(6).fill(""));
@@ -165,13 +166,9 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
   };
 
   const validateCurrentValue = (field, value) => {
-
-    if (field === "phone" && !value) {
-      return "";
-    }
-    const trimmed = (value || "").trim();
+    const trimmed = String(value || "").trim();
     if (!trimmed) {
-      return `${FIELD_LABELS[field]} hiện tại không hợp lệ.`;
+      return "";
     }
     if (field === "email" && !EMAIL_REGEX.test(trimmed)) {
       return "Email hiện tại không đúng định dạng.";
@@ -207,11 +204,14 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
   };
 
   const handleStartVerify = async (field) => {
-    const value = currentValueByField[field];
-    const currentValueError = validateCurrentValue(field, value);
-    if (currentValueError) {
-      addToast(currentValueError, "error");
-      return;
+    const value = String(currentValueByField[field] || "").trim();
+    const isCurrentContactMissing = !hasContactValue(value);
+    if (!isCurrentContactMissing) {
+      const currentValueError = validateCurrentValue(field, value);
+      if (currentValueError) {
+        addToast(currentValueError, "error");
+        return;
+      }
     }
 
     const cooldown = getCooldownInfo(user, field);
@@ -221,23 +221,22 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
       return;
     }
 
-    const isPhoneNull = field === "phone" && !value;
     const initialState = {
       isOpen: true,
       field,
       oldOtp: "",
-      oldVerified: isPhoneNull,
+      oldVerified: isCurrentContactMissing,
       newValue: "",
       newOtp: "",
       newOtpSent: false,
       error: "",
-      sendingOldOtp: !isPhoneNull,
+      sendingOldOtp: !isCurrentContactMissing,
       verifyingOldOtp: false,
       sendingOtp: false,
       submitting: false
     };
 
-    if (isPhoneNull) {
+    if (isCurrentContactMissing) {
       setModalState(initialState);
       return;
     }
@@ -258,10 +257,10 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
 
   const handleVerifyOldContact = async () => {
     const field = modalState.field;
-    const value = currentValueByField[field];
+    const value = String(currentValueByField[field] || "").trim();
 
 
-    if (field === "phone" && !value) {
+    if (!hasContactValue(value)) {
       setModalState((prev) => ({
         ...prev,
         oldVerified: true,
@@ -303,11 +302,12 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
   const handleSendOtpNewContact = async () => {
     const field = modalState.field;
     const newValue = modalState.newValue.trim();
+    const currentValue = String(currentValueByField[field] || "").trim();
 
 
-    const isPhoneNull = field === "phone" && !currentValueByField[field];
-    if (!isPhoneNull) {
-      const currentValueError = validateCurrentValue(field, currentValueByField[field]);
+    const isCurrentContactMissing = !hasContactValue(currentValue);
+    if (!isCurrentContactMissing) {
+      const currentValueError = validateCurrentValue(field, currentValue);
       if (currentValueError) {
         setModalState((prev) => ({ ...prev, error: currentValueError }));
         return;
@@ -321,7 +321,7 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
     }
 
 
-    if (!isPhoneNull && newValue === currentValueByField[field]) {
+    if (!isCurrentContactMissing && newValue === currentValue) {
       setModalState((prev) => ({
         ...prev,
         error: `${FIELD_LABELS[field]} mới phải khác giá trị hiện tại.`
@@ -415,6 +415,7 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
     const cooldownMessage = isCooldownBlocked ?
     formatCooldownMessage(field, cooldown) :
     "";
+    const isCurrentContactMissing = !hasContactValue(value);
 
     return (
       <div className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/20">
@@ -432,7 +433,7 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
             title={cooldownMessage}
             className="px-4 py-2 text-sm font-bold rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
             
-            Xác thực để cập nhật
+            {isCurrentContactMissing ? `Thêm ${label.toLowerCase()}` : "Xác thực để cập nhật"}
           </button>
 
           {isCooldownBlocked &&
@@ -444,8 +445,9 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
 
   };
 
-  const isPhoneNull = modalState.field === "phone" && !currentValueByField["phone"];
-  const isStepVerifyOld = modalState.isOpen && !modalState.oldVerified && !isPhoneNull;
+  const isCurrentContactMissing = modalState.field && !hasContactValue(currentValueByField[modalState.field]);
+  const currentContactLabel = FIELD_LABELS[modalState.field]?.toLowerCase();
+  const isStepVerifyOld = modalState.isOpen && !modalState.oldVerified && !isCurrentContactMissing;
   const isStepEnterNew = modalState.isOpen && modalState.oldVerified && !modalState.newOtpSent;
   const isStepVerifyNew = modalState.isOpen && modalState.oldVerified && modalState.newOtpSent;
 
@@ -488,8 +490,8 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
               </h3>
               <p className="text-sm text-on-surface-variant">
                 {isStepVerifyOld && "Bước 1/3: Xác thực liên hệ hiện tại bằng OTP."}
-                {isStepEnterNew && (isPhoneNull ? "Bước 1/2: Nhập số điện thoại mới và gửi OTP." : "Bước 2/3: Nhập liên hệ mới và gửi OTP.")}
-                {isStepVerifyNew && (isPhoneNull ? "Bước 2/2: Nhập OTP để cập nhật số điện thoại." : "Bước 3/3: Nhập OTP liên hệ mới để hoàn tất cập nhật.")}
+                {isStepEnterNew && (isCurrentContactMissing ? `Bước 1/2: Nhập ${currentContactLabel} mới và gửi OTP.` : "Bước 2/3: Nhập liên hệ mới và gửi OTP.")}
+                {isStepVerifyNew && (isCurrentContactMissing ? `Bước 2/2: Nhập OTP để cập nhật ${currentContactLabel}.` : "Bước 3/3: Nhập OTP liên hệ mới để hoàn tất cập nhật.")}
               </p>
 
               {isStepVerifyOld &&
@@ -586,7 +588,7 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
                 {isStepVerifyOld && (
               modalState.verifyingOldOtp ? "Đang xác thực..." : "Xác thực OTP hiện tại")}
                 {isStepEnterNew && (
-              modalState.sendingOtp ? "Đang gửi OTP..." : isPhoneNull ? "Gửi OTP" : "Gửi OTP liên hệ mới")}
+              modalState.sendingOtp ? "Đang gửi OTP..." : isCurrentContactMissing ? "Gửi OTP" : "Gửi OTP liên hệ mới")}
                 {isStepVerifyNew && (
               modalState.submitting ? "Đang cập nhật..." : "Xác nhận cập nhật")}
               </button>
