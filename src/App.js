@@ -128,13 +128,7 @@ function App() {
           <Route path="/company-signup" element={<Navigate to="/register?type=company" replace />} />
           <Route path="/stripe/connect/callback" element={<StripeConnectCallback />} />
           <Route path="/stripe/connect/success" element={<StripeConnectSuccess />} />
-          <Route
-              path="/payment-result"
-              element={
-              <PrivateRoute>
-                <PaymentResult />
-              </PrivateRoute>
-              } />
+          <Route path="/payment-result" element={<PaymentResult />} />
             
           
           {}

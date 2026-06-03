@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
+import { getStoredToken } from "../../utils/authStorage";
 
 const VNPAY_ERROR_MAP = {
   "00": "Giao dịch thành công",
@@ -18,17 +19,33 @@ const VNPAY_ERROR_MAP = {
   "99": "Lỗi hệ thống VNPAY. Vui lòng thử lại sau hoặc liên hệ hỗ trợ."
 };
 
+const safeDecodeMessage = (value) => {
+  if (!value) return "";
+
+  try {
+    return decodeURIComponent(value.replace(/\+/g, " "));
+  } catch {
+    return value;
+  }
+};
+
 export default function PaymentResult() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { addToast } = useToast();
 
-  const status = searchParams.get("status") || "";
-  const code = searchParams.get("code") || "";
+  const status = searchParams.get("status") || searchParams.get("vnp_TransactionStatus") || "";
+  const code = searchParams.get("code") || searchParams.get("vnp_ResponseCode") || "";
   const message = searchParams.get("message") || "";
-  const transactionCode = searchParams.get("transactionCode") || "";
+  const transactionCode =
+    searchParams.get("transactionCode") ||
+    searchParams.get("vnp_TransactionNo") ||
+    searchParams.get("vnp_TxnRef") ||
+    "";
 
-  const isSuccess = status === "success" || code === "00";
+  const normalizedStatus = status.toLowerCase();
+  const isSuccess = normalizedStatus === "success" || normalizedStatus === "00" || code === "00";
+  const hasToken = Boolean(getStoredToken());
 
   useEffect(() => {
     if (isSuccess) {
@@ -39,14 +56,14 @@ export default function PaymentResult() {
   }, [isSuccess, addToast]);
 
   useEffect(() => {
-    if (!isSuccess) return undefined;
+    if (!isSuccess || !hasToken) return undefined;
 
     const timeoutId = setTimeout(() => {
       navigate("/profile/tickets", { replace: true });
     }, 2500);
 
     return () => clearTimeout(timeoutId);
-  }, [isSuccess, navigate]);
+  }, [hasToken, isSuccess, navigate]);
 
   const handleGoToTickets = () => {
     navigate("/profile/tickets");
@@ -167,7 +184,7 @@ export default function PaymentResult() {
                   <span>Chi tiết lỗi thanh toán:</span>
                 </p>
                 <p className="text-xs bg-error/5 text-error p-3.5 rounded-xl border border-error/10 leading-relaxed font-semibold">
-                  {VNPAY_ERROR_MAP[code] || decodeURIComponent(message.replace(/\+/g, " ")) || "Đã xảy ra lỗi không xác định."}
+                  {VNPAY_ERROR_MAP[code] || safeDecodeMessage(message) || "Đã xảy ra lỗi không xác định."}
                 </p>
               </div>
             }
