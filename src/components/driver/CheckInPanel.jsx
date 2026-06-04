@@ -38,6 +38,11 @@ const getTicketStatusLabel = (status) => {
   return ticketStatusMeta[key] || status || "Không rõ";
 };
 
+const getStatusKey = (status) => String(status || "").trim().toLowerCase();
+const isCancelledTicket = (status) => ["cancelled", "canceled"].includes(getStatusKey(status));
+const canCheckInPassenger = (passenger = {}) =>
+  passenger.status !== "checked_in" && !isCancelledTicket(passenger.ticketStatus);
+
 const formatAmount = (value) => {
   if (value === undefined || value === null || value === "") return "—";
   const num = Number(value);
@@ -62,7 +67,7 @@ const CheckInPanel = ({
   const [searchTerm, setSearchTerm] = useState("");
 
   const pendingPassengers = useMemo(
-    () => passengers.filter((passenger) => passenger.status !== "checked_in"),
+    () => passengers.filter(canCheckInPassenger),
     [passengers]
   );
 
@@ -94,6 +99,10 @@ const CheckInPanel = ({
 
   const handleCheckIn = async () => {
     if (!selectedPassenger) return;
+    if (!canCheckInPassenger(selectedPassenger)) {
+      addToast("Vé đã hủy hoặc đã check-in nên không thể xác nhận.", "warning");
+      return;
+    }
 
     try {
       setLoading(true);

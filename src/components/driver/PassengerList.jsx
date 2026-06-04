@@ -69,6 +69,11 @@ const getTicketStatus = (status) => {
   };
 };
 
+const getStatusKey = (status) => String(status || "").trim().toLowerCase();
+const isCancelledTicket = (status) => ["cancelled", "canceled"].includes(getStatusKey(status));
+const canCheckInPassenger = (passenger = {}) =>
+  passenger.status === "pending" && !isCancelledTicket(passenger.ticketStatus);
+
 const formatAmount = (value) => {
   if (value === undefined || value === null || value === "") return "—";
   const num = Number(value);
@@ -102,7 +107,7 @@ const PassengerList = ({ passengers = [], hasMore = false, loadingMore = false, 
   const stats = useMemo(() => ({
     total: passengers.length,
     checkedIn: passengers.filter((passenger) => passenger.status === "checked_in").length,
-    pending: passengers.filter((passenger) => passenger.status !== "checked_in").length,
+    pending: passengers.filter(canCheckInPassenger).length,
   }), [passengers]);
 
   return (
@@ -116,7 +121,8 @@ const PassengerList = ({ passengers = [], hasMore = false, loadingMore = false, 
           <button
             type="button"
             onClick={() => onCheckIn?.()}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90"
+            disabled={!stats.pending}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
             Check-in
@@ -170,6 +176,8 @@ const PassengerList = ({ passengers = [], hasMore = false, loadingMore = false, 
             {filteredPassengers.map((passenger) => {
               const status = statusMeta[passenger.status] || statusMeta.pending;
               const ticketStatus = getTicketStatus(passenger.ticketStatus);
+              const canCheckIn = canCheckInPassenger(passenger);
+              const cancelled = isCancelledTicket(passenger.ticketStatus);
 
               return (
                 <tr key={passenger.id} className="hover:bg-surface-container-low/70">
@@ -212,7 +220,7 @@ const PassengerList = ({ passengers = [], hasMore = false, loadingMore = false, 
                     </div>
                   </td>
                   <td className="py-4 pl-4 pr-16 text-right">
-                    {passenger.status === "pending" ? (
+                    {canCheckIn ? (
                       <button
                         type="button"
                         onClick={() => onCheckIn?.(passenger.id)}
@@ -221,8 +229,10 @@ const PassengerList = ({ passengers = [], hasMore = false, loadingMore = false, 
                         Check-in
                       </button>
                     ) : (
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                        <span className="material-symbols-outlined text-[20px]">done</span>
+                      <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${
+                        cancelled ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"
+                      }`}>
+                        <span className="material-symbols-outlined text-[20px]">{cancelled ? "block" : "done"}</span>
                       </span>
                     )}
                   </td>
