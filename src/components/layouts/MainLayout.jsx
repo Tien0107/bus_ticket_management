@@ -3,6 +3,7 @@ import { Outlet, Navigate, useLocation } from "react-router-dom";
 import MainNavbar from "./MainNavbar";
 import MainFooter from "./MainFooter";
 import ChatWidget from "../chat/ChatWidget";
+import AiChatWidget from "../chat/AiChatWidget";
 import { clearStoredUser, getStoredToken, getStoredUserRaw } from "../../utils/authStorage";
 
 const publicMainPaths = new Set(["/routes", "/companies", "/promotions", "/contact"]);
@@ -35,6 +36,7 @@ const MainLayout = () => {
       </main>
       <MainFooter />
       <ChatWidget />
+      <AiChatWidget />
     </div>);
 
 };

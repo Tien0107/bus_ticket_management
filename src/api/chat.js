@@ -16,6 +16,10 @@ export const sendChatMessage = (boxId, data) => {
   return axiosClient.post(`/chat/box/${boxId}/message`, data);
 };
 
+export const sendAiChatMessage = (data) => {
+  return axiosClient.post("/chat/ai", data);
+};
+
 export const markChatBoxRead = (boxId) => {
   return axiosClient.put(`/chat/box/${boxId}/unread-count`);
 };

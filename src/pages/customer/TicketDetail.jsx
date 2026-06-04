@@ -4,6 +4,7 @@ import { getTicketDetail, cancelTicket } from "../../api/customer";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import { useToast } from "../../context/ToastContext";
 import ChatWidget from "../../components/chat/ChatWidget";
+import AiChatWidget from "../../components/chat/AiChatWidget";
 import { getStoredToken } from "../../utils/authStorage";
 
 export default function TicketDetail() {
@@ -265,6 +266,7 @@ export default function TicketDetail() {
         </div>
       </main>
       {!!getStoredToken() && <ChatWidget />}
+      <AiChatWidget />
     </div>);
 
 }
