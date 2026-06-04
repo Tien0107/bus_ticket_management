@@ -125,9 +125,9 @@ export const getAllTripPassengers = async (tripId, params = {}) => {
 };
 
 
-export const checkInPassenger = (tripId, passengerId, status = "reserved") => {
+export const checkInPassenger = (tripId, passengerId, ticketStatus = "checked_in") => {
   const endpoint = `/driver/trip/${tripId}/passenger/${passengerId}/check-in`;
-  return axiosClient.put(endpoint, { status });
+  return axiosClient.put(endpoint, { ticketStatus });
 };
 
 

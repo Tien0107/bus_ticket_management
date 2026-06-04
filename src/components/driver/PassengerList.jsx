@@ -45,6 +45,29 @@ const ticketStatusMeta = {
   },
 };
 
+const paymentStatusMeta = {
+  pending: {
+    label: "Chờ thanh toán",
+    className: "bg-amber-50 text-amber-700 ring-amber-100",
+  },
+  paid: {
+    label: "Đã thanh toán",
+    className: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+  },
+  reserved: {
+    label: "Đã giữ chỗ",
+    className: "bg-sky-50 text-sky-700 ring-sky-100",
+  },
+  cancelled: {
+    label: "Đã hủy",
+    className: "bg-red-50 text-red-700 ring-red-100",
+  },
+  expired: {
+    label: "Hết hạn",
+    className: "bg-slate-100 text-slate-700 ring-slate-200",
+  },
+};
+
 const bookingTypeConfig = {
   round_trip: {
     label: "2 chiều",
@@ -64,6 +87,14 @@ const getBookingType = (type) => {
 const getTicketStatus = (status) => {
   const key = String(status || "").toLowerCase();
   return ticketStatusMeta[key] || {
+    label: status || "Không rõ",
+    className: "bg-surface-container-high text-on-surface-variant ring-outline-variant",
+  };
+};
+
+const getPaymentStatus = (status) => {
+  const key = String(status || "").toLowerCase();
+  return paymentStatusMeta[key] || {
     label: status || "Không rõ",
     className: "bg-surface-container-high text-on-surface-variant ring-outline-variant",
   };
@@ -96,6 +127,8 @@ const PassengerList = ({ passengers = [], hasMore = false, loadingMore = false, 
         passenger.seat,
         passenger.bookingType,
         getBookingType(passenger.bookingType).label,
+        passenger.paymentStatus,
+        getPaymentStatus(passenger.paymentStatus).label,
         passenger.ticketStatus,
         getTicketStatus(passenger.ticketStatus).label,
         formatAmount(passenger.totalAmount),
@@ -176,6 +209,7 @@ const PassengerList = ({ passengers = [], hasMore = false, loadingMore = false, 
             {filteredPassengers.map((passenger) => {
               const status = statusMeta[passenger.status] || statusMeta.pending;
               const ticketStatus = getTicketStatus(passenger.ticketStatus);
+              const paymentStatus = getPaymentStatus(passenger.paymentStatus);
               const canCheckIn = canCheckInPassenger(passenger);
               const cancelled = isCancelledTicket(passenger.ticketStatus);
 
@@ -216,6 +250,9 @@ const PassengerList = ({ passengers = [], hasMore = false, loadingMore = false, 
                       </span>
                       <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-bold ring-1 whitespace-nowrap ${ticketStatus.className}`}>
                         Vé: {ticketStatus.label}
+                      </span>
+                      <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-bold ring-1 whitespace-nowrap ${paymentStatus.className}`}>
+                        Thanh toán: {paymentStatus.label}
                       </span>
                     </div>
                   </td>

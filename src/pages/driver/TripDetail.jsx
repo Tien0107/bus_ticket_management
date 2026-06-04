@@ -97,6 +97,11 @@ const isCheckedInStatus = (status) => {
   return ["checked_in", "checked-in", "checkedin", "confirmed", "present"].includes(normalizedStatus);
 };
 
+const isCheckInStatusValue = (status) => {
+  const normalizedStatus = String(status || "").toLowerCase();
+  return ["checked_in", "checked-in", "checkedin", "confirmed", "present", "no_show", "no-show", "noshow"].includes(normalizedStatus);
+};
+
 const normalizeTrip = (trip = {}) => {
   const rawPassengerCount = trip.passengerCount ?? trip.passenger_count ?? trip.ticketCount ?? trip.ticket_count;
 
@@ -121,13 +126,23 @@ const normalizePassengers = (rawPassengers) => {
   if (!Array.isArray(rawPassengers)) return [];
 
   return rawPassengers.map((passenger) => {
+    const paymentStatus =
+      passenger.paymentStatus ||
+      passenger.payment_status ||
+      passenger.bookingStatus ||
+      passenger.booking_status ||
+      passenger.status ||
+      passenger.booking?.status ||
+      passenger.Booking?.status ||
+      "pending";
+    const rawPassengerStatus = passenger.status;
     const checkInStatus =
       passenger.checkInStatus ||
       passenger.checkinStatus ||
       passenger.check_in_status ||
-      passenger.status ||
       passenger.ticket?.checkInStatus ||
       passenger.Ticket?.checkInStatus ||
+      (isCheckInStatusValue(rawPassengerStatus) ? rawPassengerStatus : "") ||
       "pending";
     const ticketStatus =
       passenger.ticketStatus ||
@@ -138,8 +153,6 @@ const normalizePassengers = (rawPassengers) => {
       passenger.Ticket?.status ||
       passenger.Ticket?.ticketStatus ||
       passenger.Ticket?.ticket_status ||
-      passenger.booking?.status ||
-      passenger.Booking?.status ||
       "pending";
     const normalizedCheckInStatus = String(checkInStatus).toLowerCase();
     const normalizedTicketStatus = String(ticketStatus).toLowerCase();
@@ -205,6 +218,7 @@ const normalizePassengers = (rawPassengers) => {
       dropoffPoint: passenger.dropoff || passenger.dropoffPoint || passenger.dropoffStation || passenger.toStation || "Chưa có điểm xuống",
       rawStatus: checkInStatus,
       ticketStatus,
+      paymentStatus,
       status: checkedIn ? "checked_in" : normalizedCheckInStatus === "no_show" ? "no_show" : "pending",
       bookingType,
       totalAmount,
@@ -441,7 +455,12 @@ export default function TripDetail() {
     setPassengers((currentPassengers) =>
       currentPassengers.map((passenger) =>
         Number(passenger.id) === Number(checkedPassengerId)
-          ? { ...passenger, rawStatus: "checked_in", ticketStatus: ticket?.status || passenger.ticketStatus, status: "checked_in" }
+          ? {
+              ...passenger,
+              rawStatus: "checked_in",
+              ticketStatus: ticket?.ticketStatus || ticket?.ticket_status || ticket?.status || "checked_in",
+              status: "checked_in",
+            }
           : passenger
       )
     );

@@ -28,6 +28,14 @@ const ticketStatusMeta = {
   expired: "Hết hạn",
 };
 
+const paymentStatusMeta = {
+  pending: "Chờ thanh toán",
+  paid: "Đã thanh toán",
+  reserved: "Đã giữ chỗ",
+  cancelled: "Đã hủy",
+  expired: "Hết hạn",
+};
+
 const getBookingType = (type) => {
   const key = String(type || "one_way").toLowerCase();
   return bookingTypeConfig[key] || bookingTypeConfig.one_way;
@@ -38,10 +46,15 @@ const getTicketStatusLabel = (status) => {
   return ticketStatusMeta[key] || status || "Không rõ";
 };
 
+const getPaymentStatusLabel = (status) => {
+  const key = String(status || "").toLowerCase();
+  return paymentStatusMeta[key] || status || "Không rõ";
+};
+
 const getStatusKey = (status) => String(status || "").trim().toLowerCase();
 const isCancelledTicket = (status) => ["cancelled", "canceled"].includes(getStatusKey(status));
 const canCheckInPassenger = (passenger = {}) =>
-  passenger.status !== "checked_in" && !isCancelledTicket(passenger.ticketStatus);
+  passenger.status === "pending" && !isCancelledTicket(passenger.ticketStatus);
 
 const formatAmount = (value) => {
   if (value === undefined || value === null || value === "") return "—";
@@ -83,6 +96,8 @@ const CheckInPanel = ({
         passenger.seat,
         passenger.bookingType,
         getBookingType(passenger.bookingType).label,
+        passenger.paymentStatus,
+        getPaymentStatusLabel(passenger.paymentStatus),
         passenger.ticketStatus,
         getTicketStatusLabel(passenger.ticketStatus),
         formatAmount(passenger.totalAmount),
@@ -197,6 +212,9 @@ const CheckInPanel = ({
                         <span className="whitespace-nowrap text-xs font-bold text-on-surface-variant">
                           {getTicketStatusLabel(passenger.ticketStatus)}
                         </span>
+                        <span className="whitespace-nowrap text-xs font-bold text-primary">
+                          {getPaymentStatusLabel(passenger.paymentStatus)}
+                        </span>
                       </div>
                       <p className="mt-2 truncate text-xs text-on-surface-variant">
                         {passenger.pickupPoint} → {passenger.dropoffPoint}
@@ -266,6 +284,10 @@ const CheckInPanel = ({
                 <div>
                   <p className="text-on-surface-variant">Tổng tiền</p>
                   <p className="mt-1 font-bold text-on-surface">{formatAmount(selectedPassenger.totalAmount)}</p>
+                </div>
+                <div>
+                  <p className="text-on-surface-variant">Thanh toán</p>
+                  <p className="mt-1 font-bold text-on-surface">{getPaymentStatusLabel(selectedPassenger.paymentStatus)}</p>
                 </div>
                 <div>
                   <p className="text-on-surface-variant">Trạng thái vé</p>
