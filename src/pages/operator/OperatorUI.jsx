@@ -177,17 +177,22 @@ export function ModalShell({
   children,
   footer,
   maxWidth = "max-w-2xl",
+  headerClassName = "border-b border-outline-variant/20 px-4 py-3",
+  titleClassName = "text-lg font-extrabold text-on-surface",
+  subtitleClassName = "mt-0.5 text-xs text-on-surface-variant",
   bodyClassName = "overflow-y-auto",
+  bodyPaddingClassName = "p-4",
+  footerClassName = "border-t border-outline-variant/20 p-4",
   panelOverflowClassName = "overflow-hidden",
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3 backdrop-blur-sm">
       <div className={`flex max-h-[90vh] w-full ${maxWidth} flex-col ${panelOverflowClassName} rounded-xl bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)]`}>
-        <div className="border-b border-outline-variant/20 px-4 py-3">
+        <div className={headerClassName}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-extrabold text-on-surface">{title}</h2>
-              {subtitle && <p className="mt-0.5 text-xs text-on-surface-variant">{subtitle}</p>}
+              <h2 className={titleClassName}>{title}</h2>
+              {subtitle && <p className={subtitleClassName}>{subtitle}</p>}
             </div>
             <button
               type="button"
@@ -199,8 +204,8 @@ export function ModalShell({
             </button>
           </div>
         </div>
-        <div className={`${bodyClassName} p-4`}>{children}</div>
-        {footer && <div className="border-t border-outline-variant/20 p-4">{footer}</div>}
+        <div className={`${bodyClassName} ${bodyPaddingClassName}`}>{children}</div>
+        {footer && <div className={footerClassName}>{footer}</div>}
       </div>
     </div>
   );

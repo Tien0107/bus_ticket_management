@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoute, getRoutes, updateRoute } from "../../api/operator";
+import LocationDropdown from "../../components/common/LocationDropdown";
 import { useToast } from "../../context/ToastContext";
 import {
   EmptyState,
   ErrorState,
-  Field,
   IconButton,
   LoadingState,
   ModalShell,
@@ -20,6 +20,25 @@ const emptyForm = {
   toLocation: "",
   distanceKm: "",
   durationMinutes: ""
+};
+
+const routeDropdownClass =
+"min-h-[64px] rounded-xl border border-outline-variant/50 bg-white px-5 shadow-sm focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10";
+
+const routeNumberInputClass =
+`${inputClass} h-16 rounded-xl px-5 text-base font-semibold shadow-sm`;
+
+const routeFieldLabelClass = "mb-3 block text-base font-extrabold text-on-surface";
+
+const getRouteId = (route) => route?.id ?? route?.routeId ?? route?.route_id;
+const hasRouteId = (route) => {
+  const routeId = getRouteId(route);
+  return routeId !== undefined && routeId !== null && routeId !== "";
+};
+const normalizeRouteLocation = (value) => String(value || "").trim().toLowerCase();
+const parsePositiveNumber = (value) => {
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : null;
 };
 
 export default function Routes() {
@@ -113,21 +132,58 @@ export default function Routes() {
   };
 
   const handleSave = async () => {
-    if (!formData.fromLocation.trim() || !formData.toLocation.trim()) {
+    const fromLocation = formData.fromLocation.trim();
+    const toLocation = formData.toLocation.trim();
+    const distanceKm = parsePositiveNumber(formData.distanceKm);
+    const durationMinutes = parsePositiveNumber(formData.durationMinutes);
+
+    if (!fromLocation || !toLocation) {
       addToast({ type: "warning", title: "Thiếu điểm đi hoặc điểm đến" });
       return;
     }
 
+    if (normalizeRouteLocation(fromLocation) === normalizeRouteLocation(toLocation)) {
+      addToast({ type: "warning", title: "Điểm đi và điểm đến không được trùng nhau" });
+      return;
+    }
+
+    if (!distanceKm || !durationMinutes) {
+      addToast({ type: "warning", title: "Khoảng cách và thời gian phải lớn hơn 0" });
+      return;
+    }
+
+    const editingRouteId = getRouteId(editingRoute);
+    const duplicateRoute = routes.find((route) =>
+    normalizeRouteLocation(route.fromLocation) === normalizeRouteLocation(fromLocation) &&
+    normalizeRouteLocation(route.toLocation) === normalizeRouteLocation(toLocation) &&
+    String(getRouteId(route)) !== String(editingRouteId)
+    );
+
+    if (duplicateRoute) {
+      addToast({ type: "warning", title: "Tuyến đường này đã tồn tại" });
+      return;
+    }
+
     const payload = {
-      fromLocation: formData.fromLocation.trim(),
-      toLocation: formData.toLocation.trim(),
-      distanceKm: Number(formData.distanceKm || 0),
-      durationMinutes: Number(formData.durationMinutes || 0)
+      fromLocation,
+      toLocation,
+      distanceKm,
+      durationMinutes
     };
 
     try {
       if (editingRoute) {
-        await updateRoute(editingRoute.id, payload);
+        const routeId = getRouteId(editingRoute);
+        if (!hasRouteId(editingRoute)) {
+          addToast({ type: "error", title: "Không tìm thấy ID tuyến để cập nhật" });
+          return;
+        }
+
+        const response = await updateRoute(routeId, payload);
+        const updatedRoute = response.data?.route || { ...editingRoute, ...payload, id: routeId };
+        setRoutes((current) =>
+        current.map((route) => String(getRouteId(route)) === String(routeId) ? { ...route, ...updatedRoute } : route)
+        );
         addToast({ type: "success", title: "Cập nhật tuyến thành công" });
       } else {
         await createRoute(payload);
@@ -142,7 +198,7 @@ export default function Routes() {
       addToast({
         type: "error",
         title: "Không lưu được tuyến",
-        message: err.response?.data?.message || "Vui lòng kiểm tra dữ liệu tuyến."
+        message: err.response?.data?.message || err.response?.data?.error || err.response?.data?.detail || err.message || "Vui lòng kiểm tra dữ liệu tuyến."
       });
     }
   };
@@ -186,7 +242,7 @@ export default function Routes() {
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
                 {routes.map((route) =>
-              <tr key={route.id} className="hover:bg-surface-container-low/70">
+              <tr key={getRouteId(route) ?? `${route.fromLocation}-${route.toLocation}`} className="hover:bg-surface-container-low/70">
                     <td className="px-4 py-2.5">
                       <p className="font-bold text-on-surface">{route.fromLocation} → {route.toLocation}</p>
                     </td>
@@ -194,7 +250,7 @@ export default function Routes() {
                     <td className="px-4 py-2.5 text-on-surface-variant">{Number(route.durationMinutes || 0).toLocaleString("vi-VN")} phút</td>
                     <td className="px-4 py-2.5">
                       <div className="flex justify-end">
-                        <IconButton icon="edit" label="Sửa tuyến" variant="primary" onClick={() => openEditModal(route)} />
+                        <IconButton icon="edit" label="Sửa tuyến" variant="primary" disabled={!hasRouteId(route)} onClick={() => openEditModal(route)} />
                       </div>
                     </td>
                   </tr>
@@ -223,55 +279,69 @@ export default function Routes() {
         title={editingRoute ? "Sửa tuyến đường" : "Thêm tuyến đường"}
         subtitle="Thông tin tuyến khai thác."
         onClose={closeModal}
+        maxWidth="max-w-5xl"
+        panelOverflowClassName="overflow-visible"
+        headerClassName="border-b border-outline-variant/20 px-8 py-6"
+        titleClassName="text-3xl font-black tracking-tight text-on-surface"
+        subtitleClassName="mt-2 text-base font-medium text-on-surface-variant"
+        bodyClassName="overflow-visible"
+        bodyPaddingClassName="px-8 py-7"
+        footerClassName="border-t border-outline-variant/20 bg-surface/60 px-8 py-5"
         footer={
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <SecondaryButton onClick={closeModal}>Hủy</SecondaryButton>
-              <PrimaryButton icon={editingRoute ? "save" : "add"} onClick={handleSave}>
+              <SecondaryButton className="min-h-[52px] rounded-xl px-6 text-base" onClick={closeModal}>Hủy</SecondaryButton>
+              <PrimaryButton className="min-h-[52px] rounded-xl px-7 text-base" icon={editingRoute ? "save" : "add"} onClick={handleSave}>
                 {editingRoute ? "Cập nhật" : "Tạo tuyến"}
               </PrimaryButton>
             </div>
         }>
         
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Từ địa điểm">
-                <input
-                type="text"
+          <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-low/40 p-5 shadow-sm">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="relative z-30">
+                <span className={routeFieldLabelClass}>Từ địa điểm</span>
+                <LocationDropdown
                 value={formData.fromLocation}
-                onChange={(e) => handleChange("fromLocation", e.target.value)}
-                className={inputClass}
-                placeholder="Đồng Nai" />
+                onChange={(value) => handleChange("fromLocation", value)}
+                placeholder="Chọn tỉnh/thành đi"
+                icon="location_on"
+                className={routeDropdownClass} />
               
-              </Field>
-              <Field label="Đến địa điểm">
-                <input
-                type="text"
+              </div>
+              <div className="relative z-20">
+                <span className={routeFieldLabelClass}>Đến địa điểm</span>
+                <LocationDropdown
                 value={formData.toLocation}
-                onChange={(e) => handleChange("toLocation", e.target.value)}
-                className={inputClass}
-                placeholder="Đắk Lắk" />
+                onChange={(value) => handleChange("toLocation", value)}
+                placeholder="Chọn tỉnh/thành đến"
+                icon="flag"
+                className={routeDropdownClass} />
               
-              </Field>
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Khoảng cách (km)">
+            <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div>
+                <span className={routeFieldLabelClass}>Khoảng cách (km)</span>
                 <input
                 type="number"
                 min="0"
                 value={formData.distanceKm}
                 onChange={(e) => handleChange("distanceKm", e.target.value)}
-                className={inputClass} />
+                className={routeNumberInputClass}
+                placeholder="Ví dụ: 320" />
               
-              </Field>
-              <Field label="Thời gian (phút)">
+              </div>
+              <div>
+                <span className={routeFieldLabelClass}>Thời gian (phút)</span>
                 <input
                 type="number"
                 min="0"
                 value={formData.durationMinutes}
                 onChange={(e) => handleChange("durationMinutes", e.target.value)}
-                className={inputClass} />
+                className={routeNumberInputClass}
+                placeholder="Ví dụ: 420" />
               
-              </Field>
+              </div>
             </div>
           </div>
         </ModalShell>

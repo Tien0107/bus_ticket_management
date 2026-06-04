@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { getStaff, updateStaff, verifyCompanyAccount } from "../../api/company";
@@ -226,34 +226,178 @@ const getStaffMemberId = (member) => {
   return Number.isFinite(id) && id > 0 ? id : null;
 };
 
+const NOTIFICATION_PAGE_LIMIT = 10;
+const UNREAD_COUNT_MAX_PAGES = 10;
+
+const notificationFilters = [
+{
+  id: "all",
+  label: "Tất cả",
+  status: undefined
+},
+{
+  id: "unread",
+  label: "Chưa đọc",
+  status: 0
+},
+{
+  id: "read",
+  label: "Đã đọc",
+  status: 1
+}];
+
+const getNotificationFilterStatus = (filterId) =>
+notificationFilters.find((filter) => filter.id === filterId)?.status;
+
+const allNotificationStatusPages = [
+{
+  key: "unread",
+  status: 0
+},
+{
+  key: "read",
+  status: 1
+}];
+
+const getNextCursorValue = (value) =>
+value === undefined || value === null || value === 0 || value === "" ? null : value;
+
+const hasMoreNotificationPages = (cursor) => {
+  if (!cursor) return false;
+  if (typeof cursor === "object") {
+    return Object.values(cursor).some(Boolean);
+  }
+  return true;
+};
+
+const mergeNotificationLists = (current, next) => {
+  const merged = new Map();
+
+  [...current, ...next].forEach((notification) => {
+    if (notification?.id !== undefined && notification?.id !== null) {
+      merged.set(notification.id, notification);
+    }
+  });
+
+  return Array.from(merged.values()).sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+};
+
+const fetchNotificationPage = async ({ status, cursor = null }) => {
+  const params = {
+    limit: NOTIFICATION_PAGE_LIMIT,
+    status,
+    next: cursor || undefined
+  };
+  Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
+
+  const res = await getNotifications(params);
+  let list = res.data?.notifications || res.data || [];
+  if (!Array.isArray(list)) list = [];
+
+  return {
+    list,
+    next: getNextCursorValue(res.data?.next)
+  };
+};
+
 export default function NotificationBell({ align = "right" }) {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
   const [accountDialogNotification, setAccountDialogNotification] = useState(null);
   const [dropdownPosition, setDropdownPosition] = useState(null);
+  const [notificationFilter, setNotificationFilter] = useState("all");
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [loadingMoreNotifications, setLoadingMoreNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef(null);
   const dropdownMenuRef = useRef(null);
+  const notificationListRef = useRef(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
   const currentUser = getCurrentUser();
   const canManageAccountActions = isCompanyAdminUser(currentUser);
 
-  const fetchNotifications = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     try {
+      let count = 0;
+      let next = null;
+      let pageCount = 0;
 
-      const res = await getNotifications({ limit: 20 });
-      let list = res.data?.notifications || res.data || [];
-      if (!Array.isArray(list)) list = [];
+      do {
+        const params = {
+          limit: NOTIFICATION_PAGE_LIMIT,
+          status: 0,
+          ...(next ? { next } : {})
+        };
+        const res = await getNotifications(params);
+        let list = res.data?.notifications || res.data || [];
+        if (!Array.isArray(list)) list = [];
 
+        count += list.filter((item) => !item.isRead).length || list.length;
+        next = getNextCursorValue(res.data?.next);
+        pageCount += 1;
+      } while (next && pageCount < UNREAD_COUNT_MAX_PAGES);
 
-      list.sort((a, b) => b.id - a.id);
-
-      setNotifications(list);
+      setUnreadCount(count);
     } catch {
-      setNotifications([]);
+
     }
-  };
+  }, []);
+
+  const fetchNotifications = useCallback(async ({ append = false, cursor = null } = {}) => {
+    try {
+      if (append) {
+        setLoadingMoreNotifications(true);
+      } else {
+        setLoadingNotifications(true);
+      }
+
+      if (notificationFilter === "all") {
+        const cursorMap = append && cursor && typeof cursor === "object" ? cursor : {};
+        const pagesToFetch = allNotificationStatusPages.filter((page) => !append || cursorMap[page.key]);
+        const responses = await Promise.all(
+          pagesToFetch.map(async (page) => ({
+            ...page,
+            ...await fetchNotificationPage({
+              status: page.status,
+              cursor: append ? cursorMap[page.key] : null
+            })
+          }))
+        );
+        const list = responses.flatMap((page) => page.list);
+        const nextMap = allNotificationStatusPages.reduce((map, page) => ({ ...map, [page.key]: null }), {});
+
+        responses.forEach((page) => {
+          nextMap[page.key] = page.next;
+        });
+
+        setNotifications((current) => append ? mergeNotificationLists(current, list) : mergeNotificationLists([], list));
+        setNextCursor(hasMoreNotificationPages(nextMap) ? nextMap : null);
+        return;
+      }
+
+      const response = await fetchNotificationPage({
+        status: getNotificationFilterStatus(notificationFilter),
+        cursor: append ? cursor : null
+      });
+
+      setNotifications((current) => append ? mergeNotificationLists(current, response.list) : response.list);
+      setNextCursor(response.next);
+    } catch {
+      if (!append) {
+        setNotifications([]);
+        setNextCursor(null);
+      }
+    } finally {
+      if (append) {
+        setLoadingMoreNotifications(false);
+      } else {
+        setLoadingNotifications(false);
+      }
+    }
+  }, [notificationFilter]);
 
   const markAsRead = async (notification) => {
     if (!notification?.id) return false;
@@ -267,8 +411,11 @@ export default function NotificationBell({ align = "right" }) {
       const response = await markNotificationRead(notification.id);
       const updatedNotification = response.data;
       setNotifications((current) =>
-      current.map((item) => item.id === notification.id ? { ...item, ...updatedNotification, isRead: true } : item)
+      current.
+      map((item) => item.id === notification.id ? { ...item, ...updatedNotification, isRead: true } : item).
+      filter((item) => notificationFilter !== "unread" || !item.isRead)
       );
+      setUnreadCount((current) => Math.max(current - 1, 0));
       return true;
     } catch {
       setNotifications((current) =>
@@ -351,6 +498,7 @@ export default function NotificationBell({ align = "right" }) {
 
       await markAsRead(notification);
       await fetchNotifications();
+      await fetchUnreadCount();
 
       addToast(
         status === "active" ?
@@ -372,14 +520,18 @@ export default function NotificationBell({ align = "right" }) {
   useEffect(() => {
 
     fetchNotifications();
+    fetchUnreadCount();
 
 
     const interval = setInterval(() => {
-      fetchNotifications();
+      if (!isOpen) {
+        fetchNotifications();
+      }
+      fetchUnreadCount();
     }, 60000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchNotifications, fetchUnreadCount, isOpen]);
 
 
   useEffect(() => {
@@ -427,6 +579,25 @@ export default function NotificationBell({ align = "right" }) {
     };
   }, [align, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || !hasMoreNotificationPages(nextCursor) || loadingNotifications || loadingMoreNotifications) return undefined;
+
+    const listElement = notificationListRef.current;
+    if (!listElement) return undefined;
+
+    const remainingScroll = listElement.scrollHeight - listElement.scrollTop - listElement.clientHeight;
+    const cannotScrollYet = listElement.scrollHeight <= listElement.clientHeight + 8;
+    const isNearBottom = remainingScroll < 64;
+
+    if (!cannotScrollYet && !isNearBottom) return undefined;
+
+    const frameId = window.requestAnimationFrame(() => {
+      fetchNotifications({ append: true, cursor: nextCursor });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [fetchNotifications, isOpen, loadingMoreNotifications, loadingNotifications, nextCursor, notifications.length]);
+
   const handleNotificationClick = async (notification) => {
     if (!notification?.id) return;
 
@@ -450,8 +621,27 @@ export default function NotificationBell({ align = "right" }) {
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
   const accountDialogContext = accountDialogNotification ? getNotificationContext(accountDialogNotification) : null;
+  const handleFilterChange = (filterId) => {
+    if (filterId === notificationFilter) return;
+    setNotificationFilter(filterId);
+    setNotifications([]);
+    setNextCursor(null);
+  };
+
+  const handleLoadMoreNotifications = () => {
+    if (!hasMoreNotificationPages(nextCursor) || loadingMoreNotifications) return;
+    fetchNotifications({ append: true, cursor: nextCursor });
+  };
+
+  const handleNotificationListScroll = (event) => {
+    const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+    const nearBottom = scrollHeight - scrollTop - clientHeight < 64;
+
+    if (nearBottom) {
+      handleLoadMoreNotifications();
+    }
+  };
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -482,12 +672,37 @@ export default function NotificationBell({ align = "right" }) {
           }}
           className="fixed z-[120] overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container-lowest shadow-[0_18px_60px_rgba(15,23,42,0.22)] animate-in fade-in slide-in-from-top-2 duration-200">
           
-          <div className="px-4 py-3 border-b border-outline-variant/20 flex items-center justify-between bg-surface/50">
-            <h3 className="font-bold text-lg text-on-surface">Thông báo</h3>
+          <div className="border-b border-outline-variant/20 bg-surface/50 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-bold text-lg text-on-surface">Thông báo</h3>
+              {loadingNotifications &&
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary/25 border-t-primary" />
+              }
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {notificationFilters.map((filter) =>
+              <button
+                key={filter.id}
+                type="button"
+                onClick={() => handleFilterChange(filter.id)}
+                className={`rounded-lg px-2.5 py-2 text-xs font-bold transition-colors ${
+                notificationFilter === filter.id ?
+                "bg-primary text-white" :
+                "bg-white text-on-surface-variant ring-1 ring-outline-variant/25 hover:bg-surface-container-low"}`}>
+                
+                  {filter.label}
+                </button>
+              )}
+            </div>
           </div>
           
-          <div className="max-h-[400px] overflow-y-auto overscroll-contain">
-            {notifications.length === 0 ?
+          <div ref={notificationListRef} className="max-h-[400px] overflow-y-auto overscroll-contain" onScroll={handleNotificationListScroll}>
+            {loadingNotifications && notifications.length === 0 ?
+            <div className="py-12 text-center text-on-surface-variant flex flex-col items-center">
+                <span className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+                <p className="mt-3 text-sm font-medium">Đang tải thông báo...</p>
+              </div> :
+            notifications.length === 0 ?
             <div className="py-12 text-center text-on-surface-variant flex flex-col items-center">
                 <span className="material-symbols-outlined text-4xl opacity-50 mb-2">notifications_paused</span>
                 <p className="text-sm font-medium">Bạn chưa có thông báo nào</p>
@@ -540,7 +755,12 @@ export default function NotificationBell({ align = "right" }) {
           </div>
           
           {notifications.length > 0 &&
-          <div className="p-2 bg-surface border-t border-outline-variant/20 text-center">
+          <div className="space-y-2 border-t border-outline-variant/20 bg-surface p-2 text-center">
+              {loadingMoreNotifications &&
+            <div className="flex justify-center py-1">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary/25 border-t-primary" />
+              </div>
+            }
               <button
               onClick={() => setIsOpen(false)}
               className="text-xs font-bold text-on-surface-variant hover:text-on-surface transition-colors w-full py-1">
