@@ -1,4 +1,5 @@
 import axiosClient from "./axiosClient";
+export { dedupeDriversByContact } from "../utils/driverDedupe";
 
 
 
@@ -149,33 +150,3 @@ export const getAllTripSchedules = (params = {}) => getAllPages(getTripSchedules
 export const getAllVehicles = (params = {}) => getAllPages(getVehicles, ["vehicles"], params);
 export const getAllDrivers = (params = {}) => getAllPages(getDrivers, ["drivers"], params);
 export const getAllTrips = (scheduleId, params = {}) => getAllPages((pageParams) => getTrips(scheduleId, pageParams), ["trips", "trip"], params, "trips");
-
-const normalizePhone = (value) => String(value || "").replace(/\D/g, "");
-
-const getDriverDedupeKey = (driver = {}) => {
-  const phone = normalizePhone(driver.phone || driver.phoneNumber);
-  if (phone) return `phone:${phone}`;
-
-  const email = String(driver.email || "").trim().toLowerCase();
-  if (email) return `email:${email}`;
-
-  return `id:${driver.id}`;
-};
-
-const getDriverScore = (driver = {}) =>
-  Number(driver.completedTripCount || 0) + Number(driver.cancelledTripCount || 0);
-
-export const dedupeDriversByContact = (drivers = []) => {
-  const uniqueMap = new Map();
-
-  drivers.forEach((driver) => {
-    const key = getDriverDedupeKey(driver);
-    const current = uniqueMap.get(key);
-
-    if (!current || getDriverScore(driver) > getDriverScore(current)) {
-      uniqueMap.set(key, driver);
-    }
-  });
-
-  return Array.from(uniqueMap.values());
-};

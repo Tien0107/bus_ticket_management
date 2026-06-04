@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { getDrivers, verifyCompanyAccount } from "../../api/company";
 import { createNotification } from "../../api/notification";
 import { useToast } from "../../context/ToastContext";
+import { dedupeDriversByContact } from "../../utils/driverDedupe";
 import {
   CompanyPageShell,
   EmptyState,
@@ -81,11 +82,11 @@ export default function Drivers() {
       Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 
       const response = await getDrivers(params);
-      const newDrivers = Array.isArray(response.data?.drivers) ? response.data.drivers : [];
+      const newDrivers = dedupeDriversByContact(Array.isArray(response.data?.drivers) ? response.data.drivers : []);
       const responseNext = response.data?.next || null;
 
       if (append) {
-        setDrivers((prev) => [...prev, ...newDrivers]);
+        setDrivers((prev) => dedupeDriversByContact([...prev, ...newDrivers]));
       } else {
         setDrivers(newDrivers);
       }
