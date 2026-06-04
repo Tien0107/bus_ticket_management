@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { clearAuthSession, getStoredToken } from "../utils/authStorage";
 
 const axiosClient = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: "https://busgo.servecounterstrike.com",
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
