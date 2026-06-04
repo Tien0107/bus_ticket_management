@@ -99,6 +99,7 @@ export default function AiChatWidget() {
   ]);
   const [aiState, setAiState] = useState(null);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     const syncAccess = () => {
@@ -130,6 +131,16 @@ export default function AiChatWidget() {
     if (!open) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open, sending]);
+
+  // Auto-focus input khi mở chat hoặc sau khi gửi xong (để có thể nhắn liên tục mà không cần click lại)
+  useEffect(() => {
+    if (open && !sending) {
+      const t = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 10);
+      return () => clearTimeout(t);
+    }
+  }, [open, sending]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -277,6 +288,7 @@ export default function AiChatWidget() {
           >
             <div className="flex items-end gap-2 rounded-2xl bg-[#f8faf9] p-1 ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-primary/25">
               <textarea
+                ref={inputRef}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={handleKeyDown}
