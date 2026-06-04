@@ -36,6 +36,52 @@ const getAiReplyText = (data) => {
   return reply?.trim() || "Mình chưa nhận được phản hồi từ trợ lý AI.";
 };
 
+const getAiState = (data) => {
+  if (!data || typeof data !== "object") return null;
+
+  const candidates = [
+    data?.state,
+    data?.data?.state,
+    data?.conversationState,
+    data?.data?.conversationState,
+    data?.context,
+    data?.data?.context,
+    data?.sessionState,
+    data?.data?.sessionState,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === "object") {
+      // Trả về bản clone ngay tại đây để đảm bảo
+      // chúng ta không bao giờ giữ reference đến object trong response gốc
+      return cloneState(candidate);
+    }
+  }
+  return null;
+};
+
+/**
+ * Deep clone the AI state object.
+ * This ensures we always paste a full, untouched copy of the state
+ * received from the previous server response.
+ * - Must paste the entire object (no missing fields)
+ * - Never mutate the state we received
+ * - After each new response, we take the fresh state for the next send
+ */
+const cloneState = (state) => {
+  if (!state || typeof state !== "object") return state;
+  try {
+    if (typeof structuredClone === "function") {
+      return structuredClone(state);
+    }
+    return JSON.parse(JSON.stringify(state));
+  } catch (e) {
+    // Fallback (should rarely happen for server-provided state)
+    console.warn("[AiChat] Could not deep clone AI state, falling back to shallow copy", e);
+    return Array.isArray(state) ? [...state] : { ...state };
+  }
+};
+
 const getCurrentCustomerAccess = () => {
   const token = getStoredToken();
   const user = getStoredUser(null);
@@ -51,6 +97,7 @@ export default function AiChatWidget() {
   const [messages, setMessages] = useState(() => [
     createMessage("assistant", "Xin chào, mình có thể hỗ trợ bạn về đặt vé và chuyến đi."),
   ]);
+  const [aiState, setAiState] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -59,6 +106,10 @@ export default function AiChatWidget() {
       setCanUseAi(nextCanUseAi);
       if (!nextCanUseAi) {
         setOpen(false);
+        setAiState(null);
+        setMessages(() => [
+          createMessage("assistant", "Xin chào, mình có thể hỗ trợ bạn về đặt vé và chuyến đi."),
+        ]);
       }
     };
 
@@ -88,6 +139,10 @@ export default function AiChatWidget() {
     if (!getCurrentCustomerAccess()) {
       setCanUseAi(false);
       setOpen(false);
+      setAiState(null);
+      setMessages(() => [
+        createMessage("assistant", "Xin chào, mình có thể hỗ trợ bạn về đặt vé và chuyến đi."),
+      ]);
       return;
     }
 
@@ -96,10 +151,31 @@ export default function AiChatWidget() {
     setMessages((current) => [...current, createMessage("customer", message)]);
 
     try {
-      const response = await sendAiChatMessage({ message });
-      setMessages((current) => [...current, createMessage("assistant", getAiReplyText(response.data))]);
+      const payload = { message };
+
+      if (aiState) {
+        // === QUY TẮC VÀNG KHI GỬI STATE ===
+        // • Lần đầu: chỉ gửi message (aiState == null)
+        // • Từ lần 2 trở đi: paste NGUYÊN object state từ response lần trước
+        // • Phải paste toàn bộ object, không được thiếu field nào
+        // • Đừng sửa gì trong state (chúng ta clone để đảm bảo)
+        // • state được copy trực tiếp từ response lần trước, không tự tạo hay chỉnh sửa
+        payload.state = cloneState(aiState);
+      }
+
+      const response = await sendAiChatMessage(payload);
+      const replyData = response.data;
+      setMessages((current) => [...current, createMessage("assistant", getAiReplyText(replyData))]);
+
+      const nextState = getAiState(replyData);
+      if (nextState) {
+        // Sau khi server trả response mới → lưu state mới cho lần gửi tiếp theo
+        // (getAiState đã clone để đảm bảo toàn bộ object, không mutate, không thiếu field)
+        setAiState(nextState);
+      }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || "Không thể gửi tin nhắn đến trợ lý AI";
+      const errorMessage =
+        err.response?.data?.message || err.message || "Không thể gửi tin nhắn đến trợ lý AI";
       addToast(errorMessage, "error");
       setMessages((current) => [
         ...current,
@@ -140,7 +216,9 @@ export default function AiChatWidget() {
                 <span className="material-symbols-outlined text-[22px]">smart_toy</span>
               </div>
               <div className="min-w-0">
-                <h2 className="truncate text-base font-extrabold leading-5 text-on-surface">Trợ lý AI</h2>
+                <h2 className="truncate text-base font-extrabold leading-5 text-on-surface">
+                  Trợ lý AI
+                </h2>
                 <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs font-semibold text-on-surface-variant">
                   <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
                   Sẵn sàng hỗ trợ
@@ -164,7 +242,10 @@ export default function AiChatWidget() {
               {messages.map((message) => {
                 const mine = message.role === "customer";
                 return (
-                  <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                  <div
+                    key={message.id}
+                    className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                  >
                     <div
                       className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-[13px] font-medium leading-5 shadow-[0_8px_22px_rgba(15,23,42,0.06)] ${
                         mine
@@ -190,7 +271,10 @@ export default function AiChatWidget() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-100 bg-white px-2.5 py-2.5">
+          <form
+            onSubmit={handleSubmit}
+            className="shrink-0 border-t border-slate-100 bg-white px-2.5 py-2.5"
+          >
             <div className="flex items-end gap-2 rounded-2xl bg-[#f8faf9] p-1 ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-primary/25">
               <textarea
                 value={draft}
