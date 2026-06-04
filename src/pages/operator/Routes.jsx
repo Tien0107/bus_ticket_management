@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoute, getRoutes, updateRoute } from "../../api/operator";
-import LocationDropdown from "../../components/common/LocationDropdown";
 import { useToast } from "../../context/ToastContext";
+import ProvinceDropdown from "./ProvinceDropdown";
 import {
   EmptyState,
   ErrorState,
@@ -300,7 +300,7 @@ export default function Routes() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div className="relative z-30">
                 <span className={routeFieldLabelClass}>Từ địa điểm</span>
-                <LocationDropdown
+                <ProvinceDropdown
                 value={formData.fromLocation}
                 onChange={(value) => handleChange("fromLocation", value)}
                 placeholder="Chọn tỉnh/thành đi"
@@ -310,7 +310,7 @@ export default function Routes() {
               </div>
               <div className="relative z-20">
                 <span className={routeFieldLabelClass}>Đến địa điểm</span>
-                <LocationDropdown
+                <ProvinceDropdown
                 value={formData.toLocation}
                 onChange={(value) => handleChange("toLocation", value)}
                 placeholder="Chọn tỉnh/thành đến"
