@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getTicketDetail, cancelTicket } from "../../api/customer";
+import { getTicketDetail, cancelTicket, getTripSchedules } from "../../api/customer";
 import { getCompanies } from "../../api/public";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import { useToast } from "../../context/ToastContext";
@@ -16,6 +16,7 @@ export default function TicketDetail() {
   const [showConfirm, setShowConfirm] = useState(false);
   const { addToast } = useToast();
   const [companies, setCompanies] = useState([]);
+  const [schedules, setSchedules] = useState([]);
 
   useEffect(() => {
     getCompanies({ limit: 100 })
@@ -24,6 +25,14 @@ export default function TicketDetail() {
         setCompanies(list);
       })
       .catch((e) => console.error("Lỗi lấy danh sách nhà xe:", e));
+
+    getTripSchedules({ limit: 50, orderBy: "asc" })
+      .then((res) => {
+        const data = res.data?.data || res.data || {};
+        const list = data.trip || data.trips || data.schedules || [];
+        setSchedules(Array.isArray(list) ? list : []);
+      })
+      .catch((e) => console.error("Lỗi lấy lịch trình:", e));
   }, []);
 
   useEffect(() => {
@@ -86,14 +95,32 @@ export default function TicketDetail() {
   const seatNumbers = ticket.seatNumber || ticket.seatId || "";
 
   const driverPhone = ticket.driverPhone || "";
+  // Match company via companyId first, then fall back to schedule route matching
   const ticketCompanyId = ticket.companyId || ticket.company_id || ticket.companyid;
-  const matchedCompany = companies.length > 0 && ticketCompanyId
+  let matchedCompany = companies.length > 0 && ticketCompanyId
     ? companies.find((c) => String(c.id || c._id) === String(ticketCompanyId))
     : null;
+
+  // If no companyId on ticket, find company via schedule route matching
+  let scheduleCompanyName = null;
+  let scheduleLogoUrl = null;
+  if (!matchedCompany && ticket.fromLocation && ticket.toLocation && schedules.length > 0) {
+    const matchedSchedule = schedules.find(
+      (s) => s.fromLocation === ticket.fromLocation && s.toLocation === ticket.toLocation
+    );
+    if (matchedSchedule) {
+      scheduleCompanyName = matchedSchedule.name;
+      scheduleLogoUrl = matchedSchedule.logoUrl;
+      if (matchedSchedule.companyId && companies.length > 0) {
+        matchedCompany = companies.find((c) => String(c.id || c._id) === String(matchedSchedule.companyId));
+      }
+    }
+  }
+
   const busCompany = matchedCompany
     ? (matchedCompany.name || matchedCompany.company_name || "BusGo")
-    : (ticket.companyName || ticket.company_name || "BusGo");
-  const logoUrl = matchedCompany ? (matchedCompany.logo || matchedCompany.logoUrl) : null;
+    : (scheduleCompanyName || ticket.companyName || ticket.company_name || "BusGo");
+  const logoUrl = matchedCompany ? (matchedCompany.logo || matchedCompany.logoUrl) : (scheduleLogoUrl || null);
 
   const busPlate = ticket.plateNumber || ticket.licensePlate || "";
 

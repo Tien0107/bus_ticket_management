@@ -214,6 +214,7 @@ export default function MyTickets() {
   const [reviewTicket, setReviewTicket] = useState(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [companies, setCompanies] = useState([]);
+  const [schedules, setSchedules] = useState([]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -230,6 +231,14 @@ export default function MyTickets() {
         setCompanies(list);
       })
       .catch((e) => console.error("Lỗi lấy danh sách nhà xe:", e));
+
+    getTripSchedules({ limit: 50, orderBy: "asc" })
+      .then((res) => {
+        const data = res.data?.data || res.data || {};
+        const list = data.trip || data.trips || data.schedules || [];
+        setSchedules(Array.isArray(list) ? list : []);
+      })
+      .catch((e) => console.error("Lỗi lấy danh sách lịch trình:", e));
   }, []);
 
   const activeFilterCount = useMemo(
@@ -289,6 +298,18 @@ export default function MyTickets() {
           const detailRes = await getCustomerTicketDetail(ticket.id);
           const detailPayload = detailRes.data?.data || detailRes.data || {};
           const fullTicket = detailPayload.ticket || detailPayload || {};
+
+          // Match company info from schedules by route (fromLocation + toLocation)
+          if (!fullTicket.companyId && !fullTicket.companyName && fullTicket.fromLocation && fullTicket.toLocation) {
+            const matchedSchedule = schedules.find(
+              (s) => s.fromLocation === fullTicket.fromLocation && s.toLocation === fullTicket.toLocation
+            );
+            if (matchedSchedule) {
+              fullTicket.companyId = matchedSchedule.companyId;
+              fullTicket.companyName = matchedSchedule.name;
+              fullTicket.companyLogoUrl = matchedSchedule.logoUrl;
+            }
+          }
           
           setTickets((current) =>
             current.map((t) =>
@@ -792,6 +813,7 @@ export default function MyTickets() {
     const companyName = matchedCompany
       ? (matchedCompany.name || matchedCompany.company_name || "Nhà xe đối tác BusGo")
       : (ticket.companyName || ticket.company_name || "Nhà xe đối tác BusGo");
+    const companyLogo = matchedCompany?.logo || matchedCompany?.logoUrl || ticket.companyLogoUrl || null;
     const vehicleType = isMeaningfulValue(ticket.type) ? (ticket.type === "bed" ? "Giường nằm" : ticket.type === "seat" ? "Ghế ngồi" : ticket.type) : null;
     const bookingType = ticket.bookingType;
     const isRoundTrip = String(bookingType || "").toLowerCase() === "round_trip";
@@ -814,9 +836,9 @@ export default function MyTickets() {
           <div className="flex items-start justify-between gap-4 pb-4 border-b border-outline-variant/10">
             <div className="flex items-center gap-3 min-w-0">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary shrink-0 border border-outline-variant/10 overflow-hidden bg-white">
-                {matchedCompany?.logo || matchedCompany?.logoUrl ? (
+                {companyLogo ? (
                   <img
-                    src={matchedCompany.logo || matchedCompany.logoUrl}
+                    src={companyLogo}
                     alt={companyName}
                     className="w-9 h-9 object-contain rounded-lg"
                     onError={(e) => {
@@ -827,7 +849,7 @@ export default function MyTickets() {
                 ) : null}
                 <span
                   className="material-symbols-outlined text-2xl text-primary"
-                  style={{ display: matchedCompany?.logo || matchedCompany?.logoUrl ? "none" : "block" }}
+                  style={{ display: companyLogo ? "none" : "block" }}
                 >
                   directions_bus
                 </span>
