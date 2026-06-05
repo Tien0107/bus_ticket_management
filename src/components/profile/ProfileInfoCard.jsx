@@ -237,11 +237,17 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
     try {
       setSavingName(true);
       const res = await updateCustomerProfile({ fullName: trimmed });
+      const nextToken = res?.data?.token;
       let updatedUser = res?.data?.user;
       if (!updatedUser) {
         updatedUser = res?.data && typeof res.data === "object" && !Array.isArray(res.data)
           ? res.data
           : { ...user, fullName: trimmed };
+      }
+
+      if (nextToken) {
+        setStoredToken(nextToken);
+        axiosClient.defaults.headers.common.Authorization = `Bearer ${nextToken}`;
       }
 
       try {
