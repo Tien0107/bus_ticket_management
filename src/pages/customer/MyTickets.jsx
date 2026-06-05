@@ -785,10 +785,13 @@ export default function MyTickets() {
 
     const seatNumber = isMeaningfulValue(ticket.seatNumber) ? ticket.seatNumber : null;
     const plateNumber = isMeaningfulValue(ticket.plateNumber) ? ticket.plateNumber : null;
-    const matchedCompany = companies.length > 0
-      ? (companies[Number(ticket.tripId || 0) % companies.length])
+    const ticketCompanyId = ticket.companyId || ticket.company_id || ticket.companyid;
+    const matchedCompany = companies.length > 0 && ticketCompanyId
+      ? companies.find((c) => String(c.id || c._id) === String(ticketCompanyId))
       : null;
-    const companyName = matchedCompany ? matchedCompany.name : "Nhà xe đối tác BusGo";
+    const companyName = matchedCompany
+      ? (matchedCompany.name || matchedCompany.company_name || "Nhà xe đối tác BusGo")
+      : (ticket.companyName || ticket.company_name || "Nhà xe đối tác BusGo");
     const vehicleType = isMeaningfulValue(ticket.type) ? (ticket.type === "bed" ? "Giường nằm" : ticket.type === "seat" ? "Ghế ngồi" : ticket.type) : null;
     const bookingType = ticket.bookingType;
     const isRoundTrip = String(bookingType || "").toLowerCase() === "round_trip";
