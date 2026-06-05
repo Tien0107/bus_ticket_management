@@ -11,6 +11,8 @@ const createMessage = (role, content) => ({
   createdAt: new Date().toISOString(),
 });
 
+const AI_WELCOME = "Chào bạn! Mình là trợ lý AI của BusGo. Mình có thể hỗ trợ bạn đặt vé, chọn chuyến và giải đáp thắc mắc nhé. Bạn cần mình giúp gì ạ?";
+
 const getAiReplyText = (data) => {
   if (typeof data === "string") return data;
 
@@ -33,7 +35,7 @@ const getAiReplyText = (data) => {
   ];
 
   const reply = candidates.find((value) => typeof value === "string" && value.trim());
-  return reply?.trim() || "Mình chưa nhận được phản hồi từ trợ lý AI.";
+  return reply?.trim() || "Xin lỗi nhé, mình chưa nắm rõ câu trả lời. Bạn hỏi lại được không?";
 };
 
 const getAiState = (data) => {
@@ -95,7 +97,7 @@ export default function AiChatWidget() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState(() => [
-    createMessage("assistant", "Xin chào, mình có thể hỗ trợ bạn về đặt vé và chuyến đi."),
+    createMessage("assistant", AI_WELCOME),
   ]);
   const [aiState, setAiState] = useState(null);
   const messagesEndRef = useRef(null);
@@ -109,7 +111,7 @@ export default function AiChatWidget() {
         setOpen(false);
         setAiState(null);
         setMessages(() => [
-          createMessage("assistant", "Xin chào, mình có thể hỗ trợ bạn về đặt vé và chuyến đi."),
+          createMessage("assistant", AI_WELCOME),
         ]);
       }
     };
@@ -152,7 +154,7 @@ export default function AiChatWidget() {
       setOpen(false);
       setAiState(null);
       setMessages(() => [
-        createMessage("assistant", "Xin chào, mình có thể hỗ trợ bạn về đặt vé và chuyến đi."),
+        createMessage("assistant", AI_WELCOME),
       ]);
       return;
     }
@@ -190,7 +192,7 @@ export default function AiChatWidget() {
       addToast(errorMessage, "error");
       setMessages((current) => [
         ...current,
-        createMessage("assistant", "Trợ lý AI đang gặp lỗi kết nối. Vui lòng thử lại sau."),
+        createMessage("assistant", "Xin lỗi bạn nhé, mình đang gặp chút vấn đề kết nối. Bạn thử gửi lại tin nhắn được không?"),
       ]);
     } finally {
       setSending(false);
@@ -212,8 +214,8 @@ export default function AiChatWidget() {
           type="button"
           onClick={() => setOpen(true)}
           className="relative inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-[0_14px_34px_rgba(0,128,43,0.28)] ring-4 ring-white transition-all hover:-translate-y-0.5 hover:bg-primary/90"
-          aria-label="Mở trợ lý AI"
-          title="Trợ lý AI"
+          aria-label="Mở trợ lý BusGo"
+          title="Trợ lý BusGo"
         >
           <span className="material-symbols-outlined text-[28px]">smart_toy</span>
         </button>
@@ -228,11 +230,11 @@ export default function AiChatWidget() {
               </div>
               <div className="min-w-0">
                 <h2 className="truncate text-base font-extrabold leading-5 text-on-surface">
-                  Trợ lý AI
+                  Trợ lý BusGo
                 </h2>
                 <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs font-semibold text-on-surface-variant">
                   <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
-                  Sẵn sàng hỗ trợ
+                  Luôn sẵn sàng giúp bạn
                 </p>
               </div>
             </div>
@@ -241,7 +243,7 @@ export default function AiChatWidget() {
               type="button"
               onClick={() => setOpen(false)}
               className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition hover:bg-emerald-50"
-              aria-label="Đóng trợ lý AI"
+              aria-label="Đóng trợ lý BusGo"
               title="Đóng"
             >
               <span className="material-symbols-outlined text-[23px]">close</span>
@@ -252,18 +254,21 @@ export default function AiChatWidget() {
             <div className="flex min-h-full flex-col justify-end gap-2.5">
               {messages.map((message) => {
                 const mine = message.role === "customer";
+                if (mine) {
+                  return (
+                    <div key={message.id} className="flex justify-end">
+                      <div className="max-w-[82%] rounded-2xl rounded-br-md bg-[#087b2f] px-3.5 py-2.5 text-[13px] font-medium leading-5 text-white shadow-[0_8px_22px_rgba(15,23,42,0.06)]">
+                        <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                      </div>
+                    </div>
+                  );
+                }
                 return (
-                  <div
-                    key={message.id}
-                    className={`flex ${mine ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-[13px] font-medium leading-5 shadow-[0_8px_22px_rgba(15,23,42,0.06)] ${
-                        mine
-                          ? "rounded-br-md bg-[#087b2f] text-white"
-                          : "rounded-bl-md border border-slate-100 bg-white text-on-surface"
-                      }`}
-                    >
+                  <div key={message.id} className="flex items-start gap-2">
+                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <span className="material-symbols-outlined text-[15px]">smart_toy</span>
+                    </div>
+                    <div className="max-w-[78%] rounded-2xl rounded-bl-md border border-primary/15 bg-primary/5 px-3.5 py-2.5 text-[13px] font-medium leading-5 text-on-surface shadow-[0_8px_22px_rgba(15,23,42,0.06)]">
                       <p className="whitespace-pre-wrap break-words">{message.content}</p>
                     </div>
                   </div>
@@ -271,10 +276,17 @@ export default function AiChatWidget() {
               })}
 
               {sending && (
-                <div className="flex justify-start">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-100 bg-white px-3.5 py-2 text-xs font-semibold text-on-surface-variant shadow-sm">
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-                    Đang phản hồi...
+                <div className="flex items-start gap-2">
+                  <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <span className="material-symbols-outlined text-[15px]">smart_toy</span>
+                  </div>
+                  <div className="inline-flex items-center gap-2 rounded-2xl border border-primary/15 bg-primary/5 px-3.5 py-2 text-xs font-medium text-on-surface-variant shadow-sm">
+                    <span className="flex gap-1">
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.3s]" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.15s]" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60" />
+                    </span>
+                    Đang suy nghĩ...
                   </div>
                 </div>
               )}
@@ -301,7 +313,7 @@ export default function AiChatWidget() {
                 type="submit"
                 disabled={!draft.trim() || sending}
                 className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-[0_8px_20px_rgba(0,128,43,0.22)] transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-emerald-200 disabled:shadow-none"
-                aria-label="Gửi tin nhắn đến trợ lý AI"
+                aria-label="Gửi tin nhắn đến trợ lý BusGo"
               >
                 <span className="material-symbols-outlined text-[20px]">send</span>
               </button>

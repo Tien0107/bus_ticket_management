@@ -64,7 +64,7 @@ function getQuickOptions(state) {
  */
 function getReplyText(data) {
   if (typeof data === "string") return data;
-  if (!data) return "Xin lỗi, mình chưa nhận được phản hồi từ trợ lý.";
+  if (!data) return "Xin lỗi nhé, mình chưa nắm được phản hồi từ trợ lý.";
 
   return (
     data.message ||
@@ -73,7 +73,7 @@ function getReplyText(data) {
     data.content ||
     data.text ||
     (data.data && (data.data.message || data.data.reply)) ||
-    "Mình chưa nhận được phản hồi rõ ràng từ trợ lý AI."
+    "Xin lỗi bạn, mình chưa nắm rõ phản hồi. Bạn hỏi lại nhé?"
   );
 }
 
@@ -97,7 +97,7 @@ export const AiBookingChat = ({ token, baseUrl = "http://localhost:3000", onBook
       id: "welcome",
       role: "assistant",
       content:
-        "Xin chào! Mình là trợ lý đặt vé BusGo. Bạn muốn đi tuyến nào hôm nay? Mình sẽ hỗ trợ bạn chọn chuyến, điểm đón/trả và ghế ngồi nhé.",
+        "Chào bạn! Mình là trợ lý đặt vé BusGo. Mình sẽ giúp bạn chọn tuyến, chuyến, điểm đón/trả và ghế ngồi một cách dễ dàng nhé. Bạn muốn đi đâu hôm nay ạ?",
     },
   ]);
   const [currentState, setCurrentState] = useState(null);
@@ -197,7 +197,7 @@ export const AiBookingChat = ({ token, baseUrl = "http://localhost:3000", onBook
           onBookingCreated(Number(bookingId), newState ?? currentState);
         }
       } catch (err) {
-        const errorMsg = err?.message || "Không thể kết nối đến trợ lý AI. Vui lòng thử lại.";
+        const errorMsg = err?.message || "Xin lỗi, mình đang gặp vấn đề kết nối. Bạn thử lại nhé!";
         setError(errorMsg);
 
         // Thêm message lỗi vào chat để người dùng thấy
@@ -227,7 +227,7 @@ export const AiBookingChat = ({ token, baseUrl = "http://localhost:3000", onBook
         </div>
         <div className="text-lg font-semibold text-slate-700">Vui lòng đăng nhập</div>
         <p className="mt-2 max-w-[260px] text-sm text-slate-500">
-          Tính năng Trợ lý đặt vé AI chỉ dành cho khách hàng đã đăng nhập.
+          Tính năng Trợ lý đặt vé BusGo chỉ dành cho khách hàng đã đăng nhập.
         </p>
         <a
           href="/login"
@@ -257,7 +257,7 @@ export const AiBookingChat = ({ token, baseUrl = "http://localhost:3000", onBook
         id: "welcome",
         role: "assistant",
         content:
-          "Xin chào! Mình là trợ lý đặt vé BusGo. Bạn muốn đi tuyến nào hôm nay? Mình sẽ hỗ trợ bạn chọn chuyến, điểm đón/trả và ghế ngồi nhé.",
+          "Chào bạn! Mình là trợ lý đặt vé BusGo. Mình sẽ giúp bạn chọn tuyến, chuyến, điểm đón/trả và ghế ngồi một cách dễ dàng nhé. Bạn muốn đi đâu hôm nay ạ?",
       },
     ]);
     setCurrentState(null);
@@ -346,7 +346,7 @@ export const AiBookingChat = ({ token, baseUrl = "http://localhost:3000", onBook
           </div>
           <div>
             <div className="flex items-center text-base font-extrabold text-slate-900">
-              Trợ lý đặt vé AI
+              Trợ lý đặt vé BusGo
               {renderStageBadge()}
             </div>
             <div className="text-[11px] text-emerald-600 font-medium">BusGo • Hỗ trợ 24/7</div>
@@ -375,15 +375,22 @@ export const AiBookingChat = ({ token, baseUrl = "http://localhost:3000", onBook
             const isLastAssistant =
               msg.role === "assistant" && index === messages.length - 1 && !loading;
 
+            if (isUser) {
+              return (
+                <div key={msg.id} className="flex justify-end">
+                  <div className="max-w-[82%] rounded-2xl rounded-br-md bg-emerald-600 px-3.5 py-2.5 text-[13.5px] leading-[1.35] text-white shadow-sm">
+                    <p className="whitespace-pre-line break-words">{msg.content}</p>
+                  </div>
+                </div>
+              );
+            }
+
             return (
-              <div key={msg.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-[1.35] shadow-sm ${
-                    isUser
-                      ? "rounded-br-md bg-emerald-600 text-white"
-                      : "rounded-bl-md border border-slate-200 bg-white text-slate-800"
-                  }`}
-                >
+              <div key={msg.id} className="flex items-start gap-2">
+                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                  <span className="material-symbols-outlined text-[15px]">smart_toy</span>
+                </div>
+                <div className="max-w-[78%] rounded-2xl rounded-bl-md border border-emerald-200 bg-emerald-50/70 px-3.5 py-2.5 text-[13.5px] leading-[1.35] text-slate-800 shadow-sm">
                   <p className="whitespace-pre-line break-words">{msg.content}</p>
 
                   {/* Quick chips chỉ hiện dưới message AI cuối cùng (khi có options) */}
@@ -397,14 +404,17 @@ export const AiBookingChat = ({ token, baseUrl = "http://localhost:3000", onBook
 
           {/* Loading / typing indicator */}
           {loading && (
-            <div className="flex justify-start">
-              <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">
+            <div className="flex items-start gap-2">
+              <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                <span className="material-symbols-outlined text-[15px]">smart_toy</span>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-2 text-sm text-emerald-700 shadow-sm">
                 <span className="flex gap-1">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.3s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.15s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-500 [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-500 [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-500" />
                 </span>
-                Đang trả lời...
+                Đang suy nghĩ...
               </div>
             </div>
           )}
