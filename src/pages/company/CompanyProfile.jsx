@@ -15,6 +15,7 @@ import {
   SecondaryButton,
   inputClass } from
 "./CompanyUI";
+import ChangePasswordCard from "../../components/profile/ChangePasswordCard";
 import OperatorProfileCard from "../../components/profile/OperatorProfileCard";
 
 const emptyCompanyForm = {
@@ -379,8 +380,9 @@ export default function CompanyProfile() {
           </div>
         </section>
 
-        <aside className="xl:sticky xl:top-6">
+        <aside className="space-y-5 xl:sticky xl:top-6">
           <OperatorProfileCard roleLabel="Quản trị công ty" compact />
+          <ChangePasswordCard compact />
         </aside>
       </div>
     </CompanyPageShell>);

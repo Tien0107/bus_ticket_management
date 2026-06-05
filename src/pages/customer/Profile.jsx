@@ -4,6 +4,7 @@ import { getCustomerProfile } from "../../api/customer";
 import ProfileHeader from "../../components/profile/ProfileHeader";
 import ProfileInfoCard from "../../components/profile/ProfileInfoCard";
 import CustomerProfileNav from "../../components/profile/CustomerProfileNav";
+import ChangePasswordCard from "../../components/profile/ChangePasswordCard";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -65,7 +66,10 @@ export default function Profile() {
         )}
 
         {!loading && !error && profile?.user && (
-          <ProfileInfoCard user={profile.user} onProfileUpdated={handleProfileUpdated} />
+          <>
+            <ProfileInfoCard user={profile.user} onProfileUpdated={handleProfileUpdated} />
+            <ChangePasswordCard user={profile.user} />
+          </>
         )}
       </div>
     </div>

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../../api/auth";
+import ChangePasswordCard from "../../components/profile/ChangePasswordCard";
 import OperatorProfileCard from "../../components/profile/OperatorProfileCard";
 import { clearAuthSession, getStoredUser as getAuthStoredUser } from "../../utils/authStorage";
 
@@ -104,7 +105,10 @@ export default function SupportProfile() {
             </div>
           </div>
 
-          <OperatorProfileCard roleLabel="Nhân viên hỗ trợ" onProfileUpdated={handleProfileUpdated} />
+          <div className="space-y-5">
+            <OperatorProfileCard roleLabel="Nhân viên hỗ trợ" onProfileUpdated={handleProfileUpdated} />
+            <ChangePasswordCard user={user} />
+          </div>
         </div>
       </main>
     </div>);

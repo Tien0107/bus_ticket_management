@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useToast } from "../../context/ToastContext";
 import axiosClient from "../../api/axiosClient";
+import ChangePasswordCard from "../../components/profile/ChangePasswordCard";
 import { clearStoredUser, getStoredUserRaw, setStoredUser } from "../../utils/authStorage";
 
 const ProfileField = ({ label, value, icon }) =>
@@ -340,6 +341,9 @@ const DriverProfile = () => {
             }
           </div>
         </section>
+        <div className="mt-5">
+          <ChangePasswordCard user={user} />
+        </div>
       </div>
     </div>);
 

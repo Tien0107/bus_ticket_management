@@ -54,3 +54,8 @@ export const sendOtp = (data) => {
 export const resetPassword = (data) => {
   return axiosClient.put("/auth/reset-password", data);
 };
+
+
+export const updatePassword = (data) => {
+  return axiosClient.put("/auth/password", data);
+};
