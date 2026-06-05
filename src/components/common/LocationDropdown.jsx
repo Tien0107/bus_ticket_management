@@ -9,6 +9,15 @@ const VIETNAM_PROVINCES = [
   "Tuyên Quang", "Vĩnh Long", "Vĩnh Phúc", "Yên Bái"
 ];
 
+const removeDiacritics = (str) => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
+
 const LocationDropdown = ({ value, onChange, placeholder, icon }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState(value || "");
@@ -29,7 +38,12 @@ const LocationDropdown = ({ value, onChange, placeholder, icon }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [value]);
 
-  const filtered = VIETNAM_PROVINCES;
+  const filtered = VIETNAM_PROVINCES.filter((province) => {
+    if (!search) return true;
+    const cleanSearch = removeDiacritics(search).toLowerCase();
+    const cleanProvince = removeDiacritics(province).toLowerCase();
+    return cleanProvince.includes(cleanSearch);
+  });
 
   return (
     <div className="relative w-full" ref={wrapperRef}>
@@ -44,13 +58,21 @@ const LocationDropdown = ({ value, onChange, placeholder, icon }) => {
           className="bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-on-surface w-full placeholder:text-outline-variant font-medium"
           placeholder={placeholder}
           type="text"
-          readOnly
           value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setIsOpen(true);
+          }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={(e) => {
-            if (e.key !== "Enter" && e.key !== " ") return;
-            e.preventDefault();
-            setIsOpen(true);
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (filtered.length > 0) {
+                onChange(filtered[0]);
+                setSearch(filtered[0]);
+                setIsOpen(false);
+              }
+            }
           }}
         />
         {value && (
