@@ -802,8 +802,9 @@ export default function MyTickets() {
       <article
         key={`${ticket.id}-${ticket.bookingId}`}
         onClick={openDetail}
-        className="group relative flex flex-col md:flex-row rounded-3xl border border-outline-variant/15 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-primary/30 overflow-visible"
+        className="group relative flex flex-col rounded-3xl border border-outline-variant/15 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-primary/30 overflow-visible"
       >
+        <div className="flex flex-col md:flex-row flex-1">
         {/* Main Ticket Stub (Left Part) */}
         <div className="flex-1 p-6 flex flex-col justify-between min-w-0">
           {/* Header row: Company and ID */}
@@ -966,6 +967,7 @@ export default function MyTickets() {
               </button>
             )}
           </div>
+        </div>
         </div>
 
         {/* Payment actions */}
