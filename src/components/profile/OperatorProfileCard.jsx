@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import axiosClient from "../../api/axiosClient";
 import { getOperatorProfile, updateOperatorProfile } from "../../api/operator";
 import { useToast } from "../../context/ToastContext";
-import { getStoredUser, setStoredUser } from "../../utils/authStorage";
+import { getStoredUser, setStoredToken, setStoredUser } from "../../utils/authStorage";
 
 const emptyProfile = {
   fullName: "",
@@ -286,6 +287,11 @@ export default function OperatorProfileCard({ roleLabel = "Nhân viên", onProfi
       setSaving(true);
       const payload = buildPayload(formData, profile);
       const response = await updateOperatorProfile(payload);
+      const nextToken = response?.data?.token;
+      if (nextToken) {
+        setStoredToken(nextToken);
+        axiosClient.defaults.headers.common.Authorization = `Bearer ${nextToken}`;
+      }
       const responseProfile = hasProfileFields(response.data) ? extractOperatorProfilePatch(response.data) : {};
       const nextProfile = normalizeOperatorProfile({
         ...profile,

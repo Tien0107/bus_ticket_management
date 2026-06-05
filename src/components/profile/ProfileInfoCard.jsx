@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { sendOtp } from "../../api/auth";
 import axiosClient from "../../api/axiosClient";
-import { updateCustomerContact, verifyContactIdentity } from "../../api/customer";
+import { updateCustomerContact, updateCustomerProfile, verifyContactIdentity } from "../../api/customer";
 import { useToast } from "../../context/ToastContext";
-import ProfileField from "./ProfileField";
 import ProfileStatusBadge from "./ProfileStatusBadge";
 import { getStoredUser, setStoredToken, setStoredUser } from "../../utils/authStorage";
 
@@ -143,10 +142,20 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
     submitting: false
   });
 
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingFullName, setEditingFullName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
   const currentValueByField = {
     email: user?.email || "",
     phone: user?.phone || ""
   };
+
+  useEffect(() => {
+    if (!isEditingName && user?.fullName) {
+      setEditingFullName(user.fullName);
+    }
+  }, [user?.fullName, isEditingName]);
 
   const getApiError = (error, fallback) => {
     return error?.response?.data?.message || fallback;
@@ -201,6 +210,66 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
       sendingOtp: false,
       submitting: false
     });
+  };
+
+  const handleStartNameEdit = () => {
+    setEditingFullName(user?.fullName || "");
+    setIsEditingName(true);
+  };
+
+  const handleCancelNameEdit = () => {
+    setIsEditingName(false);
+    setEditingFullName(user?.fullName || "");
+  };
+
+  const handleSaveName = async () => {
+    const trimmed = (editingFullName || "").trim();
+    if (!trimmed) {
+      addToast("Họ và tên không được để trống.", "error");
+      return;
+    }
+    const currentName = (user?.fullName || "").trim();
+    if (trimmed === currentName) {
+      setIsEditingName(false);
+      return;
+    }
+
+    try {
+      setSavingName(true);
+      const res = await updateCustomerProfile({ fullName: trimmed });
+      const nextToken = res?.data?.token;
+      let updatedUser = res?.data?.user;
+      if (!updatedUser) {
+        updatedUser = res?.data && typeof res.data === "object" && !Array.isArray(res.data)
+          ? res.data
+          : { ...user, fullName: trimmed };
+      }
+
+      if (nextToken) {
+        setStoredToken(nextToken);
+        axiosClient.defaults.headers.common.Authorization = `Bearer ${nextToken}`;
+      }
+
+      try {
+        const currentStored = getStoredUser() || {};
+        const nextUser = { ...currentStored, ...updatedUser, fullName: trimmed };
+        setStoredUser(nextUser);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("busgo:user-updated", { detail: nextUser }));
+        }
+      } catch {}
+
+      addToast("Cập nhật họ và tên thành công.", "success");
+      setIsEditingName(false);
+      if (onProfileUpdated) {
+        await onProfileUpdated(updatedUser);
+      }
+    } catch (error) {
+      const msg = getApiError(error, "Cập nhật họ và tên thất bại.");
+      addToast(msg, "error");
+    } finally {
+      setSavingName(false);
+    }
   };
 
   const handleStartVerify = async (field) => {
@@ -466,15 +535,66 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
-            <ProfileField
-              label="Họ và tên"
-              value={user?.fullName}
-              icon="person"
-              emphasized />
-            
-            <p className="text-xs text-on-surface-variant mt-2 ml-1">
-              Họ và tên được khóa, không thể chỉnh sửa trên giao diện này.
-            </p>
+            <div className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/20">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs uppercase tracking-wide text-on-surface-variant font-semibold mb-2">Họ và tên</p>
+                  {isEditingName ? (
+                    <input
+                      type="text"
+                      value={editingFullName}
+                      onChange={(e) => setEditingFullName(e.target.value)}
+                      placeholder="Nguyễn Văn A"
+                      disabled={savingName}
+                      className="w-full rounded-lg border border-outline-variant/50 bg-white px-3 py-2 text-sm font-medium text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:bg-surface-container-low disabled:text-on-surface-variant"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-primary">person</span>
+                      <p className="text-sm md:text-base font-bold text-on-surface truncate">{user?.fullName || "-"}</p>
+                    </div>
+                  )}
+                </div>
+                {!isEditingName && (
+                  <button
+                    type="button"
+                    onClick={handleStartNameEdit}
+                    className="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary transition-colors hover:bg-primary hover:text-white"
+                    aria-label="Chỉnh sửa họ và tên"
+                    title="Chỉnh sửa họ và tên">
+                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                  </button>
+                )}
+              </div>
+              {isEditingName && (
+                <div className="mt-3 flex flex-col-reverse gap-2 border-t border-outline-variant/20 pt-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={handleCancelNameEdit}
+                    disabled={savingName}
+                    className="rounded-lg border border-outline-variant/50 px-4 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low disabled:opacity-60">
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveName}
+                    disabled={savingName}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60">
+                    {savingName ? (
+                      <>
+                        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        Đang lưu...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[18px]">save</span>
+                        Lưu thay đổi
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           {renderContactField("email", "Email", "mail", user?.email)}
           {renderContactField("phone", "Số điện thoại", "call", user?.phone)}

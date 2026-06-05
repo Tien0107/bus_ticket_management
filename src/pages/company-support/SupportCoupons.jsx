@@ -1,10 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { logout } from "../../api/auth";
 import { createSupportCoupon, getSupportCoupons, updateSupportCoupon } from "../../api/companySupport";
 import { IconButton } from "../company/CompanyUI";
-import { clearAuthSession, getStoredUser } from "../../utils/authStorage";
+import { getStoredUser } from "../../utils/authStorage";
+import { OperatorPageShell, StatCard, PrimaryButton, ErrorState, ModalShell } from "../operator/OperatorUI";
 
 const PREVIEW_ORDER_AMOUNT = 300000;
 
@@ -56,7 +55,6 @@ const getErrorMessage = (err) => {
 };
 
 export default function SupportCoupons() {
-  const navigate = useNavigate();
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -135,6 +133,7 @@ export default function SupportCoupons() {
   const totalIssued = coupons.reduce((sum, coupon) => sum + Number(coupon.totalQuantity || 0), 0);
   const fixedCoupons = coupons.filter((coupon) => coupon.discountType === "fixed").length;
 
+
   const openCreateModal = () => {
     setEditId(null);
     setForm(initialForm);
@@ -166,16 +165,6 @@ export default function SupportCoupons() {
     setEditId(null);
     setForm(initialForm);
     setSubmitError("");
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (err) {
-      console.error(err);
-    }
-    clearAuthSession();
-    navigate("/login", { replace: true });
   };
 
   const handleCodeChange = (value) => {
@@ -285,12 +274,6 @@ export default function SupportCoupons() {
     }
   };
 
-  const sidebarItems = [
-    { icon: "confirmation_number", label: "Quản lý vé", path: "/company-support/tickets" },
-    { icon: "sell", label: "Mã khuyến mãi", path: "/company-support/coupons", active: true },
-    { icon: "person", label: "Hồ sơ", path: "/company-support/profile" },
-  ];
-
   const currencyField = ({ label, field, required = false, disabled = false, helper = "", placeholder = "0" }) => (
     <label className="block">
       <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-outline">
@@ -319,101 +302,35 @@ export default function SupportCoupons() {
   };
 
   return (
-    <div className="flex min-h-screen bg-surface font-body text-on-surface">
-      <aside className="flex w-[260px] shrink-0 flex-col border-r border-surface-container-high bg-white py-6">
-        <div className="mb-6 px-4">
-          <h1 className="text-lg font-black tracking-tight text-primary">Quản trị nhà xe</h1>
-          <p className="mt-1 text-xs font-bold uppercase tracking-wide text-outline">Trang khuyến mãi</p>
+    <OperatorPageShell
+      eyebrow="Support"
+      title="Quản lý mã khuyến mãi"
+      description="Tạo coupon cho nhà xe, ưu tiên định dạng VND và kiểm soát giới hạn giảm giá."
+      actions={
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex h-9 min-w-[280px] items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-3">
+            <span className="material-symbols-outlined text-[20px] text-outline">search</span>
+            <input
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Tìm mã coupon..."
+              className="h-full min-w-0 flex-1 border-none bg-transparent text-sm font-semibold outline-none placeholder:text-outline"
+            />
+          </div>
+          <PrimaryButton icon="add" onClick={openCreateModal}>Thêm coupon</PrimaryButton>
         </div>
-
-        <nav className="flex-1">
-          {sidebarItems.map((item) => (
-            <Link
-              key={item.label}
-              to={item.path}
-              className={`flex items-center gap-3 border-r-4 px-6 py-3 text-sm transition-colors ${
-                item.active
-                  ? "border-primary bg-primary/10 font-extrabold text-primary"
-                  : "border-transparent font-semibold text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="border-t border-surface-container-high px-6 pt-4">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-black text-white">
-              {(user.fullName || user.username || "U").charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <p className="text-sm font-extrabold text-on-surface">{user.fullName || user.username || "Admin"}</p>
-              <p className="text-xs font-semibold text-outline">Nhân viên hỗ trợ</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-sm font-bold text-outline transition-colors hover:text-primary"
-          >
-            <span className="material-symbols-outlined text-[18px]">logout</span>
-            Đăng xuất
-          </button>
-        </div>
-      </aside>
-
-      <main className="min-w-0 flex-1 overflow-auto px-5 py-5">
-        <div className="mb-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <h2 className="text-2xl font-black tracking-tight text-on-surface">Quản lý mã khuyến mãi</h2>
-            <p className="mt-1 text-sm font-medium text-on-surface-variant">
-              Tạo coupon cho nhà xe, ưu tiên định dạng VND và kiểm soát giới hạn giảm giá.
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex h-11 min-w-[280px] items-center gap-2 rounded-lg border border-outline-variant/60 bg-white px-3">
-              <span className="material-symbols-outlined text-[20px] text-outline">search</span>
-              <input
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setCurrentPage(1);
-                }}
-                placeholder="Tìm mã coupon..."
-                className="h-full min-w-0 flex-1 border-none bg-transparent text-sm font-semibold outline-none placeholder:text-outline"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-extrabold text-white shadow-sm transition-colors hover:bg-primary/90"
-            >
-              <span className="material-symbols-outlined text-[20px]">add</span>
-              Thêm coupon
-            </button>
-          </div>
-        </div>
-
-        <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-lg border border-outline-variant/30 bg-white p-4 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-outline">Đang hoạt động</p>
-            <p className="mt-1 text-2xl font-black text-primary">{activeCoupons}</p>
-          </div>
-          <div className="rounded-lg border border-outline-variant/30 bg-white p-4 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-outline">Đã dùng</p>
-            <p className="mt-1 text-2xl font-black text-on-surface">{totalUsed.toLocaleString("vi-VN")}</p>
-          </div>
-          <div className="rounded-lg border border-outline-variant/30 bg-white p-4 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-outline">Tổng lượt phát hành</p>
-            <p className="mt-1 text-2xl font-black text-on-surface">{totalIssued.toLocaleString("vi-VN")}</p>
-          </div>
-          <div className="rounded-lg border border-outline-variant/30 bg-white p-4 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-outline">Coupon VND</p>
-            <p className="mt-1 text-2xl font-black text-secondary">{fixedCoupons}</p>
-          </div>
-        </div>
+      }
+    >
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon="toggle_on" label="Đang hoạt động" value={activeCoupons} tone="primary" />
+        <StatCard icon="receipt_long" label="Đã dùng" value={totalUsed.toLocaleString("vi-VN")} tone="blue" />
+        <StatCard icon="inventory" label="Tổng lượt phát hành" value={totalIssued.toLocaleString("vi-VN")} tone="amber" />
+        <StatCard icon="sell" label="Coupon VND" value={fixedCoupons} tone="emerald" />
+      </div>
 
         <section className="overflow-hidden rounded-lg border border-outline-variant/30 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-surface-container px-4 py-2.5">
@@ -541,7 +458,6 @@ export default function SupportCoupons() {
             </>
           )}
         </section>
-      </main>
 
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
@@ -762,6 +678,6 @@ export default function SupportCoupons() {
           </form>
         </div>
       ) : null}
-    </div>
+    </OperatorPageShell>
   );
 }

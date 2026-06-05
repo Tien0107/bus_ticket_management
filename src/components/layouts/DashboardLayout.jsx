@@ -226,10 +226,20 @@ export default function DashboardLayout() {
               {renderNavLink("/super-admin/companies", "business", "Công ty")}
             </>
           }
+
+          {/* Support */}
+          {isSupport &&
+          <>
+              {renderNavLink("/company-support/tickets", "confirmation_number", "Quản lý vé")}
+              {renderNavLink("/company-support/coupons", "sell", "Mã khuyến mãi")}
+              {renderNavLink("/company-support/profile", "person", "Hồ sơ")}
+            </>
+          }
         </nav>
 
         {}
         <div className="space-y-3 border-t border-outline-variant/20 p-4">
+
           {user &&
           <div
             className={`rounded-xl bg-white/70 ring-1 ring-outline-variant/20 ${

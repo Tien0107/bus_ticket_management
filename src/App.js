@@ -112,7 +112,7 @@ function App() {
       <CallProvider>
         <BrowserRouter>
           <Routes>
-            {}
+            {/* Auth */}
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/register" element={<Register />} />
@@ -124,7 +124,7 @@ function App() {
             <Route path="/stripe/connect/success" element={<StripeConnectSuccess />} />
             <Route path="/payment-result" element={<PaymentResult />} />
 
-            {}
+            {/* Boarding Pass */}
             <Route
               path="/profile/tickets/:ticketId"
               element={
@@ -143,15 +143,13 @@ function App() {
               }
             />
 
-            {}
+            {/* Public and Customer Routes */}
             <Route element={<MainLayout />}>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/routes" element={<RoutesPage />} />
               <Route path="/companies" element={<Companies />} />
               <Route path="/promotions" element={<Promotions />} />
               <Route path="/contact" element={<Contact />} />
-
-              {}
               <Route path="/booking/:tripId" element={<Booking />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/tickets" element={<CustomerMyTickets />} />
@@ -163,52 +161,15 @@ function App() {
               />
             </Route>
 
-            {}
-            <Route
-              path="/company-support"
-              element={
-                <PrivateRoute>
-                  <Navigate to="/company-support/tickets" replace />
-                </PrivateRoute>
-              }
-            />
-
-            <Route
-              path="/company-support/tickets"
-              element={
-                <PrivateRoute>
-                  <SupportTickets />
-                </PrivateRoute>
-              }
-            />
-
-            <Route
-              path="/company-support/coupons"
-              element={
-                <PrivateRoute>
-                  <SupportCoupons />
-                </PrivateRoute>
-              }
-            />
-
-            <Route
-              path="/company-support/profile"
-              element={
-                <PrivateRoute>
-                  <SupportProfile />
-                </PrivateRoute>
-              }
-            />
-
-            {}
+            {/* Dashboards and Management */}
             <Route element={<DashboardLayout />}>
-              {}
+              {/* Driver */}
               <Route path="/driver" element={<Navigate to="/driver/dashboard" replace />} />
               <Route path="/driver/dashboard" element={<DriverDashboard />} />
               <Route path="/driver/trip/:tripId" element={<TripDetail />} />
               <Route path="/driver/profile" element={<DriverProfile />} />
 
-              {}
+              {/* Company */}
               <Route path="/company" element={<Navigate to="/company/dashboard" replace />} />
               <Route path="/company/dashboard" element={<CompanyDashboard />} />
               <Route path="/company/vehicles" element={<Vehicles />} />
@@ -221,7 +182,7 @@ function App() {
                 element={<Navigate to="/company/profile" replace />}
               />
 
-              {}
+              {/* Operator */}
               <Route path="/operator" element={<Navigate to="/operator/dashboard" replace />} />
               <Route path="/operator/dashboard" element={<OperatorDashboard />} />
               <Route path="/operator/profile" element={<OperatorProfile />} />
@@ -235,7 +196,13 @@ function App() {
               />
               <Route path="/operator/schedules/:scheduleId/trips" element={<Trips />} />
 
-              {}
+              {/* Support */}
+              <Route path="/company-support" element={<Navigate to="/company-support/tickets" replace />} />
+              <Route path="/company-support/tickets" element={<SupportTickets />} />
+              <Route path="/company-support/coupons" element={<SupportCoupons />} />
+              <Route path="/company-support/profile" element={<SupportProfile />} />
+
+              {/* Super Admin */}
               <Route
                 path="/super-admin"
                 element={<Navigate to="/super-admin/dashboard" replace />}
@@ -244,7 +211,7 @@ function App() {
               <Route path="/super-admin/companies" element={<BusCompanies />} />
             </Route>
 
-            {}
+            {/* 404 */}
             <Route
               path="*"
               element={
