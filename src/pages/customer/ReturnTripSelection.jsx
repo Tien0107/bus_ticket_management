@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { getTripSchedules } from "../../api/customer";
+import { getLocalTodayInputValue as getLocalTodayStr } from "../../utils/date";
 
-const getTodayStr = () => new Date().toISOString().split("T")[0];
+const getTodayStr = getLocalTodayStr;
 
 const normalizeDate = (d) => {
   if (!d) return "";

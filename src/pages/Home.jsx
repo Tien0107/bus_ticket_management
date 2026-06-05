@@ -5,6 +5,7 @@ import { getTripSchedules, getTripScheduleRatings } from "../api/customer";
 import LocationDropdown from "../components/common/LocationDropdown";
 import CompanyReviewsModal from "../components/reviews/CompanyReviewsModal";
 import PromotionModal from "../components/promotions/PromotionModal";
+import { getLocalTodayInputValue as getTodayInputValue, isDateBeforeToday } from "../utils/date";
 
 
 const features = [
@@ -39,15 +40,6 @@ const fallbackPromoImages = [
 "/images/real_promo_payment_1778469409783.png"];
 
 
-const getTodayInputValue = () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const isDateBeforeToday = (value) => Boolean(value) && value < getTodayInputValue();
 
 const Home = () => {
   const navigate = useNavigate();
@@ -704,7 +696,7 @@ const Home = () => {
             <div
               key={company.id || company._id}
               onClick={() => {
-                const today = new Date().toISOString().split('T')[0];
+                const today = todayInputValue;
                 navigate("/routes", { state: { companyId: company.id || company._id, companyName: company.name || company.company_name, date: today } });
               }}
               className="bg-white p-6 rounded-3xl shadow-editorial hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex items-center gap-4 cursor-pointer">
@@ -789,7 +781,7 @@ const Home = () => {
                 <div
                   key={`top-${company.id || company._id}`}
                   onClick={() => {
-                    const today = new Date().toISOString().split('T')[0];
+                    const today = todayInputValue;
                     navigate("/routes", { state: { companyId: company.id || company._id, companyName: company.name || company.company_name, date: today } });
                   }}
                   className="min-w-[300px] md:min-w-[350px] snap-start bg-white p-6 rounded-3xl shadow-sm border border-outline-variant/20 hover:-translate-y-2 hover:shadow-xl transition-all duration-300 flex flex-col cursor-pointer group">

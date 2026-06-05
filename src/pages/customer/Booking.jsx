@@ -15,6 +15,7 @@ import SelectPaymentCardModal from "../../components/payment/SelectPaymentCardMo
 import ReturnTripSelection from "./ReturnTripSelection";
 import { useToast } from "../../context/ToastContext";
 import { getStoredUser } from "../../utils/authStorage";
+import { getLocalTodayInputValue as getLocalTodayStr } from "../../utils/date";
 
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -31,7 +32,7 @@ export default function Booking() {
     navigate("/profile/tickets", options);
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalTodayStr();
 
 
   const [step, setStep] = useState(1);
@@ -61,16 +62,8 @@ export default function Booking() {
   const [processingCardPayment, setProcessingCardPayment] = useState(false);
   const [cardPaymentStage, setCardPaymentStage] = useState("starting");
 
-  // Chặn khứ hồi cho ngày hiện tại: nếu khởi tạo với isRoundTrip + date=today thì tắt cờ khứ hồi
-  useEffect(() => {
-    const t = new Date().toISOString().split("T")[0];
-    if (isRoundTrip && (bookingData.date || "") === t) {
-      setIsRoundTrip(false);
-      setBookingPhase("outbound");
-      // Không tự động tăng ngày (tránh bump ngày hiện tại), chỉ cảnh báo nếu cần
-      // addToast("Khứ hồi không hỗ trợ ngày hiện tại.", "warning"); // tránh toast ngay khi mount
-    }
-  }, []); // chạy 1 lần khi mount
+  // Khứ hồi: nút bấm luôn cho phép (ngay cả ngày đi hôm nay).
+  // Chỉ hạn chế ở ngày về phải sau ngày khởi hành (xem ReturnTripSelection).
 
   const performStripePayment = async (orderId, selectedPaymentMethodId = null) => {
     setCardPaymentStage("session");
@@ -368,11 +361,7 @@ export default function Booking() {
           setBookingData={bookingPhase === "outbound" ? setBookingData : setReturnBookingData}
           onNext={() => {
             if (isRoundTrip && bookingPhase === "outbound") {
-              const t = new Date().toISOString().split("T")[0];
-              if ((bookingData.date || "") === t) {
-                addToast("Khứ hồi không áp dụng cho ngày hiện tại. Tiếp tục với vé một chiều.", "warning");
-                return handleProceedToCheckout();
-              }
+              // Chuyển sang chọn chiều về (ngày về sẽ bị force >= ngày mai)
               setBookingPhase("returnSelection");
             } else {
               return handleProceedToCheckout();

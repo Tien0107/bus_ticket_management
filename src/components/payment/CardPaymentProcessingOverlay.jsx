@@ -2,103 +2,76 @@ import React from "react";
 
 const CARD_PAYMENT_STAGES = {
   starting: {
-    title: "Đang chuẩn bị thanh toán thẻ",
-    description: "Hệ thống đang kiểm tra thẻ và đơn hàng của bạn.",
+    title: "Đang chuẩn bị thanh toán",
+    description: "Chúng tôi đang kiểm tra thông tin thẻ và đơn hàng của bạn.",
     activeStep: 0,
   },
   session: {
-    title: "Đang tạo phiên thanh toán an toàn",
-    description: "BusGo đang kết nối tới cổng thanh toán thẻ bảo mật.",
+    title: "Đang kết nối an toàn",
+    description: "Thiết lập kết nối bảo mật với cổng thanh toán của bạn.",
     activeStep: 0,
   },
   confirm: {
-    title: "Đang chờ ngân hàng xác thực",
-    description: "Giao dịch thẻ đang được xử lý. Vui lòng không đóng trình duyệt.",
+    title: "Đang xác thực với ngân hàng",
+    description: "Ngân hàng đang xác nhận giao dịch. Vui lòng không đóng trang này.",
     activeStep: 1,
   },
   finalizing: {
-    title: "Thanh toán đã được ghi nhận",
-    description: "Đang đồng bộ trạng thái vé và chuẩn bị chuyển bạn tới trang quản lý vé.",
+    title: "Hoàn tất thanh toán",
+    description: "Đang cập nhật vé của bạn. Bạn sẽ được chuyển ngay sau khi xong.",
     activeStep: 2,
   },
 };
 
-const CARD_PAYMENT_STEPS = ["Tạo phiên", "Xác thực", "Cập nhật vé"];
+const CARD_PAYMENT_STEPS = 3;
 
 export default function CardPaymentProcessingOverlay({ stage }) {
   const currentStage = CARD_PAYMENT_STAGES[stage] || CARD_PAYMENT_STAGES.starting;
+  const step = Math.min(currentStage.activeStep + 1, CARD_PAYMENT_STEPS);
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#07130b]/75 px-4 backdrop-blur-md">
-      <div className="w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-white shadow-[0_28px_90px_rgba(0,0,0,0.35)]">
-        <div className="bg-gradient-to-br from-[#101828] via-[#13391e] to-primary px-6 py-5 text-white">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/20">
-                <span className="material-symbols-outlined text-[24px]">lock</span>
-              </span>
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-white/65">SECURE CARD CHECKOUT</p>
-                <p className="text-sm font-bold text-white">BusGo Secure Pay</p>
-              </div>
-            </div>
-            <div className="ml-auto flex items-center gap-1.5">
-              {["VISA", "MC", "AMEX"].map((brand) => (
-                <span key={brand} className="rounded-md bg-white/12 px-2 py-1 text-[10px] font-black text-white ring-1 ring-white/15">
-                  {brand}
-                </span>
-              ))}
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/35 backdrop-blur-md px-4">
+      <div className="w-full max-w-[380px] bg-white rounded-[28px] shadow-2xl border border-outline-variant/10 overflow-hidden">
+        <div className="px-8 pt-9 pb-8 text-center">
+          {/* Beautiful calm loader visual */}
+          <div className="mx-auto mb-7 relative flex h-20 w-20 items-center justify-center">
+            {/* Soft outer ring */}
+            <div className="absolute inset-0 rounded-full border-[6px] border-primary/10" />
+            {/* Spinning accent ring - very subtle and elegant */}
+            <div className="absolute inset-0 rounded-full border-[6px] border-transparent border-t-primary border-r-primary/70 animate-spin" style={{ animationDuration: '1.6s' }} />
+            {/* Center icon */}
+            <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-primary/8 text-primary">
+              <span className="material-symbols-outlined text-[30px]">credit_card</span>
             </div>
           </div>
 
-          <div className="relative mx-auto mb-5 h-28 w-28">
-            <div className="absolute inset-0 rounded-full border-[7px] border-white/10" />
-            <div className="absolute inset-0 rounded-full border-[7px] border-transparent border-r-white border-t-white animate-spin" />
-            <div className="absolute inset-4 flex items-center justify-center rounded-full bg-white text-primary shadow-[0_18px_40px_rgba(0,0,0,0.24)]">
-              <span className="material-symbols-outlined text-[34px]">credit_card</span>
-            </div>
-          </div>
+          {/* Main message - simple and warm */}
+          <h2 className="text-[21px] font-extrabold tracking-[-0.3px] text-on-surface mb-2.5">
+            {currentStage.title}
+          </h2>
+          <p className="text-[14.5px] leading-relaxed text-on-surface-variant max-w-[300px] mx-auto">
+            {currentStage.description}
+          </p>
 
-          <div className="text-center">
-            <h2 className="text-xl font-black tracking-tight">{currentStage.title}</h2>
-            <p className="mx-auto mt-2 max-w-xs text-sm font-medium leading-6 text-white/75">
-              {currentStage.description}
-            </p>
-          </div>
-        </div>
-
-        <div className="px-6 py-5">
-          <div className="mb-5 grid grid-cols-3 gap-2">
-            {CARD_PAYMENT_STEPS.map((step, index) => {
-              const isDone = index < currentStage.activeStep;
-              const isActive = index === currentStage.activeStep;
+          {/* Elegant minimal progress dots */}
+          <div className="flex justify-center gap-2 mt-7">
+            {Array.from({ length: CARD_PAYMENT_STEPS }).map((_, i) => {
+              const isActive = i < step;
               return (
                 <div
-                  key={step}
-                  className={`rounded-xl border px-3 py-2 text-center text-[11px] font-black transition-colors ${
-                    isDone
-                      ? "border-primary bg-primary text-white"
-                      : isActive
-                        ? "border-primary/30 bg-primary/10 text-primary"
-                        : "border-outline-variant/30 bg-surface-container-low text-on-surface-variant"
-                  }`}
-                >
-                  <span className={`material-symbols-outlined mb-1 block text-[17px] ${isActive ? "animate-spin" : ""}`}>
-                    {isDone ? "check" : isActive ? "progress_activity" : "radio_button_unchecked"}
-                  </span>
-                  {step}
-                </div>
+                  key={i}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${isActive ? 'w-5 bg-primary' : 'w-1.5 bg-outline-variant/40'}`}
+                />
               );
             })}
           </div>
+        </div>
 
-          <div className="rounded-2xl border border-outline-variant/25 bg-surface-container-low px-4 py-3">
-            <div className="flex items-start gap-3">
-              <span className="material-symbols-outlined mt-0.5 text-[20px] text-primary">verified_user</span>
-              <p className="text-sm font-semibold leading-6 text-on-surface-variant">
-                Thông tin thẻ được xử lý qua cổng thanh toán đạt chuẩn bảo mật quốc tế. BusGo không lưu số thẻ đầy đủ hoặc mã CVC của bạn.
-              </p>
-            </div>
+        {/* Very subtle security footer */}
+        <div className="bg-surface-container-low/70 border-t border-outline-variant/10 px-6 py-3.5">
+          <div className="flex items-center justify-center gap-2 text-[11px] text-on-surface-variant/70">
+            <span className="material-symbols-outlined text-[15px] text-primary/70">verified_user</span>
+            <span className="font-medium">Giao dịch được mã hóa và bảo mật</span>
           </div>
         </div>
       </div>
