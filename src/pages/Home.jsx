@@ -105,7 +105,7 @@ const Home = () => {
     window.setTimeout(() => setSwapAnimating(false), 260);
   };
 
-  const fetchSchedules = async (currentPage, isLoadMore = false) => {
+  const fetchSchedules = async (currentPage, isLoadMore = false) => { // gọi api lấy danh sách chuyến
     try {
       if (!isLoadMore) {
         setLoadingSearch(true);
@@ -239,7 +239,7 @@ const Home = () => {
 
       try {
         setLoadingPopular(true);
-        const tripRes = await getTripSchedules({ limit: 50, orderBy: "asc" });
+        const tripRes = await getTripSchedules({ limit: 50, orderBy: "asc" });// láy tuyến đường phổ biến
         const trips = tripRes.data?.trip || [];
         if (Array.isArray(trips) && trips.length > 0) {
           const routesMap = new Map();

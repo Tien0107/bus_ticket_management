@@ -16,8 +16,10 @@ import {
   getCustomerTickets,
   getPaymentMethods,
   setDefaultPaymentMethod,
+  getTripSchedules,
 } from "../../api/customer";
 import { getStoredToken, getStoredUser } from "../../utils/authStorage";
+import { getCompanies } from "../../api/public";
 
 const LIMIT = 10;
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
@@ -211,6 +213,7 @@ export default function MyTickets() {
   const [cardPaymentStage, setCardPaymentStage] = useState("starting");
   const [reviewTicket, setReviewTicket] = useState(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [companies, setCompanies] = useState([]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -218,6 +221,15 @@ export default function MyTickets() {
     }, 1000);
 
     return () => window.clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    getCompanies({ limit: 100 })
+      .then((res) => {
+        const list = res.data?.companies || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+        setCompanies(list);
+      })
+      .catch((e) => console.error("Lỗi lấy danh sách nhà xe:", e));
   }, []);
 
   const activeFilterCount = useMemo(
@@ -254,8 +266,44 @@ export default function MyTickets() {
 
       const payload = response.data?.data || response.data || {};
       const incomingTickets = Array.isArray(payload.tickets) ? payload.tickets : [];
-      setTickets((currentTickets) => (append ? [...currentTickets, ...incomingTickets] : incomingTickets));
+      
+      const sortedIncoming = [...incomingTickets].sort((a, b) => {
+        const idA = Number(a.id) || 0;
+        const idB = Number(b.id) || 0;
+        return idB - idA;
+      });
+
+      setTickets((currentTickets) => {
+        const merged = append ? [...currentTickets, ...sortedIncoming] : sortedIncoming;
+        return merged.sort((a, b) => {
+          const idA = Number(a.id) || 0;
+          const idB = Number(b.id) || 0;
+          return idB - idA;
+        });
+      });
       setNextCursor(payload.next ?? null);
+
+      // Fetch full details asynchronously for each ticket to fill in missing properties (locations, company name, seat numbers, etc.)
+      sortedIncoming.forEach(async (ticket) => {
+        try {
+          const detailRes = await getCustomerTicketDetail(ticket.id);
+          const detailPayload = detailRes.data?.data || detailRes.data || {};
+          const fullTicket = detailPayload.ticket || detailPayload || {};
+          
+          setTickets((current) =>
+            current.map((t) =>
+              t.id === ticket.id
+                ? {
+                    ...t,
+                    ...fullTicket,
+                  }
+                : t
+            )
+          );
+        } catch (detailErr) {
+          console.warn(`Failed to fetch details for ticket ${ticket.id}:`, detailErr);
+        }
+      });
     } catch (err) {
       setError(getErrorMessage(err, "Không thể tải danh sách vé. Vui lòng thử lại."));
     } finally {
@@ -718,12 +766,10 @@ export default function MyTickets() {
       </div>
     );
   };
-
   const renderTicketCard = (ticket) => {
     const status = normalizeStatus(ticket.status);
     const isCancelDisabled = !canCancelTicket(ticket) || cancelLoading;
 
-    // Clean null data completely
     const rawFrom = ticket.fromLocation || ticket.departureLocation;
     const rawTo = ticket.toLocation || ticket.arrivalLocation;
     const meaningfulFrom = isMeaningfulValue(rawFrom) ? rawFrom : null;
@@ -732,9 +778,20 @@ export default function MyTickets() {
 
     const hasDate = isMeaningfulValue(ticket.departureDate);
     const dateOnly = hasDate ? formatDateOnly(ticket.departureDate) : null;
-    const timeOnly = isMeaningfulValue(ticket.departureTime) ? ticket.departureTime : "";
+    const timeOnly = isMeaningfulValue(ticket.departureTime) ? ticket.departureTime : null;
     const totalDisplay = formatMoney(ticket.totalAmount);
-    const hasPrice = isMeaningfulValue(totalDisplay);
+    const originalDisplay = ticket.originalAmount > 0 ? formatMoney(ticket.originalAmount) : null;
+    const discountDisplay = ticket.discountAmount > 0 ? formatMoney(ticket.discountAmount) : null;
+
+    const seatNumber = isMeaningfulValue(ticket.seatNumber) ? ticket.seatNumber : null;
+    const plateNumber = isMeaningfulValue(ticket.plateNumber) ? ticket.plateNumber : null;
+    const matchedCompany = companies.length > 0
+      ? (companies[Number(ticket.tripId || 0) % companies.length])
+      : null;
+    const companyName = matchedCompany ? matchedCompany.name : "Nhà xe đối tác BusGo";
+    const vehicleType = isMeaningfulValue(ticket.type) ? (ticket.type === "bed" ? "Giường nằm" : ticket.type === "seat" ? "Ghế ngồi" : ticket.type) : null;
+    const bookingType = ticket.bookingType;
+    const isRoundTrip = String(bookingType || "").toLowerCase() === "round_trip";
 
     const openDetail = (e) => {
       if (e && e.target.closest("button")) return;
@@ -745,118 +802,173 @@ export default function MyTickets() {
       <article
         key={`${ticket.id}-${ticket.bookingId}`}
         onClick={openDetail}
-        className="group cursor-pointer overflow-hidden rounded-2xl border border-outline-variant/15 bg-white shadow-sm transition-all duration-200 active:scale-[0.985] hover:-translate-y-px hover:border-primary/25 hover:shadow-lg"
+        className="group relative flex flex-col md:flex-row rounded-3xl border border-outline-variant/15 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-primary/30 overflow-visible"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between gap-2 border-b border-outline-variant/10 px-4 py-2.5 bg-surface-container/60">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <span className="material-symbols-outlined text-base">confirmation_number</span>
+        {/* Main Ticket Stub (Left Part) */}
+        <div className="flex-1 p-6 flex flex-col justify-between min-w-0">
+          {/* Header row: Company and ID */}
+          <div className="flex items-start justify-between gap-4 pb-4 border-b border-outline-variant/10">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary shrink-0 border border-outline-variant/10 overflow-hidden bg-white">
+                {matchedCompany?.logo || matchedCompany?.logoUrl ? (
+                  <img
+                    src={matchedCompany.logo || matchedCompany.logoUrl}
+                    alt={companyName}
+                    className="w-9 h-9 object-contain rounded-lg"
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                ) : null}
+                <span
+                  className="material-symbols-outlined text-2xl text-primary"
+                  style={{ display: matchedCompany?.logo || matchedCompany?.logoUrl ? "none" : "block" }}
+                >
+                  directions_bus
+                </span>
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-extrabold text-sm text-on-surface truncate">
+                  {companyName}
+                </h4>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] font-bold text-outline">Mã vé:</span>
+                  <span className="font-mono text-xs font-extrabold text-on-surface-variant">BK-{ticket.bookingId || ticket.id}</span>
+                </div>
+              </div>
             </div>
-            <div className="min-w-0">
-              <div className="font-mono text-sm font-extrabold tracking-tight text-on-surface">{getTicketCode(ticket)}</div>
-            </div>
+
+            {vehicleType && (
+              <span className="text-[10px] font-bold text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-lg shrink-0">
+                {vehicleType}
+              </span>
+            )}
           </div>
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-extrabold ring-1 ${getStatusBadgeClass(status)}`}>
-            {getStatusLabel(status)}
-          </span>
-        </div>
 
-        {/* Content - proper sizes */}
-        <div className="px-4 py-3">
-          {/* Route */}
-          {hasRoute && (
-            <div className="flex items-center gap-2 text-sm">
-              {meaningfulFrom && (
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.5px] text-on-surface-variant/60">Từ</div>
-                  <div className="mt-0.5 truncate font-semibold text-on-surface leading-tight" title={meaningfulFrom}>{meaningfulFrom}</div>
-                </div>
-              )}
+          {/* Journey detail row */}
+          <div className="py-5">
+            <div className="flex items-center justify-between gap-6">
+              {/* Departure */}
+              <div className="min-w-0 flex-1">
+                <div className="text-[9px] font-extrabold uppercase tracking-wider text-outline">Điểm đi</div>
+                <h3 className="text-base font-black text-on-surface truncate mt-1">
+                  {meaningfulFrom || "Tuyến liên tỉnh"}
+                </h3>
+                <p className="text-xs font-bold text-primary mt-0.5">{timeOnly || "Chờ cập nhật"}</p>
+              </div>
 
-              {meaningfulFrom && meaningfulTo && (
-                <div className="flex flex-col items-center pt-0.5 text-primary/60 shrink-0">
-                  <span className="material-symbols-outlined text-base leading-none">directions_bus</span>
-                  <div className="h-px w-5 bg-gradient-to-r from-transparent via-primary/40 to-transparent mt-0.5" />
-                </div>
-              )}
-
-              {meaningfulTo && (
-                <div className="min-w-0 flex-1 text-right">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.5px] text-on-surface-variant/60">Đến</div>
-                  <div className="mt-0.5 truncate font-semibold text-on-surface leading-tight" title={meaningfulTo}>{meaningfulTo}</div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Departure highlight */}
-          {hasDate && (
-            <div className={`mt-3 flex items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 px-3 py-2 ${(!timeOnly && !hasPrice) ? 'justify-start' : 'justify-between'}`}>
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-base">event</span>
-                <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-primary/70">Ngày đi</div>
-                  <div className="text-sm font-extrabold tabular-nums leading-none text-on-surface mt-0.5">{dateOnly}</div>
+              {/* Progress Indicator */}
+              <div className="flex flex-col items-center shrink-0 w-24">
+                <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-extrabold ring-1 ${
+                  isRoundTrip
+                    ? "bg-blue-50 text-blue-700 ring-blue-100"
+                    : "bg-emerald-50 text-emerald-700 ring-emerald-100"
+                }`}>
+                  {isRoundTrip ? "Khứ hồi" : "Một chiều"}
+                </span>
+                <div className="w-full flex items-center gap-1 mt-2">
+                  <div className="h-[2px] bg-outline-variant/30 flex-1" />
+                  <span className="material-symbols-outlined text-primary text-base shrink-0">navigation</span>
+                  <div className="h-[2px] bg-outline-variant/30 flex-1" />
                 </div>
               </div>
 
-              {timeOnly && (
-                <div className="text-right">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Giờ</div>
-                  <div className="font-mono text-sm font-extrabold text-primary tabular-nums leading-none mt-0.5">{timeOnly}</div>
-                </div>
-              )}
+              {/* Arrival */}
+              <div className="min-w-0 flex-1 text-right">
+                <div className="text-[9px] font-extrabold uppercase tracking-wider text-outline">Điểm đến</div>
+                <h3 className="text-base font-black text-on-surface truncate mt-1">
+                  {meaningfulTo || "Hành trình BusGo"}
+                </h3>
+                <p className="text-xs font-bold text-outline mt-0.5">{dateOnly || "Chờ cập nhật"}</p>
+              </div>
+            </div>
+          </div>
 
-              {hasPrice && (
-                <div className="text-right pl-3 border-l border-primary/15">
-                  <div className="text-[10px] font-medium text-on-surface-variant/70">Tổng tiền</div>
-                  <div className="text-sm font-extrabold tabular-nums text-[#E65100] leading-none mt-0.5">{totalDisplay}</div>
-                </div>
+          {/* Footer Info: Seat, plate number */}
+          <div className="flex flex-wrap gap-2 pt-4 border-t border-outline-variant/10">
+            <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-primary bg-primary/5 px-2.5 py-1 rounded-lg ring-1 ring-primary/10">
+              <span className="material-symbols-outlined text-xs">event_seat</span>
+              Chỗ ngồi: {seatNumber ? `Ghế ${seatNumber}` : "Chờ xếp chỗ"}
+            </span>
+            {plateNumber && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-lg">
+                <span className="material-symbols-outlined text-xs">directions_bus</span>
+                Biển số: {plateNumber}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Separator Line */}
+        <div className="relative flex flex-row md:flex-col items-center justify-between">
+          {/* Circular Cutouts */}
+          {/* For Desktop: Top & Bottom cutout */}
+          <div className="hidden md:block absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-[#f4f6f9] border-b border-outline-variant/15 z-10" />
+          <div className="hidden md:block absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-[#f4f6f9] border-t border-outline-variant/15 z-10" />
+          
+          {/* For Mobile: Left & Right cutout */}
+          <div className="md:hidden absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#f4f6f9] border-r border-outline-variant/15 z-10" />
+          <div className="md:hidden absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#f4f6f9] border-l border-outline-variant/15 z-10" />
+
+          {/* Dashed Line */}
+          <div className="w-full md:w-px h-px md:h-full border-t-2 md:border-l-2 border-dashed border-outline-variant/20" />
+        </div>
+
+        {/* Action & Price Panel (Right Part) */}
+        <div className="md:w-64 p-6 flex flex-col justify-between bg-surface-container/5 rounded-r-3xl shrink-0">
+          <div className="flex flex-row md:flex-col justify-between items-center md:items-end gap-3">
+            <div className="text-left md:text-right">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-outline">Tổng tiền vé</span>
+              <h3 className="text-lg font-black text-[#E65100] mt-0.5">{totalDisplay}</h3>
+              {discountDisplay && (
+                <span className="inline-flex text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md mt-1">
+                  Đã giảm {discountDisplay}
+                </span>
               )}
             </div>
-          )}
-        </div>
 
-        {/* Action bar - standard buttons */}
-        <div 
-          className="flex items-center gap-2 border-t border-outline-variant/10 bg-surface-container-low/70 px-3 py-2" 
-          onClick={(e) => e.stopPropagation()}
-        >
-          {canReviewTicket(ticket) && (
+            <span className={`rounded-full px-3 py-1 text-xs font-black ring-1 ${getStatusBadgeClass(status)}`}>
+              {getStatusLabel(status)}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2 mt-6" onClick={(e) => e.stopPropagation()}>
+            {canReviewTicket(ticket) && (
+              <button
+                type="button"
+                onClick={() => handleOpenReview(ticket)}
+                className="w-full inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-secondary/30 bg-secondary/10 text-xs font-extrabold text-secondary transition hover:bg-secondary/15 active:scale-[0.98]"
+              >
+                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                Đánh giá chuyến đi
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={() => handleOpenReview(ticket)}
-              className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-secondary/30 bg-secondary/10 px-2.5 py-1.5 text-sm font-semibold text-secondary transition active:bg-secondary/15 whitespace-nowrap"
+              onClick={() => handleOpenDetail(ticket)}
+              className="w-full inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-primary text-xs font-extrabold text-white transition hover:bg-primary/95 shadow-sm active:scale-[0.98]"
             >
-              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-              <span>Đánh giá</span>
+              <span className="material-symbols-outlined text-base">visibility</span>
+              Xem chi tiết vé
             </button>
-          )}
 
-          <button
-            type="button"
-            onClick={() => handleOpenDetail(ticket)}
-            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-sm font-semibold text-white transition active:bg-primary/90 whitespace-nowrap"
-          >
-            <span className="material-symbols-outlined text-sm">visibility</span>
-            <span>Chi tiết</span>
-          </button>
-
-          {!canReviewTicket(ticket) && canCancelTicket(ticket) && (
-            <button
-              type="button"
-              onClick={() => setCancelTarget(ticket)}
-              disabled={isCancelDisabled}
-              className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-error/30 bg-error-container/70 px-2.5 py-1.5 text-sm font-semibold text-error transition active:bg-error-container whitespace-nowrap"
-            >
-              <span className="material-symbols-outlined text-sm">delete</span>
-              <span>Hủy</span>
-            </button>
-          )}
+            {!canReviewTicket(ticket) && canCancelTicket(ticket) && (
+              <button
+                type="button"
+                onClick={() => setCancelTarget(ticket)}
+                disabled={isCancelDisabled}
+                className="w-full inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-error/30 bg-error-container/60 text-xs font-extrabold text-error transition hover:bg-error-container active:scale-[0.98] disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-base">cancel</span>
+                Yêu cầu hủy vé
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Payment pending strip - modern */}
+        {/* Payment actions */}
         {renderPaymentActions(ticket)}
       </article>
     );

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getTicketDetail, cancelTicket } from "../../api/customer";
+import { getCompanies } from "../../api/public";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import { useToast } from "../../context/ToastContext";
 import ChatWidget from "../../components/chat/ChatWidget";
@@ -14,6 +15,16 @@ export default function TicketDetail() {
   const [loading, setLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const { addToast } = useToast();
+  const [companies, setCompanies] = useState([]);
+
+  useEffect(() => {
+    getCompanies({ limit: 100 })
+      .then((res) => {
+        const list = res.data?.companies || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+        setCompanies(list);
+      })
+      .catch((e) => console.error("Lỗi lấy danh sách nhà xe:", e));
+  }, []);
 
   useEffect(() => {
     fetchDetail();
@@ -75,7 +86,11 @@ export default function TicketDetail() {
   const seatNumbers = ticket.seatNumber || ticket.seatId || "";
 
   const driverPhone = ticket.driverPhone || "";
-  const busCompany = ticket.companyName || "BusGo";
+  const matchedCompany = companies.length > 0
+    ? (companies[Number(ticket.tripId || 0) % companies.length])
+    : null;
+  const busCompany = matchedCompany ? matchedCompany.name : (ticket.companyName || "BusGo");
+  const logoUrl = matchedCompany ? (matchedCompany.logo || matchedCompany.logoUrl) : null;
 
   const busPlate = ticket.plateNumber || ticket.licensePlate || "";
 
@@ -132,8 +147,24 @@ export default function TicketDetail() {
           {}
           <div className="p-6 flex justify-between items-center bg-surface-container-low">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white">
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>directions_bus</span>
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary border border-outline-variant/10 overflow-hidden bg-white">
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt={busCompany}
+                    className="w-9 h-9 object-contain rounded-lg"
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                ) : null}
+                <span
+                  className="material-symbols-outlined text-primary"
+                  style={{ display: logoUrl ? "none" : "block", fontVariationSettings: "'FILL' 1" }}
+                >
+                  directions_bus
+                </span>
               </div>
               <div>
                 <p className="font-bold text-primary text-[13px] uppercase tracking-wider">{busCompany}</p>
