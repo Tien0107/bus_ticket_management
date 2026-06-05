@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import CustomerProfileNav from "../../components/profile/CustomerProfileNav";
@@ -16,6 +16,7 @@ import {
   getCustomerTickets,
   getPaymentMethods,
   setDefaultPaymentMethod,
+  getTripSchedules,
 } from "../../api/customer";
 import { getStoredToken, getStoredUser } from "../../utils/authStorage";
 import { getCompanies } from "../../api/public";
@@ -47,6 +48,13 @@ const TICKET_STATUS_OPTIONS = [
 const bookingTypeLabels = {
   one_way: "Một chiều",
   round_trip: "Khứ hồi",
+};
+
+const tripStatusLabels = {
+  scheduled: "Sắp chạy",
+  running: "Đang chạy",
+  completed: "Hoàn thành",
+  cancelled: "Đã hủy",
 };
 
 const statusLabels = {
@@ -186,12 +194,6 @@ export default function MyTickets() {
   const [tickets, setTickets] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
-  const latestFiltersRef = useRef(INITIAL_FILTERS);
-
-  useEffect(() => {
-    latestFiltersRef.current = appliedFilters;
-  }, [appliedFilters]);
-
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
@@ -212,11 +214,12 @@ export default function MyTickets() {
   const [reviewTicket, setReviewTicket] = useState(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [companies, setCompanies] = useState([]);
+  const [schedules, setSchedules] = useState([]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setNowMs(Date.now());
-    }, 5000);
+    }, 1000);
 
     return () => window.clearInterval(intervalId);
   }, []);
@@ -228,6 +231,14 @@ export default function MyTickets() {
         setCompanies(list);
       })
       .catch((e) => console.error("Lỗi lấy danh sách nhà xe:", e));
+
+    getTripSchedules({ limit: 50, orderBy: "asc" })
+      .then((res) => {
+        const data = res.data?.data || res.data || {};
+        const list = data.trip || data.trips || data.schedules || [];
+        setSchedules(Array.isArray(list) ? list : []);
+      })
+      .catch((e) => console.error("Lỗi lấy danh sách lịch trình:", e));
   }, []);
 
   const activeFilterCount = useMemo(
@@ -235,7 +246,7 @@ export default function MyTickets() {
     [appliedFilters],
   );
 
-  const fetchTickets = useCallback(async ({ append = false, cursor = null, filters = INITIAL_FILTERS } = {}) => {
+  const fetchTickets = useCallback(async ({ append = false, cursor = null, filters = appliedFilters } = {}) => {
     const token = getStoredToken();
 
     if (!token) {
@@ -280,28 +291,60 @@ export default function MyTickets() {
         });
       });
       setNextCursor(payload.next ?? null);
+
+      // Fetch full details asynchronously for each ticket to fill in missing properties (locations, company name, seat numbers, etc.)
+      sortedIncoming.forEach(async (ticket) => {
+        try {
+          const detailRes = await getCustomerTicketDetail(ticket.id);
+          const detailPayload = detailRes.data?.data || detailRes.data || {};
+          const fullTicket = detailPayload.ticket || detailPayload || {};
+
+          // Match company info from schedules by route (fromLocation + toLocation)
+          if (!fullTicket.companyId && !fullTicket.companyName && fullTicket.fromLocation && fullTicket.toLocation) {
+            const matchedSchedule = schedules.find(
+              (s) => s.fromLocation === fullTicket.fromLocation && s.toLocation === fullTicket.toLocation
+            );
+            if (matchedSchedule) {
+              fullTicket.companyId = matchedSchedule.companyId;
+              fullTicket.companyName = matchedSchedule.name;
+              fullTicket.companyLogoUrl = matchedSchedule.logoUrl;
+            }
+          }
+          
+          setTickets((current) =>
+            current.map((t) =>
+              t.id === ticket.id
+                ? {
+                    ...t,
+                    ...fullTicket,
+                  }
+                : t
+            )
+          );
+        } catch (detailErr) {
+          console.warn(`Failed to fetch details for ticket ${ticket.id}:`, detailErr);
+        }
+      });
     } catch (err) {
       setError(getErrorMessage(err, "Không thể tải danh sách vé. Vui lòng thử lại."));
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []); // stable; callers always pass explicit filters
+  }, [appliedFilters]);
 
   useEffect(() => {
     fetchTickets({ filters: appliedFilters });
-  }, [appliedFilters, fetchTickets]); // fetchTickets is now stable
+  }, [appliedFilters, fetchTickets]);
 
-  // Safety delayed refresh after mount (once).
-  // Catches async payment updates (Stripe webhook etc).
-  // Does not re-trigger on filter changes to avoid extra work.
+  // Safety delayed refresh after mount / filter changes.
+  // Catches async payment updates (Stripe webhook etc) without relying on special router state or fake DOM signals.
   useEffect(() => {
     const t = setTimeout(() => {
-      fetchTickets({ filters: latestFiltersRef.current });
+      fetchTickets({ filters: appliedFilters });
     }, 2800);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // run once on mount only; fetchTickets is stable, latestFiltersRef is ref
+  }, [appliedFilters, fetchTickets]);
 
   const handleFilterChange = (field, value) => {
     const nextFilters = {
@@ -752,11 +795,13 @@ export default function MyTickets() {
     const rawTo = ticket.toLocation || ticket.arrivalLocation;
     const meaningfulFrom = isMeaningfulValue(rawFrom) ? rawFrom : null;
     const meaningfulTo = isMeaningfulValue(rawTo) ? rawTo : null;
+    const hasRoute = meaningfulFrom || meaningfulTo;
 
     const hasDate = isMeaningfulValue(ticket.departureDate);
     const dateOnly = hasDate ? formatDateOnly(ticket.departureDate) : null;
     const timeOnly = isMeaningfulValue(ticket.departureTime) ? ticket.departureTime : null;
     const totalDisplay = formatMoney(ticket.totalAmount);
+    const originalDisplay = ticket.originalAmount > 0 ? formatMoney(ticket.originalAmount) : null;
     const discountDisplay = ticket.discountAmount > 0 ? formatMoney(ticket.discountAmount) : null;
 
     const seatNumber = isMeaningfulValue(ticket.seatNumber) ? ticket.seatNumber : null;
