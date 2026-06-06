@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { sendOtp } from "../../api/auth";
+import { sendOtp, contactCheck } from "../../api/auth";
 import axiosClient from "../../api/axiosClient";
 import { updateCustomerContact, updateCustomerProfile, verifyContactIdentity } from "../../api/customer";
 import { useToast } from "../../context/ToastContext";
 import ProfileStatusBadge from "./ProfileStatusBadge";
 import { getStoredUser, setStoredToken, setStoredUser } from "../../utils/authStorage";
+import OtpInput from "../common/OtpInput";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^(?:\+84|0)\d{9}$/;
@@ -72,59 +73,6 @@ const formatCooldownMessage = (field, info) => {
 
 const hasContactValue = (value) => Boolean(String(value || "").trim());
 
-const OTPInput = ({ value, onChange, disabled }) => {
-  const [otp, setOtp] = React.useState(Array(6).fill(""));
-
-  React.useEffect(() => {
-    if (value) {
-      setOtp(value.split("").slice(0, 6).concat(Array(6).fill("")).slice(0, 6));
-    }
-  }, [value]);
-
-  const handleChange = (index, val) => {
-    if (!/^\d*$/.test(val)) return;
-    const newOtp = [...otp];
-    newOtp[index] = val.slice(-1);
-    setOtp(newOtp);
-
-    const otpString = newOtp.join("");
-    onChange(otpString);
-
-
-    if (val && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      nextInput?.focus();
-    }
-  };
-
-  const handleKeyDown = (index, e) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-${index - 1}`);
-      prevInput?.focus();
-    }
-  };
-
-  return (
-    <div className="flex gap-2 justify-center">
-      {Array(6).
-      fill(0).
-      map((_, i) =>
-      <input
-        key={i}
-        id={`otp-${i}`}
-        type="password"
-        maxLength="1"
-        value={otp[i]}
-        onChange={(e) => handleChange(i, e.target.value)}
-        onKeyDown={(e) => handleKeyDown(i, e)}
-        disabled={disabled}
-        className="w-12 h-12 text-center text-lg font-bold rounded-lg border border-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:bg-gray-100 disabled:cursor-not-allowed" />
-
-      )}
-    </div>);
-
-};
-
 export default function ProfileInfoCard({ user, onProfileUpdated }) {
   const { addToast } = useToast();
   const [modalState, setModalState] = useState({
@@ -133,6 +81,8 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
     oldOtp: "",
     oldVerified: false,
     newValue: "",
+    newValueChecked: false,
+    checkingNewValue: false,
     newOtp: "",
     newOtpSent: false,
     error: "",
@@ -202,6 +152,8 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
       oldOtp: "",
       oldVerified: false,
       newValue: "",
+      newValueChecked: false,
+      checkingNewValue: false,
       newOtp: "",
       newOtpSent: false,
       error: "",
@@ -296,6 +248,8 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
       oldOtp: "",
       oldVerified: isCurrentContactMissing,
       newValue: "",
+      newValueChecked: false,
+      checkingNewValue: false,
       newOtp: "",
       newOtpSent: false,
       error: "",
@@ -368,11 +322,54 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
     }
   };
 
+  const handleCheckNewValue = async () => {
+    const field = modalState.field;
+    const newValue = modalState.newValue.trim();
+
+    const validationError = validateNewValue(field, newValue);
+    if (validationError) {
+      setModalState((prev) => ({ ...prev, error: validationError }));
+      return;
+    }
+
+    const currentValue = String(currentValueByField[field] || "").trim();
+    const isCurrentContactMissing = !hasContactValue(currentValue);
+
+    if (!isCurrentContactMissing && newValue === currentValue) {
+      setModalState((prev) => ({
+        ...prev,
+        error: `${FIELD_LABELS[field]} mới phải khác giá trị hiện tại.`
+      }));
+      return;
+    }
+
+    try {
+      setModalState((prev) => ({ ...prev, checkingNewValue: true, error: "" }));
+      await contactCheck({ field, value: newValue });
+      setModalState((prev) => ({
+        ...prev,
+        newValueChecked: true,
+        checkingNewValue: false
+      }));
+    } catch (error) {
+      setModalState((prev) => ({
+        ...prev,
+        checkingNewValue: false,
+        error: getApiError(error, `${FIELD_LABELS[field]} mới không khả dụng (đã được sử dụng bởi tài khoản khác).`)
+      }));
+    }
+  };
+
   const handleSendOtpNewContact = async () => {
     const field = modalState.field;
     const newValue = modalState.newValue.trim();
     const currentValue = String(currentValueByField[field] || "").trim();
 
+    // Require explicit check (res 200) before allowing send OTP for new contact
+    if (!modalState.newValueChecked) {
+      setModalState((prev) => ({ ...prev, error: "Vui lòng kiểm tra liên hệ mới trước khi gửi OTP." }));
+      return;
+    }
 
     const isCurrentContactMissing = !hasContactValue(currentValue);
     if (!isCurrentContactMissing) {
@@ -388,7 +385,6 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
       setModalState((prev) => ({ ...prev, error: validationError }));
       return;
     }
-
 
     if (!isCurrentContactMissing && newValue === currentValue) {
       setModalState((prev) => ({
@@ -460,7 +456,14 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
       }
 
       if (updatedUser) {
-        setStoredUser(updatedUser);
+        try {
+          const currentStored = getStoredUser() || {};
+          const nextUser = { ...currentStored, ...updatedUser };
+          setStoredUser(nextUser);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("busgo:user-updated", { detail: nextUser }));
+          }
+        } catch {}
       }
 
       addToast(`Cập nhật ${FIELD_LABELS[field].toLowerCase()} thành công.`, "success");
@@ -619,7 +622,7 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
                   <label className="text-sm font-semibold text-on-surface-variant">
                     OTP liên hệ hiện tại
                   </label>
-                  <OTPInput
+                  <OtpInput
                 value={modalState.oldOtp}
                 onChange={(val) =>
                 setModalState((prev) => ({
@@ -638,19 +641,45 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
                   <label className="text-sm font-semibold text-on-surface-variant">
                     {FIELD_LABELS[modalState.field]} mới
                   </label>
-                  <input
-                type={modalState.field === "email" ? "email" : "text"}
-                value={modalState.newValue}
-                onChange={(event) =>
-                setModalState((prev) => ({
-                  ...prev,
-                  newValue: event.target.value,
-                  error: ""
-                }))
-                }
-                placeholder={`Nhập ${FIELD_LABELS[modalState.field]?.toLowerCase()} mới`}
-                className="w-full rounded-xl border border-outline-variant/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                disabled={modalState.sendingOtp || modalState.submitting} />
+                  <div className="relative">
+                    <input
+                      type={modalState.field === "email" ? "email" : "text"}
+                      value={modalState.newValue}
+                      onChange={(event) =>
+                        setModalState((prev) => ({
+                          ...prev,
+                          newValue: event.target.value,
+                          newValueChecked: false,
+                          error: ""
+                        }))
+                      }
+                      placeholder={`Nhập ${FIELD_LABELS[modalState.field]?.toLowerCase()} mới`}
+                      className="w-full rounded-xl border border-outline-variant/30 px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      disabled={modalState.sendingOtp || modalState.submitting || modalState.checkingNewValue}
+                    />
+                    {!modalState.newValueChecked && modalState.newValue.trim() && (
+                      <button
+                        type="button"
+                        onClick={handleCheckNewValue}
+                        disabled={modalState.checkingNewValue || modalState.sendingOtp || modalState.submitting}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-primary hover:bg-primary/10 disabled:opacity-50"
+                        title="Kiểm tra liên hệ mới khả dụng"
+                      >
+                        {modalState.checkingNewValue ? (
+                          <span className="inline-block w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        ) : (
+                          <span className="material-symbols-outlined text-base">fact_check</span>
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {modalState.newValueChecked && (
+                    <div className="text-emerald-600 text-[11px] font-medium flex items-center gap-1 mt-0.5">
+                      <span className="material-symbols-outlined text-sm">check_circle</span>
+                      <span>{FIELD_LABELS[modalState.field]} mới khả dụng — sẵn sàng gửi OTP</span>
+                    </div>
+                  )}
               
                 </div>
             }
@@ -660,7 +689,7 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
                   <label className="text-sm font-semibold text-on-surface-variant">
                     OTP liên hệ mới
                   </label>
-                  <OTPInput
+                  <OtpInput
                 value={modalState.newOtp}
                 onChange={(val) =>
                 setModalState((prev) => ({
@@ -694,21 +723,25 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
               isStepVerifyOld ?
               handleVerifyOldContact :
               isStepEnterNew ?
-              handleSendOtpNewContact :
+              (modalState.newValueChecked ? handleSendOtpNewContact : handleCheckNewValue) :
               handleConfirmUpdate
               }
               disabled={
               modalState.submitting ||
               modalState.sendingOtp ||
               modalState.verifyingOldOtp ||
-              modalState.sendingOldOtp
+              modalState.sendingOldOtp ||
+              modalState.checkingNewValue
               }
               className="px-5 py-2.5 text-sm font-bold text-on-primary rounded-xl shadow-md bg-primary hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               
                 {isStepVerifyOld && (
               modalState.verifyingOldOtp ? "Đang xác thực..." : "Xác thực OTP hiện tại")}
                 {isStepEnterNew && (
-              modalState.sendingOtp ? "Đang gửi OTP..." : isCurrentContactMissing ? "Gửi OTP" : "Gửi OTP liên hệ mới")}
+              modalState.checkingNewValue ? "Đang kiểm tra..." :
+              modalState.sendingOtp ? "Đang gửi OTP..." :
+              modalState.newValueChecked ? (isCurrentContactMissing ? "Gửi OTP" : "Gửi OTP liên hệ mới") : "Kiểm tra khả dụng"
+              )}
                 {isStepVerifyNew && (
               modalState.submitting ? "Đang cập nhật..." : "Xác nhận cập nhật")}
               </button>

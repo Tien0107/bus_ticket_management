@@ -4,7 +4,8 @@ import { companySupportRegister } from "../../api/companySupport";
 import { useToast } from "../../context/ToastContext";
 import axiosClient from "../../api/axiosClient";
 import { setAuthSession } from "../../utils/authStorage";
-import { sendEmail } from "../../api/auth";
+import { sendEmail, contactCheck, sendOtp, contactVerify } from "../../api/auth";
+import VerifiedContactField from "../../components/common/VerifiedContactField";
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#@$%&!*?^_])[^\s]+$/;
 
@@ -22,6 +23,9 @@ export default function SupportRegisterForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const [emailVer, setEmailVer] = useState({ checked: false, sent: false, verified: false, checking: false, sending: false, verifying: false, otp: "", error: "" });
+  const [phoneVer, setPhoneVer] = useState({ checked: false, sent: false, verified: false, checking: false, sending: false, verifying: false, otp: "", error: "" });
 
 
   const [companies, setCompanies] = useState([]);
@@ -73,6 +77,16 @@ export default function SupportRegisterForm() {
     setForm((current) => ({ ...current, [name]: value }));
   };
 
+  const handleEmailChange = (val) => {
+    setForm((current) => ({ ...current, email: val }));
+    setEmailVer((v) => (v.checked || v.sent || v.verified ? { checked: false, sent: false, verified: false, checking: false, sending: false, verifying: false, otp: "", error: "" } : v));
+  };
+
+  const handlePhoneChange = (val) => {
+    setForm((current) => ({ ...current, phone: val }));
+    setPhoneVer((v) => (v.checked || v.sent || v.verified ? { checked: false, sent: false, verified: false, checking: false, sending: false, verifying: false, otp: "", error: "" } : v));
+  };
+
   const validate = () => {
     if (form.password !== form.confirmPassword) return "Mật khẩu xác nhận không khớp.";
     if (!passwordRegex.test(form.password)) {
@@ -85,6 +99,61 @@ export default function SupportRegisterForm() {
     return "";
   };
 
+  // Verification helpers
+  const getVerState = (field) => (field === "email" ? emailVer : phoneVer);
+  const setVerState = (field) => (field === "email" ? setEmailVer : setPhoneVer);
+  const currentFormValue = (field) => (field === "email" ? form.email : form.phone);
+
+  const handleCheck = async (field) => {
+    const value = currentFormValue(field).trim();
+    if (!value) { setVerState(field)((s) => ({ ...s, error: `Vui lòng nhập ${field === "email" ? "email" : "số điện thoại"}.` })); return; }
+    const setter = setVerState(field);
+    setter((s) => ({ ...s, checking: true, error: "", checked: false, sent: false, verified: false }));
+    try {
+      await contactCheck({ field, value });
+      setter((s) => ({ ...s, checked: true, checking: false, error: "" }));
+    } catch (err) {
+      const msg = err.response?.data?.message || `${field === "email" ? "Email" : "Số điện thoại"} không khả dụng.`;
+      setter((s) => ({ ...s, checking: false, error: msg }));
+    }
+  };
+
+  const handleSendVerification = async (field) => {
+    const value = currentFormValue(field).trim();
+    const setter = setVerState(field);
+    const state = getVerState(field);
+    if (!state.checked) { setter((s) => ({ ...s, error: "Vui lòng kiểm tra trước." })); return; }
+    setter((s) => ({ ...s, sending: true, error: "" }));
+    try {
+      await sendOtp({ field, value });
+      setter((s) => ({ ...s, sent: true, sending: false, otp: "", error: "" }));
+    } catch (err) {
+      setter((s) => ({ ...s, sending: false, error: err.response?.data?.message || "Gửi mã thất bại." }));
+    }
+  };
+
+  const handleVerifyOtp = async (field) => {
+    const value = currentFormValue(field).trim();
+    const state = getVerState(field);
+    const setter = setVerState(field);
+    const otp = (state.otp || "").trim();
+    if (!otp) { setter((s) => ({ ...s, error: "Nhập mã OTP." })); return; }
+    if (!state.sent) { setter((s) => ({ ...s, error: "Gửi mã trước." })); return; }
+    setter((s) => ({ ...s, verifying: true, error: "" }));
+    try {
+      await contactVerify({ field, value, otp });
+      setter((s) => ({ ...s, verified: true, verifying: false, error: "", _verifiedValue: value }));
+    } catch (err) {
+      setter((s) => ({ ...s, verifying: false, error: err.response?.data?.message || "OTP sai." }));
+    }
+  };
+
+  const handleResend = async (field) => {
+    setVerState(field)((s) => ({ ...s, sent: false, otp: "", error: "" }));
+    await handleSendVerification(field);
+  };
+
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
@@ -92,6 +161,13 @@ export default function SupportRegisterForm() {
     const validationError = validate();
     if (validationError) {
       setError(validationError);
+      return;
+    }
+
+    const emailOk = emailVer.verified && form.email.trim() === (emailVer._verifiedValue || form.email).trim();
+    const phoneOk = phoneVer.verified && form.phone.trim() === (phoneVer._verifiedValue || form.phone).trim();
+    if (!emailOk || !phoneOk) {
+      setError("Vui lòng xác thực email và số điện thoại trước khi đăng ký.");
       return;
     }
 
@@ -246,30 +322,32 @@ export default function SupportRegisterForm() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-on-surface-variant ml-1">Email</label>
-          <input
-            name="email"
-            className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
-            placeholder="example@email.com"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            required />
-          
-        </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-on-surface-variant ml-1">Số điện thoại</label>
-          <input
-            name="phone"
-            className="w-full bg-white border-0 rounded-xl p-4 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
-            placeholder="09xx xxx xxx"
-            type="tel"
-            value={form.phone}
-            onChange={handleChange}
-            required />
-          
-        </div>
+        <VerifiedContactField
+          field="email"
+          label="Email"
+          value={form.email}
+          onChange={handleEmailChange}
+          verification={emailVer}
+          setVerification={setEmailVer}
+          onCheck={() => handleCheck("email")}
+          onSendVerification={() => handleSendVerification("email")}
+          onVerifyOtp={() => handleVerifyOtp("email")}
+          onResend={() => handleResend("email")}
+          placeholder="example@email.com"
+        />
+        <VerifiedContactField
+          field="phone"
+          label="Số điện thoại"
+          value={form.phone}
+          onChange={handlePhoneChange}
+          verification={phoneVer}
+          setVerification={setPhoneVer}
+          onCheck={() => handleCheck("phone")}
+          onSendVerification={() => handleSendVerification("phone")}
+          onVerifyOtp={() => handleVerifyOtp("phone")}
+          onResend={() => handleResend("phone")}
+          placeholder="09xx xxx xxx"
+        />
       </div>
 
       <p className="text-xs text-on-surface-variant bg-surface-container-low rounded-lg px-3 py-2 flex items-start gap-2">
@@ -318,7 +396,7 @@ export default function SupportRegisterForm() {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !emailVer.verified || !phoneVer.verified}
         className="w-full bg-gradient-to-r from-primary to-primary-container text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
         
         {loading ?
