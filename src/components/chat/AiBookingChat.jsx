@@ -2,27 +2,6 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { getStoredToken, getStoredUser } from "../../utils/authStorage";
 import { normalizeRole } from "../../pages/login/authUtils";
 
-/**
- * Deep clone helper — tuân thủ nghiêm ngặt "Lưu ý khi copy state"
- * - Phải paste toàn bộ object state, không được thiếu field
- * - Đừng sửa gì trong state (luôn làm việc với bản copy)
- * - Sau khi server trả response mới, lại copy state mới cho lần gửi sau
- */
-function cloneState(state) {
-  if (state == null || typeof state !== "object") {
-    return state ?? null;
-  }
-  try {
-    if (typeof structuredClone === "function") {
-      return structuredClone(state);
-    }
-    return JSON.parse(JSON.stringify(state));
-  } catch {
-    // Fallback an toàn nhất có thể (shallow)
-    if (Array.isArray(state)) return [...state];
-    return { ...state };
-  }
-}
 
 /**
  * Trích xuất quick options từ currentState theo các key phổ biến trong flow đặt vé.
@@ -79,9 +58,8 @@ function getReplyText(data) {
 
 /**
  * Component AiBookingChat
- * Tích hợp chat AI đặt vé xe với quản lý state nghiêm ngặt theo quy tắc:
- *   - Lần đầu: chỉ gửi { message }
- *   - Lần sau: gửi { message, state: <nguyên object state từ response trước (đã clone)> }
+ * Gửi lại state mới nhất nhận được từ response server.
+ * FE không tự clone hay chỉnh sửa state — chỉ echo lại nguyên giá trị.
  */
 export const AiBookingChat = ({ token, baseUrl = "http://localhost:3000", onBookingCreated }) => {
   // === KIỂM TRA ĐĂNG NHẬP (phải làm trước mọi hooks) ===
@@ -140,15 +118,12 @@ export const AiBookingChat = ({ token, baseUrl = "http://localhost:3000", onBook
       setError(null);
 
       try {
-        // 2. Xây dựng payload theo quy tắc VÀNG
+        // Gửi state mới nhất từ response lần trước (chỉ khi là object).
+        // FE không tự chỉnh sửa state — chỉ echo lại nguyên giá trị server trả về.
         const payload = { message: trimmed };
-
-        if (currentState != null) {
-          // Từ lần 2 trở đi: paste NGUYÊN object state (đã deep clone)
-          // → Không thiếu field, không mutate, snapshot sạch tại thời điểm gửi
-          payload.state = cloneState(currentState);
+        if (currentState && typeof currentState === "object") {
+          payload.state = currentState;
         }
-        // Lần đầu (currentState == null): chỉ có { message }
 
         // 3. Gọi API
         const url = `${baseUrl.replace(/\/$/, "")}/chat/ai`;
@@ -168,9 +143,9 @@ export const AiBookingChat = ({ token, baseUrl = "http://localhost:3000", onBook
 
         const data = await res.json();
 
-        // 4. Lấy text trả lời + cập nhật state MỚI từ response
+        // 4. Lấy text trả lời + cập nhật state MỚI từ response (gán trực tiếp, không clone)
         const assistantText = getReplyText(data);
-        const newState = data?.state ?? data?.data?.state ?? null;
+        const newState = data?.state ?? data?.data?.state;
 
         const assistantMessage = {
           id: `assistant-${Date.now()}`,
@@ -180,11 +155,9 @@ export const AiBookingChat = ({ token, baseUrl = "http://localhost:3000", onBook
 
         setMessages((prev) => [...prev, assistantMessage]);
 
-        // Cập nhật currentState = bản clone của state mới nhận được
-        // (đảm bảo lần gửi tiếp theo dùng đúng state mới nhất, toàn vẹn)
-        if (newState) {
-          setCurrentState(cloneState(newState));
-        }
+        // Lưu state từ server để render (quick options, success card, v.v.) và gửi lại lần sau.
+        // Nếu server trả null/undefined thì để null (UI sẽ ẩn options, v.v.).
+        setCurrentState(newState && typeof newState === "object" ? newState : null);
 
         // 5. Nếu server báo booking_created → gọi callback (nếu có)
         const bookingId = newState?.bookingId ?? data?.bookingId;

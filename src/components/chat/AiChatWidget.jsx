@@ -38,52 +38,6 @@ const getAiReplyText = (data) => {
   return reply?.trim() || "Xin lỗi nhé, mình chưa nắm rõ câu trả lời. Bạn hỏi lại được không?";
 };
 
-const getAiState = (data) => {
-  if (!data || typeof data !== "object") return null;
-
-  const candidates = [
-    data?.state,
-    data?.data?.state,
-    data?.conversationState,
-    data?.data?.conversationState,
-    data?.context,
-    data?.data?.context,
-    data?.sessionState,
-    data?.data?.sessionState,
-  ];
-
-  for (const candidate of candidates) {
-    if (candidate && typeof candidate === "object") {
-      // Trả về bản clone ngay tại đây để đảm bảo
-      // chúng ta không bao giờ giữ reference đến object trong response gốc
-      return cloneState(candidate);
-    }
-  }
-  return null;
-};
-
-/**
- * Deep clone the AI state object.
- * This ensures we always paste a full, untouched copy of the state
- * received from the previous server response.
- * - Must paste the entire object (no missing fields)
- * - Never mutate the state we received
- * - After each new response, we take the fresh state for the next send
- */
-const cloneState = (state) => {
-  if (!state || typeof state !== "object") return state;
-  try {
-    if (typeof structuredClone === "function") {
-      return structuredClone(state);
-    }
-    return JSON.parse(JSON.stringify(state));
-  } catch (e) {
-    // Fallback (should rarely happen for server-provided state)
-    console.warn("[AiChat] Could not deep clone AI state, falling back to shallow copy", e);
-    return Array.isArray(state) ? [...state] : { ...state };
-  }
-};
-
 const getCurrentCustomerAccess = () => {
   const token = getStoredToken();
   const user = getStoredUser(null);
@@ -99,7 +53,8 @@ export default function AiChatWidget() {
   const [messages, setMessages] = useState(() => [
     createMessage("assistant", AI_WELCOME),
   ]);
-  const [aiState, setAiState] = useState(null);
+  // latestAgentState được lấy trực tiếp từ response server, không tự chỉnh sửa hay clone ở FE.
+  const latestAgentStateRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -109,7 +64,7 @@ export default function AiChatWidget() {
       setCanUseAi(nextCanUseAi);
       if (!nextCanUseAi) {
         setOpen(false);
-        setAiState(null);
+        latestAgentStateRef.current = null;
         setMessages(() => [
           createMessage("assistant", AI_WELCOME),
         ]);
@@ -152,7 +107,7 @@ export default function AiChatWidget() {
     if (!getCurrentCustomerAccess()) {
       setCanUseAi(false);
       setOpen(false);
-      setAiState(null);
+      latestAgentStateRef.current = null;
       setMessages(() => [
         createMessage("assistant", AI_WELCOME),
       ]);
@@ -164,28 +119,23 @@ export default function AiChatWidget() {
     setMessages((current) => [...current, createMessage("customer", message)]);
 
     try {
+      // Gửi state mới nhất nhận được từ response lần trước (chỉ khi là object).
+      // FE không tự tạo, clone hay chỉnh sửa state — chỉ gửi lại nguyên giá trị từ server.
       const payload = { message };
-
-      if (aiState) {
-        // === QUY TẮC VÀNG KHI GỬI STATE ===
-        // • Lần đầu: chỉ gửi message (aiState == null)
-        // • Từ lần 2 trở đi: paste NGUYÊN object state từ response lần trước
-        // • Phải paste toàn bộ object, không được thiếu field nào
-        // • Đừng sửa gì trong state (chúng ta clone để đảm bảo)
-        // • state được copy trực tiếp từ response lần trước, không tự tạo hay chỉnh sửa
-        payload.state = cloneState(aiState);
+      const prevState = latestAgentStateRef.current;
+      if (prevState && typeof prevState === "object") {
+        payload.state = prevState;
       }
 
       const response = await sendAiChatMessage(payload);
       const replyData = response.data;
       setMessages((current) => [...current, createMessage("assistant", getAiReplyText(replyData))]);
 
-      const nextState = getAiState(replyData);
-      if (nextState) {
-        // Sau khi server trả response mới → lưu state mới cho lần gửi tiếp theo
-        // (getAiState đã clone để đảm bảo toàn bộ object, không mutate, không thiếu field)
-        setAiState(nextState);
-      }
+      // Lưu state mới nhất từ response để gửi lại ở lần sau.
+      // Chỉ giữ lại nếu server trả về một object; nếu null/undefined thì lần sau không gửi state.
+      const incomingState = replyData?.state ?? replyData?.data?.state;
+      latestAgentStateRef.current =
+        incomingState && typeof incomingState === "object" ? incomingState : null;
     } catch (err) {
       const errorMessage =
         err.response?.data?.message || err.message || "Không thể gửi tin nhắn đến trợ lý AI";
