@@ -1,7 +1,8 @@
 import React, { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
-import { getStoredToken } from "../../utils/authStorage";
+import { getStoredToken, getStoredUser } from "../../utils/authStorage";
+import { sendEmail } from "../../api/auth";
 
 const VNPAY_ERROR_MAP = {
   "00": "Giao dịch thành công",
@@ -50,10 +51,24 @@ export default function PaymentResult() {
   useEffect(() => {
     if (isSuccess) {
       addToast("Thanh toán vé xe thành công!", "success", 2800);
+
+      const user = getStoredUser();
+      const userEmail = user?.contactInfo?.email || user?.email;
+      if (userEmail) {
+        sendEmail({
+          to: userEmail,
+          subject: `[BusGo] Xác nhận thanh toán vé xe thành công - Mã GD: ${transactionCode}`,
+          text: `Chào ${user.fullName || "bạn"},\n\nCảm ơn bạn đã tin tưởng lựa chọn BusGo! Thanh toán cho giao dịch của bạn đã hoàn tất thành công.\n\nThông tin chi tiết:\n- Mã giao dịch: ${transactionCode}\n- Thời gian giao dịch: ${new Date().toLocaleString("vi-VN")}\n\nVé xe của bạn đã được ghi nhận vào hệ thống. Bạn có thể xem lại chi tiết và quản lý vé tại trang cá nhân.\n\nChúc bạn có một hành trình an toàn và thuận lợi!\n\nThân ái,\nĐội ngũ BusGo`,
+          template: "default",
+          params: {}
+        }).catch((err) => {
+          console.error("Lỗi gửi email xác nhận thanh toán:", err);
+        });
+      }
     } else {
       addToast("Thanh toán không thành công. Vui lòng kiểm tra lại!", "error");
     }
-  }, [isSuccess, addToast]);
+  }, [isSuccess, addToast, transactionCode]);
 
   useEffect(() => {
     if (!isSuccess || !hasToken) return undefined;

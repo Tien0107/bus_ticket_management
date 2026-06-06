@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { updatePassword } from "../../api/auth";
+import { updatePassword, sendEmail } from "../../api/auth";
 import { useToast } from "../../context/ToastContext";
 import { getStoredUser } from "../../utils/authStorage";
 
@@ -65,6 +65,16 @@ export default function ChangePasswordCard({ user, compact = false }) {
       });
       setForm(emptyForm);
       addToast("Cập nhật mật khẩu thành công", "success");
+
+      if (accountEmail) {
+        sendEmail({
+          to: accountEmail,
+          subject: "[BusGo] Mật khẩu tài khoản của bạn đã được thay đổi",
+          text: `Chào bạn,\n\nChúng tôi muốn thông báo rằng mật khẩu cho tài khoản BusGo của bạn (${accountEmail}) vừa được thay đổi thành công vào lúc ${new Date().toLocaleString("vi-VN")}.\n\nNếu bạn KHÔNG thực hiện thay đổi này, vui lòng liên hệ ngay với tổng đài hỗ trợ 1900 6868 hoặc phản hồi email này để bảo vệ tài khoản.\n\nTrân trọng,\nĐội ngũ bảo mật BusGo`,
+          template: "default",
+          params: {}
+        }).catch((err) => console.error("Lỗi gửi email thông báo đổi mật khẩu:", err));
+      }
     } catch (error) {
       addToast(
         error.response?.data?.message ||

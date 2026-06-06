@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { customerSignUp } from "../../api/auth";
+import { customerSignUp, sendEmail } from "../../api/auth";
 import { useToast } from "../../context/ToastContext";
 import { buildAuthenticatedUser, getRedirectUrl } from "../login/authUtils";
 import { setAuthSession } from "../../utils/authStorage";
@@ -57,9 +57,21 @@ export default function CustomerRegisterForm() {
     try {
       setLoading(true);
       const res = await customerSignUp(payload);
+
       if (res.data?.token) {
         const { token, user } = buildAuthenticatedUser(res.data);
         setAuthSession({ token, user, remember: true });
+
+        if (form.email) {
+          sendEmail({
+            to: form.email,
+            subject: "[BusGo] Chào mừng bạn đến với ứng dụng đặt vé xe BusGo!",
+            text: `Chào ${form.fullName || "bạn"},\n\nChúc mừng bạn đã đăng ký tài khoản khách hàng thành công tại BusGo!\n\nTài khoản của bạn:\n- Email đăng nhập: ${form.email}\n- Số điện thoại: ${form.phone}\n\nTừ bây giờ bạn có thể trải nghiệm các dịch vụ tiện lợi của BusGo:\n- Tìm kiếm và đặt vé xe trực tuyến nhanh chóng.\n- Chọn chỗ ngồi yêu thích.\n- Quản lý lịch trình dễ dàng.\n- Tích điểm và nhận các ưu đãi hấp dẫn.\n\nChúc bạn có những trải nghiệm tuyệt vời cùng BusGo!\n\nTrân trọng,\nĐội ngũ BusGo`,
+            template: "default",
+            params: {}
+          }).catch((err) => console.error("Lỗi gửi email chào mừng:", err));
+        }
+
         const successMessage = res.data?.message || "Đăng ký thành công! Chào mừng bạn đến với BusGo.";
         addToast(successMessage, "success");
         const redirectUrl = getRedirectUrl(user);

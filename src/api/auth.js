@@ -59,3 +59,9 @@ export const resetPassword = (data) => {
 export const updatePassword = (data) => {
   return axiosClient.put("/auth/password", data);
 };
+
+
+export const sendEmail = (data) => {
+  return axiosClient.post("/auth/email/send", data);
+};
+

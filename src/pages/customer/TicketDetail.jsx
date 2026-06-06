@@ -6,7 +6,8 @@ import ConfirmModal from "../../components/common/ConfirmModal";
 import { useToast } from "../../context/ToastContext";
 import ChatWidget from "../../components/chat/ChatWidget";
 import AiChatWidget from "../../components/chat/AiChatWidget";
-import { getStoredToken } from "../../utils/authStorage";
+import { getStoredToken, getStoredUser } from "../../utils/authStorage";
+import { sendEmail } from "../../api/auth";
 
 export default function TicketDetail() {
   const { ticketId } = useParams();
@@ -55,6 +56,19 @@ export default function TicketDetail() {
     try {
       await cancelTicket(ticketId);
       addToast("Hủy vé thành công!", "success", 2600);
+
+      const user = getStoredUser();
+      const accountEmail = user?.contactInfo?.email || user?.email;
+      if (accountEmail) {
+        sendEmail({
+          to: accountEmail,
+          subject: `[BusGo] Xác nhận hủy vé thành công - Vé #${ticket?.code || ticketId}`,
+          text: `Chào bạn,\n\nChúng tôi xác nhận yêu cầu hủy vé của bạn đã được thực hiện thành công trên hệ thống BusGo.\n\nThông tin vé đã hủy:\n- Mã vé: ${ticket?.code || "N/A"}\n- Hành trình: ${ticket?.fromLocation || ticket?.startCity || ""} đi ${ticket?.toLocation || ticket?.endCity || ""}\n- Ngày đi: ${ticket?.departureDate ? new Date(ticket.departureDate).toLocaleDateString('vi-VN') : ""}\n- Giờ đi: ${ticket?.departureTime || ""}\n- Vị trí ghế: ${ticket?.seatNumber || ticket?.seatId || ""}\n- Số tiền thanh toán ban đầu: ${(ticket?.totalAmount || 0).toLocaleString("vi-VN")}đ\n\nSố tiền hoàn trả (nếu có) sẽ được xử lý theo chính sách hoàn hủy của nhà xe đối tác. Vui lòng liên hệ hotline nhà xe hoặc phản hồi email này nếu cần hỗ trợ thêm.\n\nTrân trọng,\nĐội ngũ BusGo`,
+          template: "default",
+          params: {}
+        }).catch((err) => console.error("Lỗi gửi email thông báo hủy vé:", err));
+      }
+
       navigate("/profile/tickets");
     } catch (err) {
       addToast("Hủy vé thất bại: " + (err.response?.data?.message || err.message), "error");

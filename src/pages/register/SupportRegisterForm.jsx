@@ -4,6 +4,7 @@ import { companySupportRegister } from "../../api/companySupport";
 import { useToast } from "../../context/ToastContext";
 import axiosClient from "../../api/axiosClient";
 import { setAuthSession } from "../../utils/authStorage";
+import { sendEmail } from "../../api/auth";
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#@$%&!*?^_])[^\s]+$/;
 
@@ -109,6 +110,17 @@ export default function SupportRegisterForm() {
       const res = await companySupportRegister(payload);
       if (res.data?.token) {
         setAuthSession({ token: res.data.token, user: res.data.user, remember: true });
+
+        if (form.email) {
+          sendEmail({
+            to: form.email,
+            subject: "[BusGo] Đăng ký tài khoản nhân viên hỗ trợ thành công!",
+            text: `Chào ${form.fullName || "bạn"},\n\nChúc mừng bạn đã đăng ký tài khoản Nhân viên Hỗ trợ thành công trên hệ thống BusGo!\n\nChi tiết tài khoản:\n- Email đăng nhập: ${form.email}\n- Vai trò: Nhân viên hỗ trợ (Support)\n\nTừ bây giờ, bạn có thể tham gia vào hệ thống hỗ trợ để:\n- Tiếp nhận và xử lý các yêu cầu, thắc mắc từ hành khách.\n- Hỗ trợ đổi/hủy vé cho khách hàng.\n- Giải quyết các sự cố phát sinh liên quan đến chuyến đi.\n\nChúc bạn hoàn thành tốt nhiệm vụ và hỗ trợ khách hàng chu đáo cùng BusGo!\n\nTrân trọng,\nĐội ngũ BusGo`,
+            template: "default",
+            params: {}
+          }).catch((err) => console.error("Lỗi gửi email chào mừng nhân viên hỗ trợ:", err));
+        }
+
         const successMessage = res.data?.message || "Đăng ký nhân viên hỗ trợ thành công!";
         addToast(successMessage, "success");
         setTimeout(() => navigate("/company-support/tickets"), 500);

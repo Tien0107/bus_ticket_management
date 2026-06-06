@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useToast } from "../context/ToastContext";
+import { sendEmail } from "../api/auth";
 
 const faqs = [
 {
@@ -36,15 +37,28 @@ export default function Contact() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await sendEmail({
+        to: formData.email,
+        subject: `[BusGo] Xác nhận tiếp nhận thông tin liên hệ: ${formData.subject}`,
+        text: `Chào ${formData.name},\n\nCảm ơn bạn đã liên hệ với BusGo. Chúng tôi đã tiếp nhận thông tin của bạn với nội dung sau:\n\n---\nChủ đề: ${formData.subject}\nSố điện thoại: ${formData.phone}\nNội dung:\n${formData.message}\n---\n\nĐội ngũ hỗ trợ của chúng tôi sẽ liên hệ lại với bạn trong thời gian sớm nhất.\n\nTrân trọng,\nĐội ngũ hỗ trợ BusGo`,
+        template: "default",
+        params: {}
+      });
+
       addToast("Cảm ơn bạn đã liên hệ! Tin nhắn của bạn đã được gửi thành công, chúng tôi sẽ phản hồi sớm nhất.", "success");
       setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
-    }, 1500);
+    } catch (err) {
+      console.error("Lỗi gửi email liên hệ:", err);
+      addToast("Có lỗi xảy ra khi gửi email, nhưng thông tin đã được ghi nhận.", "warning");
+      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
