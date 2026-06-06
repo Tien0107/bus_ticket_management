@@ -103,8 +103,7 @@ export default function ChangePasswordCard({ user, compact = false }) {
       </div>
 
       <div className="mb-5 rounded-lg border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-800">
-        Lưu ý: nếu tài khoản đăng nhập bằng Google, hãy nhập chính email Google
-        {accountEmail ? ` (${accountEmail})` : ""} vào ô mật khẩu hiện tại.
+        Lưu ý: nếu tài khoản đăng nhập bằng Google hoặc Facebook, bạn sẽ không thể thay đổi mật khẩu tại đây. Vui lòng sử dụng chức năng "Quên mật khẩu" trên trang đăng nhập để đặt lại mật khẩu thông qua email.
       </div>
 
       <div className={`grid grid-cols-1 gap-4 ${compact ? "" : "md:grid-cols-3"}`}>
