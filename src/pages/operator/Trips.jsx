@@ -67,13 +67,36 @@ const saveStoredTripFilters = (scheduleId, filters) => {
 
 const emptyForm = {
   vehicleId: "",
-  driverId: "",
+  driverIds: [],
   departureDate: today(),
   status: "scheduled"
 };
 
 const getTripVehicleId = (trip = {}) => trip.vehicleId ?? trip.vehicle_id ?? trip.vehicle?.id ?? "";
-const getTripDriverId = (trip = {}) => trip.driverId ?? trip.driver_id ?? trip.driver?.id ?? "";
+const normalizeDriverIds = (ids) =>
+[...(Array.isArray(ids) ? ids : [ids])].
+map((id) => Number(id)).
+filter((id) => Number.isFinite(id) && id > 0).
+filter((id, index, list) => list.indexOf(id) === index);
+const getTripDriverIds = (trip = {}) => {
+  if (Array.isArray(trip.driverIds)) return trip.driverIds;
+  if (Array.isArray(trip.driver_ids)) return trip.driver_ids;
+  if (Array.isArray(trip.drivers)) return trip.drivers.map((driver) => driver?.id).filter(Boolean);
+  if (trip.driverId || trip.driver_id || trip.driver?.id) {
+    return [trip.driverId ?? trip.driver_id ?? trip.driver?.id];
+  }
+  return [];
+};
+const getTripDriverNames = (trip = {}) => {
+  if (Array.isArray(trip.driverNames)) return trip.driverNames.filter(Boolean);
+  if (Array.isArray(trip.driver_names)) return trip.driver_names.filter(Boolean);
+  if (Array.isArray(trip.drivers)) {
+    return trip.drivers.
+    map((driver) => driver?.fullName || driver?.full_name || driver?.name).
+    filter(Boolean);
+  }
+  return [];
+};
 const getTripDriverName = (trip = {}) =>
 trip.driverName ??
 trip.driver_name ??
@@ -156,9 +179,12 @@ export default function Trips() {
   const driverDropdownRef = useRef(null);
   const driverTriggerRef = useRef(null);
   const driverMenuRef = useRef(null);
-  const selectedDriver = useMemo(
-    () => drivers.find((driver) => Number(driver.id) === Number(formData.driverId)) || null,
-    [drivers, formData.driverId]
+  const selectedDrivers = useMemo(
+    () => {
+      const selectedIds = normalizeDriverIds(formData.driverIds);
+      return drivers.filter((driver) => selectedIds.includes(Number(driver.id)));
+    },
+    [drivers, formData.driverIds]
   );
   const selectedVehicle = useMemo(() => {
     const vehicleId = Number(formData.vehicleId);
@@ -330,7 +356,7 @@ export default function Trips() {
     setEditingTrip(trip);
     setFormData({
       vehicleId: getTripVehicleId(trip) || matchedVehicle?.id || "",
-      driverId: getTripDriverId(trip) || "",
+      driverIds: normalizeDriverIds(getTripDriverIds(trip)),
       departureDate: departureDate ? String(departureDate).split("T")[0] : filterDate || today(),
       status: trip.status || "scheduled"
     });
@@ -342,8 +368,19 @@ export default function Trips() {
   };
 
   const handleSelectDriver = (driverId) => {
-    handleChange("driverId", String(driverId));
-    setDriverMenuOpen(false);
+    const normalizedDriverId = Number(driverId);
+    if (!Number.isFinite(normalizedDriverId) || normalizedDriverId <= 0) return;
+
+    setFormData((current) => {
+      const currentIds = normalizeDriverIds(current.driverIds);
+      const exists = currentIds.includes(normalizedDriverId);
+      return {
+        ...current,
+        driverIds: exists ?
+        currentIds.filter((id) => id !== normalizedDriverId) :
+        [...currentIds, normalizedDriverId]
+      };
+    });
   };
 
   const updateFilters = ({ status = filterStatus, date = filterDate } = {}) => {
@@ -379,7 +416,9 @@ export default function Trips() {
       return;
     }
 
-    if (!formData.driverId || !formData.departureDate) {
+    const selectedDriverIds = normalizeDriverIds(formData.driverIds);
+
+    if (!selectedDriverIds.length || !formData.departureDate) {
       addToast({ type: "warning", title: "Thiếu tài xế hoặc ngày chạy" });
       return;
     }
@@ -402,7 +441,7 @@ export default function Trips() {
     const payload = {
       routeId: Number(matchedRoute.id),
       vehicleId: Number(formData.vehicleId),
-      driverId: Number(formData.driverId),
+      driverIds: selectedDriverIds,
       scheduleId: Number(scheduleId),
       departureDate: formData.departureDate,
       status: formData.status
@@ -410,9 +449,9 @@ export default function Trips() {
 
     try {
       await updateTrip(scheduleId, editingTrip.id, payload);
-      const assignedDriverId = Number(formData.driverId);
-      const previousDriverId = Number(getTripDriverId(editingTrip) || 0);
-      const driverChanged = assignedDriverId && assignedDriverId !== previousDriverId;
+      const previousDriverIds = normalizeDriverIds(getTripDriverIds(editingTrip));
+      const newlyAssignedDriverIds = selectedDriverIds.filter((driverId) => !previousDriverIds.includes(driverId));
+      const driverChanged = newlyAssignedDriverIds.length > 0;
 
       if (driverChanged) {
         try {
@@ -420,17 +459,21 @@ export default function Trips() {
           editingTrip.toLocation || schedule?.toLocation || "Điểm đến"}`;
 
 
-          await createNotification({
-            userId: assignedDriverId,
-            title: "Bạn vừa được gán một chuyến",
-            body: `Dispatcher đã gán cho bạn chuyến ${tripTitle} ngày ${formatTripDate(formData.departureDate)}.`,
-            data: JSON.stringify({
-              type: "trip_assigned",
-              tripId: Number(editingTrip.id),
-              scheduleId: Number(scheduleId),
-              path: `/driver/trip/${editingTrip.id}`
+          await Promise.all(
+            newlyAssignedDriverIds.map((driverId) =>
+            createNotification({
+              userId: driverId,
+              title: "Bạn vừa được gán một chuyến",
+              body: `Dispatcher đã gán cho bạn chuyến ${tripTitle} ngày ${formatTripDate(formData.departureDate)}.`,
+              data: JSON.stringify({
+                type: "trip_assigned",
+                tripId: Number(editingTrip.id),
+                scheduleId: Number(scheduleId),
+                path: `/driver/trip/${editingTrip.id}`
+              })
             })
-          });
+            )
+          );
         } catch (notificationError) {
           console.warn("Không thể gửi thông báo gán chuyến cho tài xế:", notificationError);
           addToast({
@@ -518,7 +561,15 @@ export default function Trips() {
               <tbody className="divide-y divide-outline-variant/15">
                 {trips.map((trip) => {
                 const displayDate = getTripDepartureDate(trip) || filterDate;
-                const driverName = getTripDriverName(trip);
+                const tripDriverIds = normalizeDriverIds(getTripDriverIds(trip));
+                const driverNamesFromList = drivers.
+                filter((driver) => tripDriverIds.includes(Number(driver.id))).
+                map((driver) => driver.fullName || driver.full_name).
+                filter(Boolean);
+                const driverNames = getTripDriverNames(trip);
+                const driverName =
+                (driverNames.length ? driverNames : driverNamesFromList).join(", ") ||
+                getTripDriverName(trip);
                 const editable = canEditTrip(trip);
 
                 return (
@@ -601,26 +652,24 @@ export default function Trips() {
                   aria-expanded={driverMenuOpen}>
                   
                     <span className="min-w-0 flex-1">
-                      {selectedDriver ?
+                      {selectedDrivers.length ?
                     <>
-                          <span className="block truncate font-bold">{selectedDriver.fullName || "Chưa có tên"}</span>
+                          <span className="block truncate font-bold">
+                            {selectedDrivers.map((driver) => driver.fullName || "Chưa có tên").join(", ")}
+                          </span>
                           <span className="mt-0.5 block truncate text-xs font-medium text-on-surface-variant">
-                            {selectedDriver.phone || "Chưa có số điện thoại"}
+                            {selectedDrivers.length} tài xế đã chọn
                           </span>
                         </> :
 
-                    <span className="text-on-surface-variant">Chọn tài xế</span>
+                    <span className="text-on-surface-variant">Chọn một hoặc nhiều tài xế</span>
                     }
                     </span>
-                    {selectedDriver &&
+                    {selectedDrivers.length > 0 &&
                   <span className="hidden shrink-0 items-center gap-1.5 sm:flex">
-                        <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-extrabold text-emerald-700 ring-1 ring-emerald-100">
-                          <span className="material-symbols-outlined align-[-3px] text-[15px]">check</span>
-                          <span className="ml-1">{Number(selectedDriver.completedTripCount || 0)}</span>
-                        </span>
-                        <span className="rounded-full bg-red-50 px-2 py-1 text-xs font-extrabold text-red-700 ring-1 ring-red-100">
-                          <span className="material-symbols-outlined align-[-3px] text-[15px]">close</span>
-                          <span className="ml-1">{Number(selectedDriver.cancelledTripCount || 0)}</span>
+                        <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-extrabold text-primary ring-1 ring-primary/20">
+                          <span className="material-symbols-outlined align-[-3px] text-[15px]">groups</span>
+                          <span className="ml-1">{selectedDrivers.length}</span>
                         </span>
                       </span>
                   }
@@ -644,7 +693,7 @@ export default function Trips() {
                     
                         {drivers.length ?
                     drivers.map((driver) => {
-                      const active = Number(driver.id) === Number(formData.driverId);
+                      const active = normalizeDriverIds(formData.driverIds).includes(Number(driver.id));
 
                       return (
                         <button
@@ -664,6 +713,11 @@ export default function Trips() {
                                   </span>
                                 </span>
                                 <span className="flex shrink-0 items-center gap-1.5">
+                                  {active &&
+                                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white">
+                                      <span className="material-symbols-outlined text-[17px]">check</span>
+                                    </span>
+                                  }
                                   <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-extrabold text-emerald-700 ring-1 ring-emerald-100">
                                     <span className="material-symbols-outlined align-[-3px] text-[15px]">check</span>
                                     <span className="ml-1">{Number(driver.completedTripCount || 0)}</span>
