@@ -11,6 +11,40 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^(?:\+84|0)\d{9}$/;
 const OTP_REGEX = /^\d{4,8}$/;
 
+const hasSocialLogin = (u) => {
+  if (!u || typeof u !== "object") return false;
+  // Common id fields from backend for Google/Facebook linkage
+  const idKeys = [
+    "googleId", "google_id", "googleID", "google",
+    "facebookId", "facebook_id", "facebookID", "facebook",
+    "googleProviderId", "facebookProviderId"
+  ];
+  for (const key of idKeys) {
+    const v = u[key];
+    if (v !== undefined && v !== null && v !== "" && v !== 0 && v !== false) {
+      return true;
+    }
+  }
+  // providers / linked accounts arrays
+  const providerLists = [u.providers, u.authProviders, u.linkedProviders, u.socialProviders, u.linkedAccounts];
+  for (const list of providerLists) {
+    if (Array.isArray(list)) {
+      if (list.some((p) => {
+        const s = String(p || "").toLowerCase();
+        return s.includes("google") || s.includes("facebook");
+      })) {
+        return true;
+      }
+    }
+  }
+  // single provider string
+  const provider = String(
+    u.provider || u.authProvider || u.loginMethod || u.login_provider || ""
+  ).toLowerCase();
+  if (provider.includes("google") || provider.includes("facebook")) return true;
+  return false;
+};
+
 const FIELD_LABELS = {
   email: "Email",
   phone: "Số điện thoại"
@@ -100,6 +134,11 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
     email: user?.email || "",
     phone: user?.phone || ""
   };
+
+  const cachedUserForCheck = getCachedUser();
+  const mergedForSocial = { ...(cachedUserForCheck || {}), ...(user || {}) };
+  const isSocialLinked = hasSocialLogin(mergedForSocial);
+  const canChangeEmail = !isSocialLinked;
 
   useEffect(() => {
     if (!isEditingName && user?.fullName) {
@@ -225,6 +264,11 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
   };
 
   const handleStartVerify = async (field) => {
+    if (field === "email" && !canChangeEmail) {
+      addToast("Tài khoản liên kết Google hoặc Facebook không cho phép thay đổi email.", "error");
+      return;
+    }
+
     const value = String(currentValueByField[field] || "").trim();
     const isCurrentContactMissing = !hasContactValue(value);
     if (!isCurrentContactMissing) {
@@ -489,6 +533,12 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
     "";
     const isCurrentContactMissing = !hasContactValue(value);
 
+    const isEmailSocialBlocked = field === "email" && !canChangeEmail;
+    const isButtonDisabled = isCooldownBlocked || isEmailSocialBlocked;
+    const buttonTitle = isEmailSocialBlocked
+      ? "Tài khoản được liên kết Google/Facebook nên không thể thay đổi email."
+      : cooldownMessage;
+
     return (
       <div className="rounded-2xl bg-surface-container-low p-4 border border-outline-variant/20">
         <p className="text-xs uppercase tracking-wide text-on-surface-variant font-semibold mb-2">{label}</p>
@@ -501,14 +551,18 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
           <button
             type="button"
             onClick={() => handleStartVerify(field)}
-            disabled={isCooldownBlocked}
-            title={cooldownMessage}
+            disabled={isButtonDisabled}
+            title={buttonTitle}
             className="px-4 py-2 text-sm font-bold rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
             
             {isCurrentContactMissing ? `Thêm ${label.toLowerCase()}` : "Xác thực để cập nhật"}
           </button>
 
-          {isCooldownBlocked &&
+          {isEmailSocialBlocked &&
+          <p className="text-xs text-on-surface-variant font-medium">Không thể thay đổi email vì tài khoản đã liên kết Google hoặc Facebook.</p>
+          }
+
+          {isCooldownBlocked && !isEmailSocialBlocked &&
           <p className="text-xs text-amber-700 font-medium">{cooldownMessage}</p>
           }
 
