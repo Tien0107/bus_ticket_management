@@ -74,9 +74,21 @@ const MainNavbar = () => {
     } catch (err) {
       console.error("Lỗi khi đăng xuất:", err);
     }
+
+    // Explicitly disconnect sockets before clearing auth (ensures clean disconnect on logout)
+    if (window.__chatSocket) {
+      try { window.__chatSocket.disconnect(); } catch {}
+      window.__chatSocket = null;
+    }
+    window.__isLoggingOut = true;
+
     clearAuthSession();
     setUser(null);
     setShowUserMenu(false);
+    // Notify listeners so chat socket etc. can react immediately
+    try { window.dispatchEvent(new CustomEvent("busgo:user-updated")); } catch {}
+    setTimeout(() => { window.__isLoggingOut = false; }, 800);
+
     navigate("/login", { replace: true });
   };
 

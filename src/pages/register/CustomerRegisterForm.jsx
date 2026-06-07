@@ -176,6 +176,7 @@ export default function CustomerRegisterForm() {
       if (res.data?.token) {
         const { token, user } = buildAuthenticatedUser(res.data);
         setAuthSession({ token, user, remember: true });
+        try { window.dispatchEvent(new CustomEvent("busgo:user-updated")); } catch {}
 
         if (form.email) {
           sendEmail({
@@ -210,11 +211,6 @@ export default function CustomerRegisterForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="mb-6">
-        <h3 className="text-xl font-bold text-on-surface mb-2">Đăng ký Khách hàng</h3>
-        <p className="text-on-surface-variant">Tạo tài khoản để đặt vé dễ dàng hơn</p>
-      </div>
-
       {error && (
         <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-600">
           <span className="material-symbols-outlined text-red-500">error</span>

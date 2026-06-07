@@ -128,6 +128,8 @@ function Login() {
       let nextUser = user;
 
       setAuthSession({ token, user: nextUser, remember: rememberLogin });
+      // Notify app that auth state changed so sockets can connect with fresh token
+      try { window.dispatchEvent(new CustomEvent("busgo:user-updated")); } catch {}
 
       if (shouldLoadOperatorProfile(nextUser)) {
         try {

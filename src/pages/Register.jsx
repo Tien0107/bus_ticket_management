@@ -162,17 +162,17 @@ function Register() {
           <div className="auth-register-form p-6 lg:p-8">
             {registerForms[registerType]}
 
-            <div className="relative my-8 flex items-center">
+            <div className="relative my-6 flex items-center">
               <div className="flex-grow border-t border-outline-variant/20"></div>
               <span className="flex-shrink mx-4 text-on-surface-variant text-sm font-medium">hoặc</span>
               <div className="flex-grow border-t border-outline-variant/20"></div>
             </div>
 
             <div className="text-center">
-              <p className="text-on-surface-variant">
+              <p className="text-on-surface-variant text-sm">
                 Đã có tài khoản?{" "}
                 <Link to="/login" className="text-primary font-bold hover:underline">
-                  Đăng nhập
+                  Đăng nhập ngay
                 </Link>
               </p>
             </div>

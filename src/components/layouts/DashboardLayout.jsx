@@ -59,7 +59,19 @@ export default function DashboardLayout() {
     } catch {
 
     }
+
+    // Explicitly disconnect sockets before clearing auth (ensures clean disconnect on logout)
+    if (window.__chatSocket) {
+      try { window.__chatSocket.disconnect(); } catch {}
+      window.__chatSocket = null;
+    }
+    window.__isLoggingOut = true;
+
     clearAuthSession();
+    // Notify any listeners (helps reactive auth in chat socket etc.)
+    try { window.dispatchEvent(new CustomEvent("busgo:user-updated")); } catch {}
+    setTimeout(() => { window.__isLoggingOut = false; }, 800);
+
     navigate("/login", { replace: true });
   };
 

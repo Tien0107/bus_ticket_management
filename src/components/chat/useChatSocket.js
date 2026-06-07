@@ -243,7 +243,16 @@ export default function useChatSocket({
 
     window.__chatSocket = socket;
 
+    // Clean disconnect on tab close / refresh
+    const handleBeforeUnload = () => {
+      try {
+        socket.disconnect();
+      } catch {}
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       socket.off("call:incoming", handleCallIncomingFromChat);
       window.__chatSocket = null;
       socket.disconnect();

@@ -48,6 +48,12 @@ const redirectToLogin = () => {
 
   window.__sessionExpiredRedirecting = true;
 
+  // Disconnect active sockets before forcing re-login (token is no longer valid)
+  if (window.__chatSocket) {
+    try { window.__chatSocket.disconnect(); } catch {}
+    window.__chatSocket = null;
+  }
+
   toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", { duration: 5500 });
   window.location.replace("/login");
 };

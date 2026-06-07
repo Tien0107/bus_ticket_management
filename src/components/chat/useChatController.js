@@ -96,10 +96,31 @@ const mergeBoxesWithCurrentActivity = (incomingBoxes, currentBoxes) => {
 
 export default function useChatController() {
   const { addToast } = useToast();
-  const [currentUser] = useState(getStoredUser);
-  const [token] = useState(() => getStoredToken());
+
+  // Reactive auth state so socket can connect/disconnect properly on login/logout (including cross-tab)
+  const [, setAuthTick] = useState(0);
+  const currentUser = getStoredUser();
+  const currentToken = getStoredToken();
   const viewerId = currentUser?.id ? Number(currentUser.id) : null;
-  const isAuthenticated = Boolean(currentUser?.id && token);
+  const isAuthenticated = Boolean(currentUser?.id && currentToken);
+
+  // Listen for auth changes (storage, focus after login in another tab, explicit events, etc.)
+  useEffect(() => {
+    const bump = () => setAuthTick((t) => t + 1);
+    const handleAuthChange = () => bump();
+
+    window.addEventListener("storage", handleAuthChange);
+    window.addEventListener("focus", handleAuthChange);
+    window.addEventListener("pageshow", handleAuthChange);
+    window.addEventListener("busgo:user-updated", handleAuthChange);
+
+    return () => {
+      window.removeEventListener("storage", handleAuthChange);
+      window.removeEventListener("focus", handleAuthChange);
+      window.removeEventListener("pageshow", handleAuthChange);
+      window.removeEventListener("busgo:user-updated", handleAuthChange);
+    };
+  }, []);
   const [open, setOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [boxes, setBoxes] = useState([]);
