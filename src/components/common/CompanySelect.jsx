@@ -1,5 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import axiosClient from "../../api/axiosClient";
+
+const normalizeText = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .trim();
 
 export default function CompanySelect({
   value,
@@ -56,9 +65,19 @@ export default function CompanySelect({
     setSelectedName(found ? found.name : "");
   }, [value, companies]);
 
-  const filtered = companies.filter((c) =>
-    c.name?.toLowerCase().includes(search.toLowerCase().trim())
+  const selectedCompany = useMemo(
+    () => companies.find((company) => String(company.id) === String(value)) || null,
+    [companies, value]
   );
+
+  const filtered = useMemo(() => {
+    const query = normalizeText(search);
+    if (!query) return companies;
+
+    return companies.filter((company) =>
+      normalizeText(`${company.name || ""} ${company.hotline || ""}`).includes(query)
+    );
+  }, [companies, search]);
 
   const handleSelect = (company) => {
     onChange?.(String(company.id));
@@ -75,7 +94,7 @@ export default function CompanySelect({
   };
 
   const baseInputClass =
-    "w-full bg-white border-0 rounded-xl p-4 text-left ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all flex items-center justify-between gap-2 disabled:bg-surface-container-low disabled:text-on-surface-variant/70";
+    "group flex min-h-[56px] w-full items-center justify-between gap-3 rounded-xl border border-outline-variant/40 bg-white px-3.5 py-2.5 text-left shadow-sm outline-none transition-all hover:border-primary/40 hover:bg-surface-container-low/30 focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:bg-surface-container-low disabled:text-on-surface-variant/70";
 
   return (
     <div ref={containerRef} className="relative">
@@ -93,21 +112,40 @@ export default function CompanySelect({
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className="truncate flex-1 text-left">
-          {selectedName || "-- Chọn công ty --"}
+        <span className="flex min-w-0 flex-1 items-center gap-3">
+          {selectedCompany?.logoUrl ? (
+            <img
+              src={selectedCompany.logoUrl}
+              alt={selectedCompany.name}
+              className="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-outline-variant/20"
+            />
+          ) : (
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <span className="material-symbols-outlined text-[20px]">business</span>
+            </span>
+          )}
+
+          <span className="min-w-0 flex-1">
+            <span className={`block truncate text-sm font-extrabold ${selectedName ? "text-on-surface" : "text-on-surface-variant/70"}`}>
+              {selectedName || "Chọn công ty"}
+            </span>
+            <span className="mt-0.5 block truncate text-xs font-medium text-on-surface-variant">
+              {selectedCompany?.hotline ? `Hotline: ${selectedCompany.hotline}` : "Chọn nhà xe bạn muốn tham gia"}
+            </span>
+          </span>
         </span>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex shrink-0 items-center gap-1">
           {selectedName && !disabled && (
             <span
               onClick={handleClear}
-              className="material-symbols-outlined text-on-surface-variant hover:text-red-500 p-0.5 rounded transition-colors text-lg"
+              className="material-symbols-outlined rounded-full p-1 text-lg text-on-surface-variant transition-colors hover:bg-red-50 hover:text-red-500"
               title="Bỏ chọn"
             >
               close
             </span>
           )}
-          <span className="material-symbols-outlined text-on-surface-variant text-xl">
+          <span className="material-symbols-outlined text-xl text-on-surface-variant transition-transform">
             {open ? "expand_less" : "expand_more"}
           </span>
         </div>
@@ -118,41 +156,40 @@ export default function CompanySelect({
       )}
 
       {open && (
-        <div className="absolute z-[100] left-0 right-0 mt-2 rounded-2xl bg-white shadow-[0_10px_40px_rgba(15,23,42,0.18)] border border-outline-variant/20 overflow-hidden">
-          {/* Search header */}
-          <div className="p-3 border-b border-outline-variant/10 bg-white sticky top-0">
-            <div className="flex items-center gap-2 bg-surface-container-low rounded-xl px-3 py-2.5">
-              <span className="material-symbols-outlined text-on-surface-variant text-xl">search</span>
+        <div className="absolute left-0 right-0 z-[100] mt-2 flex max-h-[360px] flex-col overflow-hidden rounded-xl border border-outline-variant/20 bg-white shadow-[0_16px_44px_rgba(15,23,42,0.14)]">
+          <div className="border-b border-outline-variant/10 bg-surface-container-low/40 p-2.5">
+            <div className="flex h-11 items-center gap-2 rounded-lg bg-white px-3 ring-1 ring-outline-variant/20 transition-colors focus-within:ring-primary/45">
+              <span className="material-symbols-outlined text-[20px] text-primary">search</span>
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Tìm kiếm công ty..."
-                className="flex-1 bg-transparent border-0 outline-none text-sm text-on-surface placeholder:text-on-surface-variant/60"
+                className="company-select-search-input h-full min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-sm font-semibold text-on-surface shadow-none outline-none ring-0 placeholder:text-on-surface-variant/55 focus:border-0 focus:shadow-none focus:outline-none focus:ring-0"
+                style={{ border: 0, boxShadow: "none", outline: "none" }}
                 autoFocus
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="text-on-surface-variant hover:text-on-surface"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
                 >
-                  <span className="material-symbols-outlined text-lg">close</span>
+                  <span className="material-symbols-outlined text-[17px]">close</span>
                 </button>
               )}
             </div>
           </div>
 
-          {/* List */}
-          <div className="max-h-[260px] overflow-y-auto py-1">
+          <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
             {loading ? (
-              <div className="py-8 text-center text-on-surface-variant text-sm">
-                <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-2" />
+              <div className="py-8 text-center text-sm font-medium text-on-surface-variant">
+                <div className="mx-auto mb-2 h-5 w-5 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
                 Đang tải danh sách công ty...
               </div>
             ) : filtered.length === 0 ? (
-              <div className="py-8 text-center text-on-surface-variant text-sm">
-                <span className="material-symbols-outlined text-3xl opacity-40 block mb-1">search_off</span>
+              <div className="py-8 text-center text-sm font-medium text-on-surface-variant">
+                <span className="material-symbols-outlined mb-1 block text-3xl opacity-40">search_off</span>
                 Không tìm thấy công ty phù hợp
               </div>
             ) : (
@@ -163,33 +200,36 @@ export default function CompanySelect({
                     key={company.id}
                     type="button"
                     onClick={() => handleSelect(company)}
-                    className={`w-full text-left px-4 py-3.5 flex items-center gap-3 hover:bg-primary/5 active:bg-primary/10 transition-colors border-b border-outline-variant/5 last:border-b-0 ${
-                      isSelected ? "bg-primary/10" : ""
+                    className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors hover:bg-primary/5 active:bg-primary/10 ${
+                      isSelected ? "bg-primary/10 ring-1 ring-primary/20" : ""
                     }`}
                   >
                     {company.logoUrl ? (
                       <img
                         src={company.logoUrl}
                         alt={company.name}
-                        className="w-9 h-9 rounded-xl object-cover ring-1 ring-outline-variant/20 shrink-0"
+                        className="h-10 w-10 shrink-0 rounded-lg object-cover ring-1 ring-outline-variant/20"
                       />
                     ) : (
-                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-primary text-xl">business</span>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <span className="material-symbols-outlined text-[20px] text-primary">business</span>
                       </div>
                     )}
 
                     <div className="min-w-0 flex-1 text-left">
-                      <div className="font-semibold text-on-surface truncate">{company.name}</div>
+                      <div className="truncate text-sm font-extrabold text-on-surface">{company.name}</div>
                       {company.hotline && (
-                        <div className="text-xs text-on-surface-variant mt-0.5 truncate">
+                        <div className="mt-0.5 flex items-center gap-1.5 truncate text-xs font-medium text-on-surface-variant">
+                          <span className="material-symbols-outlined text-[14px] text-primary">call</span>
                           Hotline: {company.hotline}
                         </div>
                       )}
                     </div>
 
                     {isSelected && (
-                      <span className="material-symbols-outlined text-primary text-2xl shrink-0">check_circle</span>
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                        <span className="material-symbols-outlined text-[17px]">check</span>
+                      </span>
                     )}
                   </button>
                 );
@@ -197,8 +237,8 @@ export default function CompanySelect({
             )}
           </div>
 
-          <div className="px-4 py-2 text-[11px] text-center text-on-surface-variant/70 border-t border-outline-variant/10 bg-surface-container-low/50">
-            Chọn công ty bạn muốn tham gia
+          <div className="border-t border-outline-variant/10 bg-surface-container-low/40 px-4 py-2 text-center text-xs font-medium text-on-surface-variant">
+            {filtered.length ? `${filtered.length} công ty phù hợp` : "Chọn công ty bạn muốn tham gia"}
           </div>
         </div>
       )}

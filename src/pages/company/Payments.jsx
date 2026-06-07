@@ -128,40 +128,14 @@ const formatDateTime = (value) => {
   }).format(date);
 };
 
-const formatStripeAmount = ({ amount, currency }) => {
-  const code = String(currency || "").toUpperCase();
-  if (!code) return "—";
-  const numericAmount = Number(amount || 0);
-
-  if (code === "VND") {
-    return `${new Intl.NumberFormat("vi-VN").format(numericAmount)} ${code}`;
-  }
-
-  return `${new Intl.NumberFormat("vi-VN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(numericAmount / 100)} ${code}`;
-};
-
-const getStripeMajorAmount = ({ amount, currency }) => {
+const getStripeAmountInVnd = ({ amount, currency }) => {
   const code = String(currency || "").toUpperCase();
   const numericAmount = Number(amount || 0);
 
   if (code === "VND") return numericAmount;
-  return numericAmount / 100;
-};
+  if (code === "USD") return (numericAmount / 100) * USD_TO_VND_RATE;
 
-const formatVndEquivalent = (item) => {
-  const code = String(item?.currency || "").toUpperCase();
-  if (code === "VND") return "";
-  if (code !== "USD") return "";
-
-  const vndAmount = getStripeMajorAmount(item) * USD_TO_VND_RATE;
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(vndAmount);
+  return numericAmount;
 };
 
 export default function Payments() {
@@ -186,16 +160,14 @@ export default function Payments() {
 
   const availableVnd = useMemo(() => {
     return (balance.available || []).reduce((sum, item) => {
-      const code = String(item?.currency || "").toUpperCase();
-      if (code === "VND") {
-        return sum + Number(item.amount || 0);
-      }
-      if (code === "USD") {
-        return sum + (getStripeMajorAmount(item) * USD_TO_VND_RATE);
-      }
-      return sum;
+      return sum + getStripeAmountInVnd(item);
     }, 0);
   }, [balance.available]);
+  const pendingVnd = useMemo(() => {
+    return (balance.pending || []).reduce((sum, item) => {
+      return sum + getStripeAmountInVnd(item);
+    }, 0);
+  }, [balance.pending]);
 
   const fetchPayments = useCallback(async ({ append = false, cursor = null } = {}) => {
     try {
@@ -434,18 +406,12 @@ export default function Payments() {
             <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
           </div>
 
-          {availableVnd > 0 ? (
-            <div className="rounded-lg bg-emerald-50 p-5">
-              <div className="text-sm font-medium text-emerald-700">Số dư khả dụng</div>
-              <div className="mt-1 text-3xl font-extrabold text-emerald-800">
-                {new Intl.NumberFormat("vi-VN").format(availableVnd)} <span className="text-xl">VND</span>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-dashed border-outline-variant/60 p-4 text-sm font-medium text-on-surface-variant">
-              Chưa có số dư khả dụng
-            </div>
-          )}
+          <BalanceSummary
+            amount={availableVnd}
+            label="Số dư khả dụng"
+            emptyLabel="Chưa có số dư khả dụng"
+            tone="emerald"
+          />
         </section>
 
         <section className="rounded-xl border border-outline-variant/30 bg-white p-4 shadow-sm">
@@ -456,7 +422,12 @@ export default function Payments() {
             </div>
             <span className="material-symbols-outlined text-amber-600">hourglass_top</span>
           </div>
-          <BalanceList items={balance.pending} emptyLabel="Không có số dư đang chờ" />
+          <BalanceSummary
+            amount={pendingVnd}
+            label="Số dư đang chờ"
+            emptyLabel="Không có số dư đang chờ"
+            tone="amber"
+          />
         </section>
       </div>
 
@@ -748,30 +719,28 @@ function StripeStatusItem({ icon, label, enabled, enabledText, disabledText }) {
   );
 }
 
-function BalanceList({ items, emptyLabel }) {
-  if (!items?.length) {
+function BalanceSummary({ amount, label, emptyLabel, tone = "emerald" }) {
+  const hasAmount = Number(amount || 0) > 0;
+  const toneClass =
+    tone === "amber"
+      ? "bg-amber-50 text-amber-800 ring-amber-100"
+      : "bg-emerald-50 text-emerald-800 ring-emerald-100";
+  const labelClass = tone === "amber" ? "text-amber-700" : "text-emerald-700";
+
+  if (!hasAmount) {
     return (
-      <div className="rounded-lg border border-dashed border-outline-variant/60 p-4 text-sm font-medium text-on-surface-variant">
+      <div className="flex min-h-[112px] items-center rounded-lg border border-dashed border-outline-variant/60 p-5 text-sm font-medium text-on-surface-variant">
         {emptyLabel}
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      {items.map((item, index) => (
-        <div key={`${item.currency}-${index}`} className="flex items-center justify-between rounded-lg bg-surface-container-low p-4">
-          <span className="text-sm font-medium text-on-surface-variant">{String(item.currency || "").toUpperCase()}</span>
-          <span className="text-right">
-            <span className="block font-extrabold text-on-surface">{formatStripeAmount(item)}</span>
-            {formatVndEquivalent(item) && (
-              <span className="mt-1 block text-xs font-semibold text-on-surface-variant">
-                ≈ {formatVndEquivalent(item)}
-              </span>
-            )}
-          </span>
-        </div>
-      ))}
+    <div className={`flex min-h-[112px] flex-col justify-center rounded-lg p-5 ring-1 ${toneClass}`}>
+      <div className={`text-sm font-medium ${labelClass}`}>{label}</div>
+      <div className="mt-1 text-3xl font-extrabold">
+        {new Intl.NumberFormat("vi-VN").format(amount)} <span className="text-xl">VND</span>
+      </div>
     </div>
   );
 }

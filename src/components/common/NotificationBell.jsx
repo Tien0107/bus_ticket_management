@@ -246,6 +246,8 @@ const notificationFilters = [
   status: 1
 }];
 
+const DEFAULT_NOTIFICATION_FILTER = "unread";
+
 const getNotificationFilterStatus = (filterId) =>
 notificationFilters.find((filter) => filter.id === filterId)?.status;
 
@@ -306,7 +308,7 @@ export default function NotificationBell({ align = "right" }) {
   const [actionLoading, setActionLoading] = useState("");
   const [accountDialogNotification, setAccountDialogNotification] = useState(null);
   const [dropdownPosition, setDropdownPosition] = useState(null);
-  const [notificationFilter, setNotificationFilter] = useState("all");
+  const [notificationFilter, setNotificationFilter] = useState(DEFAULT_NOTIFICATION_FILTER);
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [loadingMoreNotifications, setLoadingMoreNotifications] = useState(false);
@@ -346,7 +348,9 @@ export default function NotificationBell({ align = "right" }) {
     }
   }, []);
 
-  const fetchNotifications = useCallback(async ({ append = false, cursor = null } = {}) => {
+  const fetchNotifications = useCallback(async ({ append = false, cursor = null, filterId = notificationFilter } = {}) => {
+    const activeFilter = filterId || DEFAULT_NOTIFICATION_FILTER;
+
     try {
       if (append) {
         setLoadingMoreNotifications(true);
@@ -354,7 +358,7 @@ export default function NotificationBell({ align = "right" }) {
         setLoadingNotifications(true);
       }
 
-      if (notificationFilter === "all") {
+      if (activeFilter === "all") {
         const cursorMap = append && cursor && typeof cursor === "object" ? cursor : {};
         const pagesToFetch = allNotificationStatusPages.filter((page) => !append || cursorMap[page.key]);
         const responses = await Promise.all(
@@ -379,7 +383,7 @@ export default function NotificationBell({ align = "right" }) {
       }
 
       const response = await fetchNotificationPage({
-        status: getNotificationFilterStatus(notificationFilter),
+        status: getNotificationFilterStatus(activeFilter),
         cursor: append ? cursor : null
       });
 
@@ -518,20 +522,20 @@ export default function NotificationBell({ align = "right" }) {
   };
 
   useEffect(() => {
-
     fetchNotifications();
     fetchUnreadCount();
+  }, [fetchNotifications, fetchUnreadCount]);
 
-
+  useEffect(() => {
     const interval = setInterval(() => {
-      if (!isOpen) {
-        fetchNotifications();
+      if (!isOpen && notificationFilter === DEFAULT_NOTIFICATION_FILTER) {
+        fetchNotifications({ filterId: DEFAULT_NOTIFICATION_FILTER });
       }
       fetchUnreadCount();
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [fetchNotifications, fetchUnreadCount, isOpen]);
+  }, [fetchNotifications, fetchUnreadCount, isOpen, notificationFilter]);
 
 
   useEffect(() => {

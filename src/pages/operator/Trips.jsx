@@ -73,15 +73,38 @@ const emptyForm = {
 };
 
 const getTripVehicleId = (trip = {}) => trip.vehicleId ?? trip.vehicle_id ?? trip.vehicle?.id ?? "";
+const getDriverIdCandidates = (driver = {}) =>
+[driver.id, driver.driverId, driver.driver_id, driver.userId, driver.user_id, driver.user?.id].
+map((id) => Number(id)).
+filter((id) => Number.isFinite(id) && id > 0).
+filter((id, index, list) => list.indexOf(id) === index);
+const getDriverPrimaryId = (driver = {}) => getDriverIdCandidates(driver)[0] || null;
+const driverMatchesId = (driver, driverId) => getDriverIdCandidates(driver).includes(Number(driverId));
+const getDriverSelectedId = (driver, selectedIds = []) => {
+  const candidates = getDriverIdCandidates(driver);
+  return candidates.find((id) => selectedIds.includes(id)) || candidates[0] || null;
+};
+const getDriverDisplayName = (driver = {}) =>
+driver.fullName ?? driver.full_name ?? driver.name ?? driver.driverName ?? driver.driver_name ?? "Chưa có tên";
+const getDriverPhone = (driver = {}) =>
+driver.phone ?? driver.phoneNumber ?? driver.phone_number ?? driver.contactInfo?.phone ?? "Chưa có số điện thoại";
 const normalizeDriverIds = (ids) =>
 [...(Array.isArray(ids) ? ids : [ids])].
 map((id) => Number(id)).
 filter((id) => Number.isFinite(id) && id > 0).
 filter((id, index, list) => list.indexOf(id) === index);
+const resolveDriversByIds = (driverIds, driverList) =>
+normalizeDriverIds(driverIds).
+map((driverId) => driverList.find((driver) => driverMatchesId(driver, driverId))).
+filter(Boolean).
+filter((driver, index, list) => {
+  const driverId = getDriverPrimaryId(driver);
+  return driverId ? list.findIndex((item) => getDriverPrimaryId(item) === driverId) === index : true;
+});
 const getTripDriverIds = (trip = {}) => {
-  if (Array.isArray(trip.driverIds)) return trip.driverIds;
-  if (Array.isArray(trip.driver_ids)) return trip.driver_ids;
-  if (Array.isArray(trip.drivers)) return trip.drivers.map((driver) => driver?.id).filter(Boolean);
+  if (Array.isArray(trip.driverIds) || trip.driverIds) return normalizeDriverIds(trip.driverIds);
+  if (Array.isArray(trip.driver_ids) || trip.driver_ids) return normalizeDriverIds(trip.driver_ids);
+  if (Array.isArray(trip.drivers)) return trip.drivers.map((driver) => driver?.id ?? driver?.userId).filter(Boolean);
   if (trip.driverId || trip.driver_id || trip.driver?.id) {
     return [trip.driverId ?? trip.driver_id ?? trip.driver?.id];
   }
@@ -181,8 +204,7 @@ export default function Trips() {
   const driverMenuRef = useRef(null);
   const selectedDrivers = useMemo(
     () => {
-      const selectedIds = normalizeDriverIds(formData.driverIds);
-      return drivers.filter((driver) => selectedIds.includes(Number(driver.id)));
+      return resolveDriversByIds(formData.driverIds, drivers);
     },
     [drivers, formData.driverIds]
   );
@@ -448,7 +470,18 @@ export default function Trips() {
     };
 
     try {
-      await updateTrip(scheduleId, editingTrip.id, payload);
+      const response = await updateTrip(scheduleId, editingTrip.id, payload);
+      const responseTrip = response.data?.trip || response.data?.data?.trip || {};
+      const responseDriverIds = normalizeDriverIds(
+        responseTrip.driverIds || responseTrip.driver_ids || selectedDriverIds
+      );
+      setTrips((currentTrips) =>
+      currentTrips.map((trip) =>
+      Number(trip.id) === Number(editingTrip.id) ?
+      { ...trip, ...responseTrip, driverIds: responseDriverIds.length ? responseDriverIds : selectedDriverIds } :
+      trip
+      )
+      );
       const previousDriverIds = normalizeDriverIds(getTripDriverIds(editingTrip));
       const newlyAssignedDriverIds = selectedDriverIds.filter((driverId) => !previousDriverIds.includes(driverId));
       const driverChanged = newlyAssignedDriverIds.length > 0;
@@ -562,13 +595,12 @@ export default function Trips() {
                 {trips.map((trip) => {
                 const displayDate = getTripDepartureDate(trip) || filterDate;
                 const tripDriverIds = normalizeDriverIds(getTripDriverIds(trip));
-                const driverNamesFromList = drivers.
-                filter((driver) => tripDriverIds.includes(Number(driver.id))).
-                map((driver) => driver.fullName || driver.full_name).
+                const driverNamesFromList = resolveDriversByIds(tripDriverIds, drivers).
+                map((driver) => getDriverDisplayName(driver)).
                 filter(Boolean);
                 const driverNames = getTripDriverNames(trip);
                 const driverName =
-                (driverNames.length ? driverNames : driverNamesFromList).join(", ") ||
+                (driverNamesFromList.length ? driverNamesFromList : driverNames).join(", ") ||
                 getTripDriverName(trip);
                 const editable = canEditTrip(trip);
 
@@ -655,7 +687,7 @@ export default function Trips() {
                       {selectedDrivers.length ?
                     <>
                           <span className="block truncate font-bold">
-                            {selectedDrivers.map((driver) => driver.fullName || "Chưa có tên").join(", ")}
+                            {selectedDrivers.map((driver) => getDriverDisplayName(driver)).join(", ")}
                           </span>
                           <span className="mt-0.5 block truncate text-xs font-medium text-on-surface-variant">
                             {selectedDrivers.length} tài xế đã chọn
@@ -692,24 +724,26 @@ export default function Trips() {
                     className="fixed z-[80] overflow-y-auto rounded-xl border border-outline-variant/30 bg-white p-2 shadow-[0_18px_50px_rgba(15,23,42,0.18)]">
                     
                         {drivers.length ?
-                    drivers.map((driver) => {
-                      const active = normalizeDriverIds(formData.driverIds).includes(Number(driver.id));
+                    drivers.map((driver, index) => {
+                      const selectedIds = normalizeDriverIds(formData.driverIds);
+                      const driverSelectId = getDriverSelectedId(driver, selectedIds);
+                      const active = Boolean(driverSelectId && selectedIds.includes(driverSelectId));
 
                       return (
                         <button
-                          key={driver.id}
+                          key={getDriverPrimaryId(driver) || driver.phone || driver.fullName || index}
                           type="button"
-                          onClick={() => handleSelectDriver(driver.id)}
+                          onClick={() => handleSelectDriver(driverSelectId)}
                           className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
                           active ? "bg-primary/10 text-primary" : "text-on-surface hover:bg-surface-container-low"}`
                           }>
                           
                                 <span className="min-w-0">
                                   <span className="block truncate text-sm font-bold">
-                                    {driver.fullName || "Chưa có tên"}
+                                    {getDriverDisplayName(driver)}
                                   </span>
                                   <span className="mt-0.5 block truncate text-xs font-medium text-on-surface-variant">
-                                    {driver.phone || "Chưa có số điện thoại"}
+                                    {getDriverPhone(driver)}
                                   </span>
                                 </span>
                                 <span className="flex shrink-0 items-center gap-1.5">

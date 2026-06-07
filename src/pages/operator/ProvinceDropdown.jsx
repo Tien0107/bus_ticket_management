@@ -1,13 +1,33 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-const VIETNAM_PROVINCES = [
-  "An Giang", "Bà Rịa - Vũng Tàu", "Bắc Giang", "Bắc Kạn", "Bạc Liêu", "Bắc Ninh", "Bến Tre", "Bình Định", "Bình Dương", "Bình Phước", "Bình Thuận",
-  "Cà Mau", "Cần Thơ", "Cao Bằng", "Đà Nẵng", "Đắk Lắk", "Đắk Nông", "Điện Biên", "Đồng Nai", "Đồng Tháp", "Gia Lai", "Hà Giang", "Hà Nam", "Hà Nội",
-  "Hà Tĩnh", "Hải Dương", "Hải Phòng", "Hậu Giang", "Hòa Bình", "Hưng Yên", "Khánh Hòa", "Kiên Giang", "Kon Tum", "Lai Châu", "Lâm Đồng", "Lạng Sơn",
-  "Lào Cai", "Long An", "Nam Định", "Nghệ An", "Ninh Bình", "Ninh Thuận", "Phú Thọ", "Phú Yên", "Quảng Bình", "Quảng Nam", "Quảng Ngãi", "Quảng Ninh",
-  "Quảng Trị", "Sóc Trăng", "Sơn La", "Tây Ninh", "Thái Bình", "Thái Nguyên", "Thanh Hóa", "Thừa Thiên Huế", "Tiền Giang", "TP. Hồ Chí Minh", "Trà Vinh",
-  "Tuyên Quang", "Vĩnh Long", "Vĩnh Phúc", "Yên Bái"
-];
+const PROVINCE_API_URL = "https://provinces.open-api.vn/api/v2/";
+let cachedProvinceNames = null;
+let provinceRequest = null;
+
+const fetchProvinceNames = () => {
+  if (cachedProvinceNames) return Promise.resolve(cachedProvinceNames);
+  if (provinceRequest) return provinceRequest;
+
+  provinceRequest = fetch(PROVINCE_API_URL).
+  then((response) => {
+    if (!response.ok) {
+      throw new Error("Không tải được danh sách tỉnh/thành");
+    }
+
+    return response.json();
+  }).
+  then((data) => {
+    cachedProvinceNames = Array.isArray(data) ?
+    data.map((province) => province?.name).filter(Boolean) :
+    [];
+    return cachedProvinceNames;
+  }).
+  finally(() => {
+    provinceRequest = null;
+  });
+
+  return provinceRequest;
+};
 
 const normalizeText = (value) =>
 String(value || "").
@@ -21,8 +41,36 @@ trim();
 export default function ProvinceDropdown({ value, onChange, placeholder, icon, className = "" }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState(value || "");
+  const [provinces, setProvinces] = useState(cachedProvinceNames || []);
+  const [loading, setLoading] = useState(!cachedProvinceNames);
+  const [loadError, setLoadError] = useState("");
   const wrapperRef = useRef(null);
   const skipValueSyncRef = useRef(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchProvinceNames().
+    then((provinceNames) => {
+      if (!isMounted) return;
+      setProvinces(provinceNames);
+      setLoadError("");
+    }).
+    catch((error) => {
+      if (!isMounted) return;
+      console.error("Lỗi tải danh sách tỉnh/thành:", error);
+      setLoadError("Không tải được danh sách tỉnh/thành");
+    }).
+    finally(() => {
+      if (isMounted) {
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (skipValueSyncRef.current) {
@@ -45,9 +93,9 @@ export default function ProvinceDropdown({ value, onChange, placeholder, icon, c
 
   const filtered = useMemo(() => {
     const query = normalizeText(search);
-    if (!query) return VIETNAM_PROVINCES;
-    return VIETNAM_PROVINCES.filter((province) => normalizeText(province).includes(query));
-  }, [search]);
+    if (!query) return provinces;
+    return provinces.filter((province) => normalizeText(province).includes(query));
+  }, [provinces, search]);
 
   const selectProvince = (province) => {
     onChange(province);
@@ -60,7 +108,7 @@ export default function ProvinceDropdown({ value, onChange, placeholder, icon, c
     setSearch(nextSearch);
     setIsOpen(true);
 
-    const exactProvince = VIETNAM_PROVINCES.find((province) => normalizeText(province) === normalizeText(nextSearch));
+    const exactProvince = provinces.find((province) => normalizeText(province) === normalizeText(nextSearch));
     if (exactProvince) {
       onChange(exactProvince);
     } else if (value) {
@@ -115,7 +163,15 @@ export default function ProvinceDropdown({ value, onChange, placeholder, icon, c
 
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-outline-variant/20 max-h-60 overflow-y-auto z-50 py-2">
-          {filtered.length > 0 ? (
+          {loading ? (
+            <div className="px-4 py-3 text-sm text-outline-variant text-center">
+              Đang tải tỉnh/thành...
+            </div>
+          ) : loadError ? (
+            <div className="px-4 py-3 text-sm text-error text-center">
+              {loadError}
+            </div>
+          ) : filtered.length > 0 ? (
             filtered.map((province, index) => (
               <button
                 key={province || index}

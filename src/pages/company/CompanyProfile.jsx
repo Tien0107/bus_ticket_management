@@ -200,8 +200,9 @@ export default function CompanyProfile() {
       description="Quản lý hồ sơ công ty và hồ sơ cá nhân của tài khoản quản trị."
       maxWidth="max-w-7xl">
       
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] xl:items-start">
-        <section className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] xl:items-start">
+          <section className="overflow-hidden rounded-xl border border-outline-variant/30 bg-white shadow-sm">
           <div className="p-5">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 items-center gap-4">
@@ -378,12 +379,14 @@ export default function CompanyProfile() {
               </div>
             }
           </div>
-        </section>
+          </section>
 
-        <aside className="space-y-5 xl:sticky xl:top-6">
-          <OperatorProfileCard roleLabel="Quản trị công ty" compact />
-          <ChangePasswordCard compact />
-        </aside>
+          <aside className="space-y-5 xl:sticky xl:top-6">
+            <OperatorProfileCard roleLabel="Quản trị công ty" compact />
+          </aside>
+        </div>
+
+        <ChangePasswordCard />
       </div>
     </CompanyPageShell>);
 
