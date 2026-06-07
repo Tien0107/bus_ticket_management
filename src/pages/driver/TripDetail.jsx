@@ -79,6 +79,12 @@ const getDateKey = (value) => {
 
 const getTodayKey = () => formatDateKey(new Date());
 
+const canStartOnOrBefore = (dateKey) => {
+  if (!dateKey) return false;
+  const today = getTodayKey();
+  return dateKey <= today;
+};
+
 const formatDuration = (minutes) => {
   const totalMinutes = Number(minutes || 0);
   if (!totalMinutes) return "--";
@@ -381,8 +387,8 @@ export default function TripDetail() {
   }, [fetchTripDetails]);
 
   const handleStartTrip = async () => {
-    if (trip?.dateKey !== getTodayKey()) {
-      addToast("Chỉ được bắt đầu chuyến trong ngày khởi hành.", "warning");
+    if (!canStartOnOrBefore(trip?.dateKey)) {
+      addToast("Chỉ được bắt đầu chuyến vào ngày khởi hành hoặc trước đó.", "warning");
       return;
     }
 
@@ -514,7 +520,7 @@ export default function TripDetail() {
   }
 
   const currentStatus = statusMeta[trip.status] || statusMeta.scheduled;
-  const canStartTrip = trip.dateKey === getTodayKey();
+  const canStartTrip = canStartOnOrBefore(trip.dateKey);
 
   return (
     <div className="min-h-screen bg-surface px-4 py-4 lg:px-6">
@@ -555,7 +561,7 @@ export default function TripDetail() {
                   </button>
                   {!canStartTrip && (
                     <p className="max-w-[220px] text-xs font-medium text-on-surface-variant">
-                      Chỉ mở vào ngày khởi hành.
+                      Chỉ mở vào ngày khởi hành hiện tại (quá khứ vẫn cho phép).
                     </p>
                   )}
                 </div>
@@ -569,16 +575,6 @@ export default function TripDetail() {
                 >
                   <span className="material-symbols-outlined text-[20px]">task_alt</span>
                   Kết thúc chuyến
-                </button>
-              )}
-              {trip.status !== "completed" && trip.status !== "cancelled" && (
-                <button
-                  type="button"
-                  onClick={() => handleOpenCheckIn()}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant/50 bg-white px-5 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
-                >
-                  <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
-                  Check-in
                 </button>
               )}
             </div>
