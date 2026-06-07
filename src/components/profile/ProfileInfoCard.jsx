@@ -708,24 +708,31 @@ export default function ProfileInfoCard({ user, onProfileUpdated }) {
                         }))
                       }
                       placeholder={`Nhập ${FIELD_LABELS[modalState.field]?.toLowerCase()} mới`}
-                      className="w-full rounded-xl border border-outline-variant/30 px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      className="w-full rounded-xl border border-outline-variant/30 px-3 py-2 pr-20 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                       disabled={modalState.sendingOtp || modalState.submitting || modalState.checkingNewValue}
                     />
-                    {!modalState.newValueChecked && modalState.newValue.trim() && (
-                      <button
-                        type="button"
-                        onClick={handleCheckNewValue}
-                        disabled={modalState.checkingNewValue || modalState.sendingOtp || modalState.submitting}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-primary hover:bg-primary/10 disabled:opacity-50"
-                        title="Kiểm tra liên hệ mới khả dụng"
-                      >
-                        {modalState.checkingNewValue ? (
-                          <span className="inline-block w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                        ) : (
-                          <span className="material-symbols-outlined text-base">fact_check</span>
-                        )}
-                      </button>
-                    )}
+                    <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
+                      {!modalState.newValueChecked && modalState.newValue.trim() && (
+                        <button
+                          type="button"
+                          onClick={handleCheckNewValue}
+                          disabled={modalState.checkingNewValue || modalState.sendingOtp || modalState.submitting}
+                          className="px-2 py-0.5 text-xs font-semibold rounded-md bg-primary/10 text-primary hover:bg-primary/15 border border-primary/30 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                          title="Kiểm tra liên hệ mới khả dụng"
+                        >
+                          {modalState.checkingNewValue ? (
+                            <span className="inline-block w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                          ) : (
+                            "Kiểm tra"
+                          )}
+                        </button>
+                      )}
+                      {modalState.newValueChecked && (
+                        <span className="px-2 py-0.5 text-xs font-semibold rounded-md bg-emerald-600/10 text-emerald-700 border border-emerald-600/30">
+                          Đã kiểm tra
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {modalState.newValueChecked && (

@@ -103,8 +103,17 @@ export default function DriverRegisterForm() {
 
   const handleCheck = async (field) => {
     const value = currentFormValue(field).trim();
-    if (!value) { setVerState(field)((s) => ({ ...s, error: "Vui lòng nhập giá trị." })); return; }
     const setter = setVerState(field);
+    if (!value) { setter((s) => ({ ...s, error: "Vui lòng nhập giá trị." })); return; }
+    // Client-side format validation
+    if (field === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setter((s) => ({ ...s, error: "Email không hợp lệ. Vui lòng nhập đúng định dạng." }));
+      return;
+    }
+    if (field === "phone" && !/^(?:\+84|0)\d{9}$/.test(value)) {
+      setter((s) => ({ ...s, error: "Số điện thoại không hợp lệ (10 số, bắt đầu 0 hoặc +84)." }));
+      return;
+    }
     setter((s) => ({ ...s, checking: true, error: "", checked: false, sent: false, verified: false }));
     try {
       await contactCheck({ field, value });

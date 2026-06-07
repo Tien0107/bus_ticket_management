@@ -1,6 +1,25 @@
 import { useState, useEffect } from "react";
 import OtpInput from "./OtpInput";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^(?:\+84|0)\d{9}$/;
+
+function isValidFormat(field, val) {
+  const v = (val || "").trim();
+  if (!v) return false;
+  if (field === "email") return EMAIL_REGEX.test(v);
+  if (field === "phone") return PHONE_REGEX.test(v);
+  return true;
+}
+
+function getFormatError(field, val) {
+  const v = (val || "").trim();
+  if (!v) return `Vui lòng nhập ${field === "email" ? "email" : "số điện thoại"}.`;
+  if (field === "email") return "Email không hợp lệ. Vui lòng nhập đúng định dạng (ví dụ: ten@email.com).";
+  if (field === "phone") return "Số điện thoại không hợp lệ. Vui lòng nhập số Việt Nam (10 chữ số, bắt đầu bằng 0 hoặc +84).";
+  return "";
+}
+
 export default function VerifiedContactField({
   field, // "email" | "phone"
   label,
@@ -22,6 +41,10 @@ export default function VerifiedContactField({
 
   const handleValueChange = (e) => {
     onChange(e.target.value);
+    // Clear previous error (format or availability) as soon as user edits the field
+    if (ver.error) {
+      setVerification?.((s) => ({ ...s, error: "" }));
+    }
   };
 
   // Auto open modal when OTP is sent
@@ -34,52 +57,82 @@ export default function VerifiedContactField({
     }
   }, [ver.sent, ver.verified]);
 
-  // Determine right-side action icon and handler
-  const getRightAction = () => {
-    if (isVerified) {
-      return {
-        icon: <span className="material-symbols-outlined text-emerald-600 text-[18px]">verified</span>,
-        onClick: null,
-        title: `${label} đã được xác thực`,
-        disabled: true,
-      };
-    }
-    if (ver.checking) {
-      return {
-        icon: <span className="inline-block w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />,
-        onClick: null,
-        title: "Đang kiểm tra...",
-        disabled: true,
-      };
-    }
-    if (ver.sent && !ver.verified) {
-      return {
-        icon: <span className="material-symbols-outlined text-primary text-[18px]">key</span>,
-        onClick: () => setShowOtpModal(true),
-        title: "Nhập mã OTP",
-        disabled: false,
-      };
-    }
-    if (ver.checked) {
-      return {
-        icon: <span className="material-symbols-outlined text-emerald-600 text-[18px]">send</span>,
-        onClick: () => {
-          onSendVerification();
-        },
-        title: "Gửi mã OTP",
-        disabled: ver.sending,
-      };
-    }
-    // Default: check availability
-    return {
-      icon: <span className="material-symbols-outlined text-[18px]">fact_check</span>,
-      onClick: onCheck,
-      title: `Kiểm tra ${label.toLowerCase()} khả dụng`,
-      disabled: ver.sending || ver.verifying || !value.trim(),
-    };
-  };
+  // Compact suffix button/badge rendered *inside* the input on the right
+  const renderSuffixAction = () => {
+    const compact =
+      "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1";
 
-  const rightAction = getRightAction();
+    if (isVerified) {
+      return (
+        <span className="flex items-center gap-1 text-emerald-600" title={`${label} đã xác thực`}>
+          <span className="material-symbols-outlined text-base">verified</span>
+        </span>
+      );
+    }
+
+    if (ver.sent && !ver.verified) {
+      return (
+        <button
+          type="button"
+          onClick={() => setShowOtpModal(true)}
+          disabled={ver.verifying}
+          className={`${compact} bg-primary/10 text-primary hover:bg-primary/15 border border-primary/30`}
+          title="Nhập mã xác minh"
+        >
+          <span className="material-symbols-outlined text-sm">key</span>
+          Nhập mã
+        </button>
+      );
+    }
+
+    if (ver.checked) {
+      return (
+        <button
+          type="button"
+          onClick={() => onSendVerification && onSendVerification()}
+          disabled={ver.sending || ver.verifying}
+          className={`${compact} bg-primary text-white hover:bg-primary/90`}
+          title="Gửi mã xác minh"
+        >
+          {ver.sending ? (
+            <span className="inline-block w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          ) : (
+            "Xác minh"
+          )}
+        </button>
+      );
+    }
+
+    // Default: Kiểm tra (inside the input)
+    const handleCheckClick = () => {
+      const val = value?.trim() || "";
+      if (!val) {
+        setVerification?.((s) => ({ ...s, error: getFormatError(field, val) }));
+        return;
+      }
+      if (!isValidFormat(field, val)) {
+        setVerification?.((s) => ({ ...s, error: getFormatError(field, val) }));
+        return;
+      }
+      onCheck && onCheck();
+    };
+
+    return (
+      <button
+        type="button"
+        onClick={handleCheckClick}
+        disabled={ver.checking || ver.sending || ver.verifying || !isValidFormat(field, value)}
+        className={`${compact} bg-primary/10 text-primary hover:bg-primary/15 border border-primary/30`}
+        title={`Kiểm tra ${label.toLowerCase()} khả dụng`}
+      >
+        {ver.checking ? (
+          <span className="inline-block w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        ) : (
+          "Kiểm tra"
+        )}
+      </button>
+    );
+  };
 
   const closeModal = () => setShowOtpModal(false);
 
@@ -97,7 +150,7 @@ export default function VerifiedContactField({
       <label className="block text-sm font-medium text-on-surface-variant ml-1">{label}</label>
       <div className="relative">
         <input
-          className={`w-full bg-white border-0 rounded-xl p-4 pr-12 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400 ${ver.checked && !isVerified ? 'ring-emerald-500/40' : ''}`}
+          className={`w-full bg-white border-0 rounded-xl p-4 pr-28 text-on-surface ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-gray-400 ${ver.checked && !isVerified ? 'ring-emerald-500/40' : ''}`}
           placeholder={placeholder}
           type={type}
           value={value}
@@ -105,15 +158,9 @@ export default function VerifiedContactField({
           required
           disabled={isVerified}
         />
-        <button
-          type="button"
-          onClick={rightAction.onClick}
-          disabled={rightAction.disabled}
-          className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title={rightAction.title}
-        >
-          {rightAction.icon}
-        </button>
+        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+          {renderSuffixAction()}
+        </div>
       </div>
 
       {ver.error && <p className="text-xs text-red-600">{ver.error}</p>}
@@ -126,12 +173,7 @@ export default function VerifiedContactField({
         </div>
       )}
 
-      {ver.verified && (
-        <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-semibold">
-          <span className="material-symbols-outlined text-base">verified</span>
-          <span>{label} đã xác thực</span>
-        </div>
-      )}
+      {/* verified state is shown inline next to input via renderActionButton */}
 
       {/* Centered OTP Modal */}
       {showOtpModal && ver.sent && !ver.verified && (

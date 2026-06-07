@@ -58,12 +58,22 @@ export default function CustomerRegisterForm() {
 
   const handleCheck = async (field) => {
     const value = currentFormValue(field).trim();
+    const setter = setVerState(field);
+
     if (!value) {
-      const setter = setVerState(field);
       setter((s) => ({ ...s, error: `Vui lòng nhập ${field === "email" ? "email" : "số điện thoại"}.` }));
       return;
     }
-    const setter = setVerState(field);
+    // Client-side format validation
+    if (field === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setter((s) => ({ ...s, error: "Email không hợp lệ. Vui lòng nhập đúng định dạng (ví dụ: ten@email.com)." }));
+      return;
+    }
+    if (field === "phone" && !/^(?:\+84|0)\d{9}$/.test(value)) {
+      setter((s) => ({ ...s, error: "Số điện thoại không hợp lệ. Vui lòng nhập số Việt Nam (10 chữ số, bắt đầu bằng 0 hoặc +84)." }));
+      return;
+    }
+
     setter((s) => ({ ...s, checking: true, error: "", checked: false, sent: false, verified: false }));
 
     try {
