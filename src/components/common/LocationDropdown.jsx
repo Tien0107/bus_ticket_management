@@ -1,13 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-
-const VIETNAM_PROVINCES = [
-  "An Giang", "Bà Rịa - Vũng Tàu", "Bắc Giang", "Bắc Kạn", "Bạc Liêu", "Bắc Ninh", "Bến Tre", "Bình Định", "Bình Dương", "Bình Phước", "Bình Thuận",
-  "Cà Mau", "Cần Thơ", "Cao Bằng", "Đà Nẵng", "Đắk Lắk", "Đắk Nông", "Điện Biên", "Đồng Nai", "Đồng Tháp", "Gia Lai", "Hà Giang", "Hà Nam", "Hà Nội",
-  "Hà Tĩnh", "Hải Dương", "Hải Phòng", "Hậu Giang", "Hòa Bình", "Hưng Yên", "Khánh Hòa", "Kiên Giang", "Kon Tum", "Lai Châu", "Lâm Đồng", "Lạng Sơn",
-  "Lào Cai", "Long An", "Nam Định", "Nghệ An", "Ninh Bình", "Ninh Thuận", "Phú Thọ", "Phú Yên", "Quảng Bình", "Quảng Nam", "Quảng Ngãi", "Quảng Ninh",
-  "Quảng Trị", "Sóc Trăng", "Sơn La", "Tây Ninh", "Thái Bình", "Thái Nguyên", "Thanh Hóa", "Thừa Thiên Huế", "Tiền Giang", "TP. Hồ Chí Minh", "Trà Vinh",
-  "Tuyên Quang", "Vĩnh Long", "Vĩnh Phúc", "Yên Bái"
-];
+import { getVietnamProvinces, VIETNAM_PROVINCES } from '../../utils/provinces';
 
 const removeDiacritics = (str) => {
   if (!str) return "";
@@ -19,9 +11,27 @@ const removeDiacritics = (str) => {
 };
 
 const LocationDropdown = ({ value, onChange, placeholder, icon }) => {
+  // Seed with the latest known list immediately so the dropdown shows content right when opened
+  const [provinces, setProvinces] = useState(VIETNAM_PROVINCES);
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState(value || "");
   const wrapperRef = useRef(null);
+  const loadedRef = useRef(false);
+
+  // Try to get freshest list from the API in background (https://provinces.open-api.vn/api/v2/)
+  useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+    getVietnamProvinces()
+      .then((list) => {
+        if (list && list.length > 0) {
+          setProvinces(list);
+        }
+      })
+      .catch(() => {
+        // keep the seeded list
+      });
+  }, []);
 
   useEffect(() => {
     setSearch(value || "");
@@ -38,7 +48,7 @@ const LocationDropdown = ({ value, onChange, placeholder, icon }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [value]);
 
-  const filtered = VIETNAM_PROVINCES.filter((province) => {
+  const filtered = provinces.filter((province) => {
     if (!search) return true;
     const cleanSearch = removeDiacritics(search).toLowerCase();
     const cleanProvince = removeDiacritics(province).toLowerCase();
@@ -92,7 +102,9 @@ const LocationDropdown = ({ value, onChange, placeholder, icon }) => {
 
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-outline-variant/20 max-h-60 overflow-y-auto z-50 py-2">
-          {filtered.length > 0 ? (
+          {provinces.length === 0 ? (
+            <div className="px-4 py-3 text-sm text-outline-variant text-center">Đang tải danh sách...</div>
+          ) : filtered.length > 0 ? (
             filtered.map((province, idx) => (
               <div
                 key={idx}

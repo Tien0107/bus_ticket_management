@@ -1,33 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-
-const PROVINCE_API_URL = "https://provinces.open-api.vn/api/v2/";
-let cachedProvinceNames = null;
-let provinceRequest = null;
-
-const fetchProvinceNames = () => {
-  if (cachedProvinceNames) return Promise.resolve(cachedProvinceNames);
-  if (provinceRequest) return provinceRequest;
-
-  provinceRequest = fetch(PROVINCE_API_URL).
-  then((response) => {
-    if (!response.ok) {
-      throw new Error("Không tải được danh sách tỉnh/thành");
-    }
-
-    return response.json();
-  }).
-  then((data) => {
-    cachedProvinceNames = Array.isArray(data) ?
-    data.map((province) => province?.name).filter(Boolean) :
-    [];
-    return cachedProvinceNames;
-  }).
-  finally(() => {
-    provinceRequest = null;
-  });
-
-  return provinceRequest;
-};
+import { getVietnamProvinces, VIETNAM_PROVINCES } from "../../utils/provinces";
 
 const normalizeText = (value) =>
 String(value || "").
@@ -39,37 +11,27 @@ toLowerCase().
 trim();
 
 export default function ProvinceDropdown({ value, onChange, placeholder, icon, className = "" }) {
+  // Seed with the latest known list immediately so the dropdown shows content right when opened
+  const [provinces, setProvinces] = useState(VIETNAM_PROVINCES);
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState(value || "");
-  const [provinces, setProvinces] = useState(cachedProvinceNames || []);
-  const [loading, setLoading] = useState(!cachedProvinceNames);
-  const [loadError, setLoadError] = useState("");
   const wrapperRef = useRef(null);
   const skipValueSyncRef = useRef(false);
+  const loadedRef = useRef(false);
 
+  // Try to get freshest list from the API in background (https://provinces.open-api.vn/api/v2/)
   useEffect(() => {
-    let isMounted = true;
-
-    fetchProvinceNames().
-    then((provinceNames) => {
-      if (!isMounted) return;
-      setProvinces(provinceNames);
-      setLoadError("");
-    }).
-    catch((error) => {
-      if (!isMounted) return;
-      console.error("Lỗi tải danh sách tỉnh/thành:", error);
-      setLoadError("Không tải được danh sách tỉnh/thành");
-    }).
-    finally(() => {
-      if (isMounted) {
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-    };
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+    getVietnamProvinces()
+      .then((list) => {
+        if (list && list.length > 0) {
+          setProvinces(list);
+        }
+      })
+      .catch(() => {
+        // keep the seeded list on error
+      });
   }, []);
 
   useEffect(() => {
@@ -93,9 +55,10 @@ export default function ProvinceDropdown({ value, onChange, placeholder, icon, c
 
   const filtered = useMemo(() => {
     const query = normalizeText(search);
-    if (!query) return provinces;
-    return provinces.filter((province) => normalizeText(province).includes(query));
-  }, [provinces, search]);
+    const source = provinces.length > 0 ? provinces : [];
+    if (!query) return source;
+    return source.filter((province) => normalizeText(province).includes(query));
+  }, [search, provinces]);
 
   const selectProvince = (province) => {
     onChange(province);
@@ -163,14 +126,8 @@ export default function ProvinceDropdown({ value, onChange, placeholder, icon, c
 
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-outline-variant/20 max-h-60 overflow-y-auto z-50 py-2">
-          {loading ? (
-            <div className="px-4 py-3 text-sm text-outline-variant text-center">
-              Đang tải tỉnh/thành...
-            </div>
-          ) : loadError ? (
-            <div className="px-4 py-3 text-sm text-error text-center">
-              {loadError}
-            </div>
+          {provinces.length === 0 ? (
+            <div className="px-4 py-3 text-sm text-outline-variant text-center">Đang tải danh sách...</div>
           ) : filtered.length > 0 ? (
             filtered.map((province, index) => (
               <button

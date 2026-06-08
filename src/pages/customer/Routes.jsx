@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { getTripSchedules, getTripScheduleRatings } from "../../api/customer";
 import CompanyReviewsModal from "../../components/reviews/CompanyReviewsModal";
+import LocationDropdown from "../../components/common/LocationDropdown";
+import { getLocalTodayInputValue, isDateBeforeToday } from "../../utils/date";
 
 export default function RoutesPage() {
   const navigate = useNavigate();
@@ -15,6 +17,22 @@ export default function RoutesPage() {
 
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState(null);
+
+  // States for customer trip search form (using latest provinces)
+  const [departure, setDeparture] = useState(filterState.from || "");
+  const [destination, setDestination] = useState(filterState.to || "");
+  const [searchDate, setSearchDate] = useState(filterState.date || getLocalTodayInputValue());
+
+  const handleSearchTrips = () => {
+    const finalDate = isDateBeforeToday(searchDate) ? getLocalTodayInputValue() : searchDate;
+    navigate("/", {
+      state: {
+        from: departure?.trim() || "",
+        to: destination?.trim() || "",
+        date: finalDate,
+      },
+    });
+  };
 
   const openReviewModal = (schedule, e) => {
     e.preventDefault();
@@ -145,6 +163,54 @@ export default function RoutesPage() {
       </section>
 
       <div className="max-w-7xl mx-auto px-6 -mt-10 relative z-20">
+        {/* Customer trip search form - uses latest provinces from API */}
+        <div className="bg-white rounded-3xl shadow-editorial p-6 mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="material-symbols-outlined text-2xl text-primary">search</span>
+            <h2 className="text-xl font-black text-on-surface">Tìm chuyến xe</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-outline mb-1 block">Điểm đi</label>
+              <LocationDropdown
+                value={departure}
+                onChange={setDeparture}
+                placeholder="Chọn tỉnh/thành đi"
+                icon="location_on"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-outline mb-1 block">Điểm đến</label>
+              <LocationDropdown
+                value={destination}
+                onChange={setDestination}
+                placeholder="Chọn tỉnh/thành đến"
+                icon="flag"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-outline mb-1 block">Ngày đi</label>
+              <div className="flex min-h-[52px] items-center bg-surface-container-low px-4 py-3 rounded-xl">
+                <span className="material-symbols-outlined text-primary mr-3 text-lg">calendar_today</span>
+                <input
+                  type="date"
+                  min={getLocalTodayInputValue()}
+                  value={searchDate}
+                  onChange={(e) => setSearchDate(e.target.value)}
+                  className="bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-on-surface w-full text-sm font-medium"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleSearchTrips}
+              className="bg-primary text-white py-3.5 px-6 rounded-xl font-bold hover:bg-primary/90 active:bg-primary transition flex items-center justify-center gap-2 h-[52px] text-sm"
+            >
+              Tìm chuyến
+              <span className="material-symbols-outlined text-lg">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+
         {}
         <div className="bg-white rounded-3xl shadow-editorial p-8 mb-16">
           <div className="flex items-center gap-3 mb-8">
