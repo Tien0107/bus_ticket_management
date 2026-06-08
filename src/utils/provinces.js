@@ -1,7 +1,7 @@
 // Vietnam Provinces - latest from https://provinces.open-api.vn/api/v2/
 // Post 2025 administrative merger (34 units). Using raw official names from the API.
 
-const API_URL = "https://provinces.open-api.vn/api/v2/p/";
+const API_URL = "https://provinces.open-api.vn/api/v2/";
 
 let cachedProvinces = null;
 let inFlightPromise = null;
