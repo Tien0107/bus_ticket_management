@@ -33,7 +33,9 @@ const getLastChangeTimestamp = (user, field) => {
   const cachedUser = getCachedUser();
   const source = { ...(user || {}), ...(cachedUser || {}) };
   if (!source || Object.keys(source).length === 0) return null;
-  const keys = [...LAST_CHANGE_KEYS.generic, ...(LAST_CHANGE_KEYS[field] || [])];
+  // Prioritize field-specific (lastChangeEmail / lastChangePhone) so the two are independent.
+  // Fall back to generic lastChangeContact for backward compat with older data.
+  const keys = [...(LAST_CHANGE_KEYS[field] || []), ...LAST_CHANGE_KEYS.generic];
   for (const key of keys) {
     const raw = source[key];
     if (raw === undefined || raw === null || raw === "") continue;
@@ -62,13 +64,16 @@ const getCooldownInfo = (user, field) => {
 };
 
 const formatCooldownMessage = (field, info) => {
+  const action = field === "email" ? "cập nhật email" :
+                 field === "phone" ? "cập nhật số điện thoại" :
+                 "cập nhật thông tin liên hệ";
   if (!info.remainingHours) {
-    return `Bạn vừa cập nhật thông tin liên hệ. Vui lòng thử lại sau ${info.remainingMinutes} phút.`;
+    return `Bạn vừa ${action}. Vui lòng thử lại sau ${info.remainingMinutes} phút.`;
   }
   if (!info.remainingMinutes) {
-    return `Bạn vừa cập nhật thông tin liên hệ. Vui lòng thử lại sau ${info.remainingHours} giờ.`;
+    return `Bạn vừa ${action}. Vui lòng thử lại sau ${info.remainingHours} giờ.`;
   }
-  return `Bạn vừa cập nhật thông tin liên hệ. Vui lòng thử lại sau ${info.remainingHours} giờ ${info.remainingMinutes} phút.`;
+  return `Bạn vừa ${action}. Vui lòng thử lại sau ${info.remainingHours} giờ ${info.remainingMinutes} phút.`;
 };
 
 const hasContactValue = (value) => Boolean(String(value || "").trim());
