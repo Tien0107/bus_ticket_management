@@ -5,6 +5,7 @@ import CreateChatForm from "./CreateChatForm";
 import MessageInput from "./MessageInput";
 import MessageList from "./MessageList";
 import useChatController from "./useChatController";
+import { getStoredUser } from "./chatUtils";
 import { useCall, CALL_TYPE } from "../call/CallContext";
 import { useToast } from "../../context/ToastContext";
 
@@ -14,6 +15,9 @@ export default function ChatWidget() {
   const call = useCall();
   const { addToast } = useToast();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  const currentUserForRole = getStoredUser();
+  const isCustomerComposer = currentUserForRole?.role === "customer";
 
 
   const handleStartCall = (type) => {
@@ -191,19 +195,37 @@ export default function ChatWidget() {
           {!chat.selectedBox ?
         <div className="min-h-0 flex-1 overflow-y-auto bg-[#fbfdfc] p-3">
               {chat.showCreate &&
-          <CreateChatForm
-            filteredRecipientUsers={chat.filteredRecipientUsers}
-            firstMessage={chat.firstMessage}
-            loadingRecipients={chat.loadingRecipients}
-            onFirstMessageChange={chat.handleFirstMessageChange}
-            onReceiverChange={chat.setReceiverId}
-            onRecipientSearchChange={chat.handleRecipientSearchChange}
-            onSubmit={chat.handleCreateBox}
-            receiverId={chat.receiverId}
-            recipientSearch={chat.recipientSearch}
-            selectedRecipient={chat.selectedRecipient} />
-
-          }
+          (isCustomerComposer ? (
+            <form onSubmit={chat.handleCreateBox} className="mb-3 space-y-3 rounded-xl border border-emerald-100 bg-white p-3">
+                  <input
+                    type="number"
+                    required
+                    value={chat.receiverId}
+                    onChange={(e) => chat.setReceiverId(e.target.value)}
+                    className="w-full rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    placeholder="Nhập ID người nhận (tài xế/hỗ trợ, ví dụ 3, 4...)" />
+                  <textarea
+                    value={chat.firstMessage}
+                    onChange={chat.handleFirstMessageChange}
+                    className="min-h-20 w-full resize-none rounded-lg border border-outline-variant/40 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    placeholder="Tin nhắn đầu tiên" />
+                  <button type="submit" className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white hover:bg-primary/90">
+                    Tạo hội thoại
+                  </button>
+                </form>
+          ) : (
+            <CreateChatForm
+              filteredRecipientUsers={chat.filteredRecipientUsers}
+              firstMessage={chat.firstMessage}
+              loadingRecipients={chat.loadingRecipients}
+              onFirstMessageChange={chat.handleFirstMessageChange}
+              onReceiverChange={chat.setReceiverId}
+              onRecipientSearchChange={chat.handleRecipientSearchChange}
+              onSubmit={chat.handleCreateBox}
+              receiverId={chat.receiverId}
+              recipientSearch={chat.recipientSearch}
+              selectedRecipient={chat.selectedRecipient} />
+          ))}
 
               <ChatBoxList
             boxes={chat.boxes}
@@ -217,6 +239,15 @@ export default function ChatWidget() {
             </div> :
 
         <>
+              {chat.isPeerDriver && (
+            <div className="mx-3 mt-2 mb-1 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800 flex items-start gap-2 shadow-sm">
+                  <span className="material-symbols-outlined text-[15px] shrink-0 mt-px animate-pulse text-amber-600">warning</span>
+                  <span>
+                    <strong>Chú ý:</strong> Tài xế có thể đang vận hành xe. Vui lòng hạn chế nhắn tin nếu không khẩn cấp để đảm bảo an toàn!
+                  </span>
+                </div>
+              )}
+
               <MessageList
             loadingMessages={chat.loadingMessages}
             messageNext={chat.messageNext}
@@ -227,7 +258,24 @@ export default function ChatWidget() {
             onRecallMessage={chat.handleRecallMessage}
             peerTyping={chat.peerTyping}
             viewerId={chat.viewerId} />
-          
+
+              {/* Quick Replies */}
+              <div className="flex gap-2 overflow-x-auto px-3 py-1.5 bg-slate-50 border-t border-outline-variant/10" style={{ scrollbarWidth: "none" }}>
+                {[
+                  "Tôi đã đến điểm đón!",
+                  "Xe chạy tới đâu rồi ạ?",
+                  "Vui lòng đợi tôi 2 phút.",
+                  "Tôi mang nhiều hành lý không?",
+                ].map((reply, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => chat.setComposeValue && chat.setComposeValue(reply)}
+                    className="shrink-0 rounded-full border border-primary/20 bg-white px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/5 transition-all shadow-sm cursor-pointer">
+                    {reply}
+                  </button>
+                ))}
+              </div>
 
               <MessageInput
             composeValue={chat.composeValue}

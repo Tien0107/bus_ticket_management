@@ -194,6 +194,14 @@ export default function useChatController() {
 
   const selectedPeerOnline = selectedPeerId ? onlineUserIds.has(Number(selectedPeerId)) : false;
 
+  const isPeerDriver = useMemo(() => {
+    if (!selectedBox) return false;
+    const nameLower = selectedBox.displayName?.toLowerCase() || "";
+    if (nameLower.includes("tài xế") || nameLower.includes("driver")) return true;
+    const peerUser = recipientUsers.find((u) => Number(u.id) === Number(selectedPeerId));
+    return peerUser?.role === "driver";
+  }, [selectedBox, selectedPeerId, recipientUsers]);
+
   const filteredRecipientUsers = useMemo(() => {
     const keyword = normalizeSearchValue(recipientSearch.trim());
     if (!keyword) return recipientUsers;
@@ -741,6 +749,44 @@ export default function useChatController() {
     });
   }, [loadMessages, messageNext, selectedBoxId]);
 
+  // Support "Chat với tài xế" / open chat prefilled from TicketDetail (or other places)
+  useEffect(() => {
+    const handleOpenChatTrigger = async (e) => {
+      const { receiverId: targetReceiverId, displayName } = e.detail || {};
+      if (!targetReceiverId || !viewerId) return;
+
+      setOpen(true);
+
+      const existingBox = boxes.find(
+        (box) =>
+          (Number(box.senderId) === Number(viewerId) && Number(box.receiverId) === Number(targetReceiverId)) ||
+          (Number(box.receiverId) === Number(viewerId) && Number(box.senderId) === Number(targetReceiverId))
+      );
+
+      if (existingBox) {
+        setSelectedBoxId(existingBox.id);
+        setShowCreate(false);
+      } else {
+        try {
+          // For customers we avoid full recipient list (can cause 403); just prefill the ID
+          const isCustomer = currentUser?.role === "customer";
+          if (!isCustomer && recipientUsers.length === 0) {
+            await loadRecipients();
+          }
+          setReceiverId(String(targetReceiverId));
+          setShowCreate(true);
+          setRecipientSearch(displayName || "");
+          setFirstMessage("Xin chào! Tôi có một số câu hỏi về chuyến xe.");
+        } catch (err) {
+          console.error("Lỗi chuẩn bị chat từ trigger:", err);
+        }
+      }
+    };
+
+    window.addEventListener("chat:open-with-user", handleOpenChatTrigger);
+    return () => window.removeEventListener("chat:open-with-user", handleOpenChatTrigger);
+  }, [boxes, viewerId, recipientUsers, loadRecipients, currentUser?.role]);
+
   return {
     boxNext,
     boxes: boxesWithRealtimeUnread,
@@ -765,6 +811,7 @@ export default function useChatController() {
     messagesEndRef,
     messagesScrollRef,
     isAuthenticated,
+    isPeerDriver,
     onlineUserIds,
     open,
     peerTyping,
@@ -773,6 +820,7 @@ export default function useChatController() {
     selectedBox,
     selectedPeerOnline,
     selectedRecipient,
+    setComposeValue,
     setOpen,
     setReceiverId,
     setSelectedBoxId,
