@@ -105,15 +105,39 @@ export default function SocialLoginButtons({ disabled = false, onLoginSuccess, s
 
     try {
       const FB = await loadFacebookSdk();
-      const loginResponse = await new Promise((resolve) => {
+
+      // Xin quyền public_profile + email
+      let loginResponse = await new Promise((resolve) => {
         FB.login(resolve, { scope: "public_profile,email", return_scopes: true });
       });
+
+      if (loginResponse.status === "connected" && loginResponse.authResponse?.accessToken) {
+        const grantedScopes = (loginResponse.authResponse.grantedScopes || "").toLowerCase();
+        if (!grantedScopes.includes("email")) {
+          // Nếu user chưa cấp email (do cache quyền cũ), buộc hiện lại dialog xin email
+          loginResponse = await new Promise((resolve) => {
+            FB.login(resolve, {
+              scope: "email",
+              return_scopes: true,
+              auth_type: "rerequest"
+            });
+          });
+        }
+      }
 
       if (loginResponse.status !== "connected" || !loginResponse.authResponse?.accessToken) {
         throw new Error(
           loginResponse.status === "unknown" ?
           "Facebook chưa xác thực được domain hiện tại. Kiểm tra App Domains, Allowed Domains for JavaScript SDK và Valid OAuth Redirect URIs trên Meta." :
           "Bạn đã hủy hoặc chưa cấp quyền đăng nhập Facebook."
+        );
+      }
+
+      // Kiểm tra lần cuối xem email có thực sự được cấp không
+      const finalGranted = (loginResponse.authResponse.grantedScopes || "").toLowerCase();
+      if (!finalGranted.includes("email")) {
+        throw new Error(
+          "Bạn chưa cấp quyền Email cho BusGo. Vui lòng vào Cài đặt Facebook → Ứng dụng và trang web → BusGo → Gỡ bỏ, sau đó đăng nhập lại và CHỌN CẤP QUYỀN Email."
         );
       }
 
