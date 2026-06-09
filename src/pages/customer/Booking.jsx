@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { createNotification } from "../../api/notification";
 import { loadStripe } from "@stripe/stripe-js";
