@@ -113,7 +113,12 @@ axiosClient.interceptors.response.use(
       if (
         lowerMsg.includes("not enough seats") ||
         lowerMsg.includes("seat unavailable") ||
-        lowerMsg.includes("already booked")
+        lowerMsg.includes("already booked") ||
+        lowerMsg.includes("ghế đã được người khác đặt") ||
+        lowerMsg.includes("ghế đã được đặt") ||
+        lowerMsg.includes("ghế này đã có người đặt") ||
+        lowerMsg.includes("ghế đã có người đặt") ||
+        lowerMsg.includes("đã được người khác đặt")
       )
         return "Ghế này đã có người đặt, vui lòng chọn ghế khác.";
       if (

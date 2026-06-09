@@ -201,7 +201,12 @@ export default function Booking() {
 
 
   const createBookingsForCurrentSelection = async () => {
-    const bookingPromises = bookingData.selectedSeats.map((seat, index) => {
+    // Create sequentially (not Promise.all) to avoid partial bookings if one seat fails
+    // (e.g. taken by someone else between UI load and the "init booking" call).
+    const generatedOrderIds = [];
+
+    for (let index = 0; index < bookingData.selectedSeats.length; index++) {
+      const seat = bookingData.selectedSeats[index];
       const payload = {
         type: isRoundTrip ? "round_trip" : "one_way",
         outBound: {
@@ -227,26 +232,17 @@ export default function Booking() {
         payload.couponId = Number(bookingData.coupon.id);
       }
 
-      return createBooking(payload);
-    });
-
-    const bookingResponses = await Promise.all(bookingPromises);
-    const generatedOrderIds = Array.from(
-      new Set(
-        bookingResponses.
-        map((res) => {
-          const data = res?.data || {};
-          return data.bookingId || data.id || data.ticket?.bookingId || data.ticket?.id || null;
-        }).
-        filter(Boolean)
-      )
-    );
+      const res = await createBooking(payload);
+      const data = res?.data || {};
+      const orderId = data.bookingId || data.id || data.ticket?.bookingId || data.ticket?.id || null;
+      if (orderId) generatedOrderIds.push(orderId);
+    }
 
     if (generatedOrderIds.length === 0) {
       throw new Error("Không thể khởi tạo đặt vé trên Backend.");
     }
 
-    return generatedOrderIds;
+    return Array.from(new Set(generatedOrderIds));
   };
 
   const handleProceedToCheckout = async () => {
@@ -328,6 +324,30 @@ export default function Booking() {
       navigateToTickets();
     } catch (err) {
       console.error("Payment Error:", err);
+
+      const rawMsg = (err.response?.data?.message || err.message || "").toLowerCase();
+      const isSeatConflict =
+        rawMsg.includes("ghế") &&
+        (rawMsg.includes("đã được người khác đặt") ||
+          rawMsg.includes("đã được đặt") ||
+          rawMsg.includes("đã có người đặt") ||
+          rawMsg.includes("already booked") ||
+          rawMsg.includes("seat unavailable") ||
+          rawMsg.includes("not enough seats"));
+
+      if (isSeatConflict) {
+        // Seat was taken by someone else between seat selection and "init booking" (createBooking).
+        // Clear any partial order and force user back to re-select fresh seats.
+        setOrderIds([]);
+        setBookingData((prev) => ({ ...prev, selectedSeats: [], totalPrice: 0 }));
+        if (isRoundTrip) {
+          setReturnBookingData((prev) => (prev ? { ...prev, selectedSeats: [], totalPrice: 0 } : null));
+        }
+        setStep(1);
+        addToast("Ghế đã được người khác đặt. Vui lòng chọn lại ghế (sơ đồ đã được cập nhật).", "error");
+        return;
+      }
+
       if (err.response?.data?.issues) {
         const msgs = err.response.data.issues.map((i) => `${i.field}: ${i.reason}`).join(" | ");
         addToast("Lỗi khi thanh toán: " + msgs, "error");
