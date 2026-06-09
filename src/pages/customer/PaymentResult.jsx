@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
 import { getStoredToken, getStoredUser } from "../../utils/authStorage";
 import { sendEmail } from "../../api/auth";
+import { createNotification } from "../../api/notification";
 
 const VNPAY_ERROR_MAP = {
   "00": "Giao dịch thành công",
@@ -63,6 +64,17 @@ export default function PaymentResult() {
           params: {}
         }).catch((err) => {
           console.error("Lỗi gửi email xác nhận thanh toán:", err);
+        });
+      }
+
+      if (user?.id) {
+        createNotification({
+          userId: user.id,
+          title: "Thanh toán thành công!",
+          body: `Vé của bạn cho đơn hàng #${transactionCode || ""} đã được thanh toán thành công qua VNPay.`,
+          data: JSON.stringify({ path: "/profile/tickets" })
+        }).catch((err) => {
+          console.warn("Failed to create VNPay payment notification:", err);
         });
       }
     } else {

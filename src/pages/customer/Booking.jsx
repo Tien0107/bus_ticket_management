@@ -29,7 +29,7 @@ export default function Booking() {
   const { addToast } = useToast();
 
   const navigateToTickets = (options = {}) => {
-    navigate("/profile/tickets", options);
+    navigate("/profile/tickets", options);  
   };
 
   const today = getLocalTodayStr();
@@ -85,7 +85,7 @@ export default function Booking() {
       navigateToTickets();
       return { navigated: true };
     }
-    setCardPaymentStage("confirm");
+    setCardPaymentStage("confirm");// Xác nhận trừ tiền từ tài khoản khách hàng
     const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
       payment_method: selectedPaymentMethodId || undefined
     });
@@ -97,17 +97,14 @@ export default function Booking() {
     if (paymentIntent?.status === "succeeded") {
       setCardPaymentStage("finalizing");
       try {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-          const currentUser = JSON.parse(userStr);
-          if (currentUser?.id) {
-            await createNotification({
-              userId: currentUser.id,
-              title: "Thanh toán thành công!",
-              body: `Vé của bạn cho đơn hàng #${orderId || ""} đã được thanh toán thành công qua thẻ.`,
-              data: JSON.stringify({ path: "/profile/tickets" })
-            });
-          }
+        const currentUser = getStoredUser(null);
+        if (currentUser?.id) {
+          await createNotification({
+            userId: currentUser.id,
+            title: "Thanh toán thành công!",
+            body: `Vé của bạn cho đơn hàng #${orderId || ""} đã được thanh toán thành công qua thẻ.`,
+            data: JSON.stringify({ path: "/profile/tickets" })
+          });
         }
       } catch (notifErr) {
         console.warn("Failed to create Stripe payment notification:", notifErr);
@@ -150,7 +147,7 @@ export default function Booking() {
     }
   };
 
-  const handleSelectCardAndPay = async (card) => {
+  const handleSelectCardAndPay = async (card) => {// Thanh toán bằng thẻ đã lưu sẵn trong tài khoản
     let navigated = false;
     try {
       setCardPaymentStage("starting");

@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import { useToast } from "../context/ToastContext";
-import { sendEmail } from "../api/auth";
 
 const faqs = [
 {
@@ -22,44 +20,7 @@ const faqs = [
 
 
 export default function Contact() {
-  const { addToast } = useToast();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    subject: "",
-    message: ""
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      await sendEmail({
-        to: formData.email,
-        subject: `[BusGo] Xác nhận tiếp nhận thông tin liên hệ: ${formData.subject}`,
-        text: `Chào ${formData.name},\n\nCảm ơn bạn đã liên hệ với BusGo. Chúng tôi đã tiếp nhận thông tin của bạn với nội dung sau:\n\n---\nChủ đề: ${formData.subject}\nSố điện thoại: ${formData.phone}\nNội dung:\n${formData.message}\n---\n\nĐội ngũ hỗ trợ của chúng tôi sẽ liên hệ lại với bạn trong thời gian sớm nhất.\n\nTrân trọng,\nĐội ngũ hỗ trợ BusGo`,
-        template: "default",
-        params: {}
-      });
-
-      addToast("Cảm ơn bạn đã liên hệ! Tin nhắn của bạn đã được gửi thành công, chúng tôi sẽ phản hồi sớm nhất.", "success");
-      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
-    } catch (err) {
-      console.error("Lỗi gửi email liên hệ:", err);
-      addToast("Có lỗi xảy ra khi gửi email, nhưng thông tin đã được ghi nhận.", "warning");
-      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div className="bg-surface min-h-screen pb-20">
@@ -110,77 +71,21 @@ export default function Contact() {
               <span className="material-symbols-outlined text-4xl">mail</span>
             </div>
             <h3 className="text-xl font-bold mb-3 text-on-surface">Email hỗ trợ</h3>
-            <p className="text-lg font-bold text-secondary mb-1">support@busgo.vn</p>
+            <p className="text-lg font-bold text-secondary mb-1">busgo@express.vn</p>
             <p className="text-on-surface-variant text-sm">Phản hồi trong vòng 24 giờ làm việc</p>
           </div>
         </div>
 
-        {}
         <div className="bg-white rounded-3xl shadow-editorial overflow-hidden mb-16">
-          <div className="grid grid-cols-1 lg:grid-cols-2">
-            {}
-            <div className="p-10 lg:p-12 bg-surface-container-lowest">
-              <div className="mb-8">
-                <h2 className="text-3xl font-black text-on-surface mb-2">Gửi tin nhắn cho chúng tôi</h2>
-                <div className="w-16 h-1.5 bg-primary-container rounded-full mb-4"></div>
-                <p className="text-on-surface-variant">Bạn có thắc mắc, phản hồi hoặc cần hỗ trợ đặc biệt? Hãy gửi tin nhắn ngay tại đây.</p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-outline mb-2 block">Họ và tên *</label>
-                    <input required type="text" name="name" value={formData.name} onChange={handleChange} className="w-full bg-surface border border-outline-variant/50 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="Nhập tên của bạn" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-outline mb-2 block">Số điện thoại *</label>
-                    <input required type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full bg-surface border border-outline-variant/50 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="Nhập SĐT liên lạc" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-outline mb-2 block">Email *</label>
-                    <input required type="email" name="email" value={formData.email} onChange={handleChange} className="w-full bg-surface border border-outline-variant/50 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="Nhập Email" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-outline mb-2 block">Tiêu đề *</label>
-                    <input required type="text" name="subject" value={formData.subject} onChange={handleChange} className="w-full bg-surface border border-outline-variant/50 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="Ví dụ: Lỗi thanh toán" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-outline mb-2 block">Nội dung chi tiết *</label>
-                  <textarea required rows="4" name="message" value={formData.message} onChange={handleChange} className="w-full bg-surface border border-outline-variant/50 rounded-xl p-3.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none" placeholder="Vui lòng mô tả chi tiết vấn đề của bạn..."></textarea>
-                </div>
-
-                <button disabled={isSubmitting} type="submit" className="w-full bg-primary text-white py-4 rounded-xl font-bold text-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
-                  {isSubmitting ?
-                  <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Đang gửi...
-                    </> :
-
-                  <>
-                      <span className="material-symbols-outlined">send</span>
-                      Gửi tin nhắn ngay
-                    </>
-                  }
-                </button>
-              </form>
-            </div>
-
-            {}
-            <div className="min-h-[400px] lg:min-h-full w-full bg-gray-200 relative">
-              <iframe
-                src="https://maps.google.com/maps?q=33%20X%C3%B4%20Vi%E1%BA%BFt%20Ngh%E1%BB%87%20T%C4%A9nh,%20H%C3%B2a%20C%C6%B0%E1%BB%9Dng,%20%C4%90%C3%A0%20N%E1%BA%B5ng%20550000,%20Vi%E1%BB%87t%20Nam&t=&z=16&ie=UTF8&iwloc=&output=embed"
-                className="absolute inset-0 w-full h-full border-0"
-                allowFullScreen=""
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Bản đồ văn phòng BusGo">
-              </iframe>
-            </div>
+          <div className="h-[450px] w-full bg-gray-200 relative">
+            <iframe
+              src="https://maps.google.com/maps?q=33%20X%C3%B4%20Vi%E1%BA%BFt%20Ngh%E1%BB%87%20T%C4%A9nh,%20H%C3%B2a%20C%C6%B0%E1%BB%9Dng,%20%C4%90%C3%A0%20N%E1%BA%B5ng%20550000,%20Vi%E1%BB%87t%20Nam&t=&z=16&ie=UTF8&iwloc=&output=embed"
+              className="absolute inset-0 w-full h-full border-0"
+              allowFullScreen=""
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Bản đồ văn phòng BusGo">
+            </iframe>
           </div>
         </div>
 

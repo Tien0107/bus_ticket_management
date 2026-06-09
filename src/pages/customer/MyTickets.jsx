@@ -292,8 +292,8 @@ export default function MyTickets() {
       });
       setNextCursor(payload.next ?? null);
 
-      // Fetch full details asynchronously for each ticket to fill in missing properties (locations, company name, seat numbers, etc.)
-      sortedIncoming.forEach(async (ticket) => {
+      // Fetch full details in parallel for each ticket to fill in missing properties (locations, company name, seat numbers, etc.)
+      const detailPromises = sortedIncoming.map(async (ticket) => {
         try {
           const detailRes = await getCustomerTicketDetail(ticket.id);
           const detailPayload = detailRes.data?.data || detailRes.data || {};
@@ -310,28 +310,34 @@ export default function MyTickets() {
               fullTicket.companyLogoUrl = matchedSchedule.logoUrl;
             }
           }
-          
-          setTickets((current) =>
-            current.map((t) =>
-              t.id === ticket.id
-                ? {
-                    ...t,
-                    ...fullTicket,
-                  }
-                : t
-            )
-          );
+          return { id: ticket.id, fullTicket };
         } catch (detailErr) {
           console.warn(`Failed to fetch details for ticket ${ticket.id}:`, detailErr);
+          return null;
         }
       });
+
+      const detailedResults = await Promise.all(detailPromises);
+      const updatesMap = {};
+      detailedResults.forEach((res) => {
+        if (res) {
+          updatesMap[res.id] = res.fullTicket;
+        }
+      });
+
+      setTickets((current) =>
+        current.map((t) => {
+          const update = updatesMap[t.id];
+          return update ? { ...t, ...update } : t;
+        })
+      );
     } catch (err) {
       setError(getErrorMessage(err, "Không thể tải danh sách vé. Vui lòng thử lại."));
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [appliedFilters]);
+  }, [appliedFilters, schedules]);
 
   useEffect(() => {
     fetchTickets({ filters: appliedFilters });
@@ -443,6 +449,22 @@ export default function MyTickets() {
       const payload = response.data?.data || response.data || {};
       mergeCancelledTickets(payload.tickets || []);
       addToast(payload.message || "Hủy vé thành công.", "success");
+      
+      // Create cancellation notification
+      try {
+        const currentUser = getStoredUser(null);
+        if (currentUser?.id) {
+          await createNotification({
+            userId: currentUser.id,
+            title: "Hủy vé thành công!",
+            body: `Vé của bạn cho đơn hàng #${cancelTarget.code || cancelTarget.id || ""} đã được hủy thành công.`,
+            data: JSON.stringify({ path: "/profile/tickets" })
+          });
+        }
+      } catch (notifErr) {
+        console.warn("Failed to create cancel notification:", notifErr);
+      }
+
       setCancelTarget(null);
       await fetchTickets({ filters: appliedFilters });
     } catch (err) {

@@ -11,7 +11,6 @@ const getCouponCode = (coupon) => {
 const extractCouponList = (response) => {
   const root = response?.data ?? response;
   const visited = new Set();
-
   const findList = (value) => {
     if (!value) return [];
     if (Array.isArray(value)) return value.filter(Boolean);
