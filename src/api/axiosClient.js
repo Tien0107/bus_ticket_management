@@ -126,11 +126,19 @@ axiosClient.interceptors.response.use(
     };
 
     if (error.response && error.response.data) {
-      if (error.response.data.message) {
-        error.response.data.message = translateError(error.response.data.message);
+      const d = error.response.data;
+
+      // Normalize issues[] style validation errors (e.g. from Zod) into a usable message
+      if (!d.message && Array.isArray(d.issues) && d.issues.length > 0) {
+        const joined = d.issues.map((i) => i?.reason || i?.message).filter(Boolean).join(". ");
+        if (joined) d.message = joined;
       }
-      if (error.response.data.error) {
-        error.response.data.error = translateError(error.response.data.error);
+
+      if (d.message) {
+        d.message = translateError(d.message);
+      }
+      if (d.error) {
+        d.error = translateError(d.error);
       }
     }
     if (error.message) {

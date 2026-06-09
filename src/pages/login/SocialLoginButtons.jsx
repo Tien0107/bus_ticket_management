@@ -48,7 +48,13 @@ export default function SocialLoginButtons({ disabled = false, onLoginSuccess, s
         const res = await verifyAuthGoogleToken({ idToken: response.credential });
         await onLoginSuccess(res.data, startedAt);
       } catch (err) {
-        const errorMsg = err.response?.data?.message || err.message || "Đăng nhập Google thất bại";
+        const data = err?.response?.data;
+        let errorMsg = "Đăng nhập Google thất bại";
+        if (Array.isArray(data?.issues) && data.issues.length > 0) {
+          errorMsg = data.issues.map((i) => i?.reason || i?.message).filter(Boolean).join(". ") || errorMsg;
+        } else {
+          errorMsg = data?.message || err?.message || errorMsg;
+        }
         await waitForLoginLoading(startedAt);
         setError(errorMsg);
       } finally {
@@ -149,7 +155,13 @@ export default function SocialLoginButtons({ disabled = false, onLoginSuccess, s
 
       await onLoginSuccess(res.data, startedAt);
     } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message || "Đăng nhập Facebook thất bại";
+      const data = err?.response?.data;
+      let errorMsg = "Đăng nhập Facebook thất bại";
+      if (Array.isArray(data?.issues) && data.issues.length > 0) {
+        errorMsg = data.issues.map((i) => i?.reason || i?.message).filter(Boolean).join(". ") || errorMsg;
+      } else {
+        errorMsg = data?.message || err?.message || errorMsg;
+      }
       await waitForLoginLoading(startedAt);
       setError(errorMsg);
     } finally {

@@ -34,7 +34,15 @@ const getLoginErrorState = (message, identifier) => {
     fieldErrors.password = message;
   } else if (normalized.includes("định dạng") || normalized.includes("vui lòng nhập")) {
     fieldErrors.identifier = message;
-  } else if (normalized.includes("mật khẩu") || normalized.includes("password")) {
+  } else if (
+    normalized.includes("mật khẩu") ||
+    normalized.includes("password") ||
+    normalized.includes("chữ thường") ||
+    normalized.includes("ký tự đặc biệt") ||
+    normalized.includes("khoảng trắng")
+  ) {
+    // Covers backend password format reasons like:
+    // "Mật khẩu phải có chữ thường, chữ số, một ký tự đặc biệt (# @ $ % & ! * ? ^ _) và không chứa khoảng trắng."
     fieldErrors.password = message;
   } else if (
   normalized.includes("email") ||
@@ -52,6 +60,30 @@ const getLoginErrorState = (message, identifier) => {
   }
 
   return { fieldErrors, formError: "" };
+};
+
+const extractLoginErrorMessage = (err) => {
+  const data = err?.response?.data;
+
+  // Backend validation style: { issues: [{ field: "/password", kind: "invalid_format", reason: "..." }], location: "body" }
+  if (Array.isArray(data?.issues) && data.issues.length > 0) {
+    // Prefer password-specific issue for better field mapping
+    const pwdIssue = data.issues.find((i) => {
+      const f = String(i?.field || "").toLowerCase();
+      return f.includes("password") || f.includes("/password") || f === "password";
+    });
+    if (pwdIssue?.reason) return pwdIssue.reason;
+
+    // Fallback: join all reasons
+    const joined = data.issues
+      .map((i) => i?.reason || i?.message)
+      .filter(Boolean)
+      .join(". ");
+    if (joined) return joined;
+  }
+
+  // Standard message locations
+  return data?.message || err?.message || "Đăng nhập thất bại";
 };
 
 const getIdentifierValidationError = (value) => {
@@ -182,7 +214,7 @@ function Login() {
       const res = await signIn(payload);
       await completeLogin(res.data);
     } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message || "Đăng nhập thất bại";
+      const errorMsg = extractLoginErrorMessage(err);
       setError(errorMsg);
       setLoading(false);
     }
