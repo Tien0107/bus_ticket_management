@@ -223,7 +223,7 @@ export default function BookingSeatStep({
   }, [bookingData.tripId, bookingData.pickupOrder, bookingData.dropoffOrder]);
 
   const handleSeatClick = (seat) => {
-    if (seat.status === "booked") return;
+    if (isSeatBooked(seat)) return;
     setBookingData((prev) => {
       const isSelected = prev.selectedSeats.some((s) => s.seatNumber === seat.seatNumber);
 
@@ -258,23 +258,29 @@ export default function BookingSeatStep({
   const floor2Seats = seats.filter((s) => isFloor2(s));
 
   const getSeatLabel = (seat) => seat.seatNumber || seat.name || "?";
-  const isSeatBooked = (seat) => seat.status === "booked";
+  const isSeatBooked = (seat) => {
+    if (!seat) return false;
+    const s = String(seat.status || "").toLowerCase();
+    if (s === "booked" || s === "sold" || s === "taken") return true;
+    if (seat.isAvailable === false || seat.available === false) return true;
+    return false;
+  };
 
   const renderSleeperSeat = (seat) => {
     const isSelected = bookingData.selectedSeats.some((s) => s.seatNumber === seat.seatNumber);
     const isBooked = isSeatBooked(seat);
     const stateClass = isBooked ?
-    "cursor-not-allowed border-outline-variant/30 bg-surface-container text-on-surface-variant/35 shadow-none" :
+    "cursor-not-allowed border-outline-variant/40 bg-surface-container-low text-on-surface/55 shadow-none" :
     isSelected ?
     "border-primary bg-primary text-white shadow-[0_14px_28px_rgba(0,110,28,0.18)] ring-4 ring-primary/15" :
     "border-outline-variant/45 bg-white text-on-surface shadow-[0_8px_18px_rgba(26,28,28,0.06)] hover:-translate-y-0.5 hover:border-primary/45 hover:bg-primary/5 hover:shadow-[0_14px_26px_rgba(26,28,28,0.10)]";
     const iconClass = isBooked ?
-    "text-on-surface-variant/35" :
+    "text-on-surface/50" :
     isSelected ?
     "text-white" :
     "text-primary/75";
     const labelClass = isBooked ?
-    "bg-white/40 text-on-surface-variant/45" :
+    "bg-surface-container text-on-surface-variant/75 ring-1 ring-outline-variant/30" :
     isSelected ?
     "bg-white/20 text-white ring-1 ring-white/20" :
     "bg-surface-container-low text-on-surface ring-1 ring-outline-variant/25";

@@ -262,37 +262,26 @@ export default function Booking() {
       return false;
     }
 
-
-
-    try {
-      const ids = await createBookingsForCurrentSelection();
-      setOrderIds(ids);
-      addToast("Đã giữ chỗ thành công! Vé sẽ tự hủy sau 10 phút nếu chưa thanh toán.", "success", 3200);
-      setStep(2);
-      return true;
-    } catch (err) {
-      console.error("Booking creation error before payment page:", err);
-      if (err.response?.data?.issues) {
-        const msgs = err.response.data.issues.map((i) => `${i.field}: ${i.reason}`).join(" | ");
-        addToast("Lỗi khi giữ chỗ: " + msgs, "error");
-      } else {
-        addToast("Ghế này đã có ai đó đặt mất rồi, vui lòng chọn ghế khác.", "warning");
-      }
-      return false;
-    }
+    // Do NOT create booking here anymore.
+    // Creation (with coupon) happens when user confirms in checkout / payment step.
+    // This allows coupon applied in BookingCheckoutStep to be included.
+    setStep(2);
+    return true;
   };
 
   const handleProcessPayment = async () => {
     try {
+      let currentOrderIds = orderIds;
 
-
-      if (!orderIds || orderIds.length === 0) {
-        addToast("Không tìm thấy thông tin đơn hàng đã đặt trước. Vui lòng quay lại chọn ghế.", "error");
-        setStep(1);
-        return;
+      // Create the booking(s) here (at payment time) so that any coupon
+      // applied in the Checkout step is included in the payload.
+      if (!currentOrderIds || currentOrderIds.length === 0) {
+        currentOrderIds = await createBookingsForCurrentSelection();
+        setOrderIds(currentOrderIds);
+        addToast("Đã giữ chỗ thành công! Vé sẽ tự hủy sau 10 phút nếu chưa thanh toán.", "success", 3200);
       }
-      const activeOrderId = orderIds[0];
 
+      const activeOrderId = currentOrderIds[0];
 
       if (bookingData.paymentMethod === "stripe") {
         await openCardPaymentModal(activeOrderId);
@@ -395,7 +384,11 @@ export default function Booking() {
           returnBookingData={returnBookingData}
           isRoundTrip={isRoundTrip}
           setBookingData={setBookingData}
-          onBack={() => setStep(1)}
+          onBack={() => {
+            // Clear any pre-created order so we re-create (with latest coupon/seats) if user changes and pays again
+            setOrderIds([]);
+            setStep(1);
+          }}
           onConfirm={handleProcessPayment} />
 
         }
