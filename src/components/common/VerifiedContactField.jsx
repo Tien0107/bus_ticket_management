@@ -33,10 +33,15 @@ export default function VerifiedContactField({
   onResend,
   placeholder = "",
   inputType,
+  requireOtpVerification = true,
+  inputDisabled = false,
 }) {
   const ver = verification || {};
   const isVerified = !!ver.verified;
+  const isCheckOnlyReady = !requireOtpVerification && !!ver.checked && !isVerified;
+  const isReady = isVerified || isCheckOnlyReady;
   const type = inputType || (field === "email" ? "email" : "tel");
+  const shouldDisableInput = isVerified || inputDisabled;
   const [showOtpModal, setShowOtpModal] = useState(false);
 
   const handleValueChange = (e) => {
@@ -49,28 +54,28 @@ export default function VerifiedContactField({
 
   // Auto open modal when OTP is sent
   useEffect(() => {
-    if (ver.sent && !ver.verified) {
+    if (requireOtpVerification && ver.sent && !ver.verified) {
       setShowOtpModal(true);
     }
     if (ver.verified) {
       setShowOtpModal(false);
     }
-  }, [ver.sent, ver.verified]);
+  }, [ver.sent, ver.verified, requireOtpVerification]);
 
   // Compact suffix button/badge rendered *inside* the input on the right
   const renderSuffixAction = () => {
     const compact =
       "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1";
 
-    if (isVerified) {
+    if (isReady) {
       return (
-        <span className="flex items-center gap-1 text-emerald-600" title={`${label} đã xác thực`}>
-          <span className="material-symbols-outlined text-base">verified</span>
+        <span className="flex items-center gap-1 text-emerald-600" title={`${label} đã kiểm tra`}>
+          <span className="material-symbols-outlined text-base">check_circle</span>
         </span>
       );
     }
 
-    if (ver.sent && !ver.verified) {
+    if (requireOtpVerification && ver.sent && !ver.verified) {
       return (
         <button
           type="button"
@@ -85,7 +90,7 @@ export default function VerifiedContactField({
       );
     }
 
-    if (ver.checked) {
+    if (requireOtpVerification && ver.checked) {
       return (
         <button
           type="button"
@@ -156,7 +161,7 @@ export default function VerifiedContactField({
           value={value}
           onChange={handleValueChange}
           required
-          disabled={isVerified}
+          disabled={shouldDisableInput}
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2">
           {renderSuffixAction()}
@@ -166,17 +171,23 @@ export default function VerifiedContactField({
       {ver.error && <p className="text-xs text-red-600">{ver.error}</p>}
 
       {/* Minimal status - no big stacked blocks */}
-      {ver.checked && !ver.verified && !ver.sent && (
+      {ver.checked && requireOtpVerification && !ver.verified && !ver.sent && (
         <div className="text-emerald-600 text-[11px] font-medium flex items-center gap-1">
           <span className="material-symbols-outlined text-sm">check_circle</span>
           <span>Đã kiểm tra - sẵn sàng gửi mã</span>
+        </div>
+      )}
+      {ver.checked && !requireOtpVerification && (
+        <div className="text-emerald-600 text-[11px] font-medium flex items-center gap-1">
+          <span className="material-symbols-outlined text-sm">check_circle</span>
+          <span>Đã kiểm tra khả dụng</span>
         </div>
       )}
 
       {/* verified state is shown inline next to input via renderActionButton */}
 
       {/* Centered OTP Modal */}
-      {showOtpModal && ver.sent && !ver.verified && (
+      {showOtpModal && requireOtpVerification && ver.sent && !ver.verified && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[360px] overflow-hidden">
             <div className="px-5 pt-5 pb-3">
