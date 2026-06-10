@@ -112,7 +112,15 @@ const formatAmount = (value) => {
   return `${num.toLocaleString("vi-VN")}đ`;
 };
 
-const PassengerList = ({ passengers = [], hasMore = false, loadingMore = false, onCheckIn, onLoadMore }) => {
+const PassengerList = ({
+  passengers = [],
+  hasMore = false,
+  loadingMore = false,
+  cancellingPassengerId = null,
+  onCancelTicket,
+  onCheckIn,
+  onLoadMore
+}) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredPassengers = useMemo(() => {
@@ -256,21 +264,33 @@ const PassengerList = ({ passengers = [], hasMore = false, loadingMore = false, 
                       </span>
                     </div>
                   </td>
-                  <td className="py-4 pl-4 pr-16 text-right">
+                  <td className="py-4 pl-4 pr-16">
                     {canCheckIn ? (
-                      <button
-                        type="button"
-                        onClick={() => onCheckIn?.(passenger.id)}
-                        className="inline-flex h-10 min-w-[88px] items-center justify-center whitespace-nowrap rounded-lg bg-primary px-3 text-sm font-bold text-white transition-colors hover:bg-primary/90"
-                      >
-                        Check-in
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onCancelTicket?.(passenger.id)}
+                          disabled={Number(cancellingPassengerId) === Number(passenger.id)}
+                          className="inline-flex h-10 min-w-[64px] items-center justify-center whitespace-nowrap rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-bold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {Number(cancellingPassengerId) === Number(passenger.id) ? "..." : "Hủy"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onCheckIn?.(passenger.id)}
+                          className="inline-flex h-10 min-w-[88px] items-center justify-center whitespace-nowrap rounded-lg bg-primary px-3 text-sm font-bold text-white transition-colors hover:bg-primary/90"
+                        >
+                          Check-in
+                        </button>
+                      </div>
                     ) : (
-                      <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${
-                        cancelled ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"
-                      }`}>
-                        <span className="material-symbols-outlined text-[20px]">{cancelled ? "block" : "done"}</span>
-                      </span>
+                      <div className="flex justify-end">
+                        <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${
+                          cancelled ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"
+                        }`}>
+                          <span className="material-symbols-outlined text-[20px]">{cancelled ? "block" : "done"}</span>
+                        </span>
+                      </div>
                     )}
                   </td>
                 </tr>

@@ -76,8 +76,9 @@ const CheckInPanel = ({
 }) => {
   const { addToast } = useToast();
   const [selectedPassenger, setSelectedPassenger] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const loading = Boolean(loadingAction);
 
   const pendingPassengers = useMemo(
     () => passengers.filter(canCheckInPassenger),
@@ -120,9 +121,9 @@ const CheckInPanel = ({
     }
 
     try {
-      setLoading(true);
-      const response = await checkInPassenger(tripId, selectedPassenger.id);
-      const success = await onCheckInSuccess?.(selectedPassenger.id, response.data?.ticket || response.data);
+      setLoadingAction("checked_in");
+      const response = await checkInPassenger(tripId, selectedPassenger.id, "checked_in");
+      const success = await onCheckInSuccess?.(selectedPassenger.id, response.data?.ticket || response.data, "checked_in");
 
       if (success !== false) {
         setSelectedPassenger(null);
@@ -139,7 +140,41 @@ const CheckInPanel = ({
       });
       addToast("Check-in thất bại", "error");
     } finally {
-      setLoading(false);
+      setLoadingAction("");
+    }
+  };
+
+  const handleCancelTicket = async () => {
+    if (!selectedPassenger) return;
+    if (!canCheckInPassenger(selectedPassenger)) {
+      addToast("Vé đã hủy hoặc đã check-in nên không thể hủy.", "warning");
+      return;
+    }
+
+    const confirmed = window.confirm(`Hủy vé của ${selectedPassenger.name}?`);
+    if (!confirmed) return;
+
+    try {
+      setLoadingAction("cancelled");
+      const response = await checkInPassenger(tripId, selectedPassenger.id, "cancelled");
+      const success = await onCheckInSuccess?.(selectedPassenger.id, response.data?.ticket || response.data, "cancelled");
+
+      if (success !== false) {
+        setSelectedPassenger(null);
+        setSearchTerm("");
+      }
+    } catch (error) {
+      console.error("Driver cancel ticket failed", {
+        tripId,
+        passengerId: selectedPassenger.id,
+        passenger: selectedPassenger,
+        status: error.response?.status,
+        data: error.response?.data,
+        message: getApiMessage(error),
+      });
+      addToast("Hủy vé thất bại", "error");
+    } finally {
+      setLoadingAction("");
     }
   };
 
@@ -309,11 +344,29 @@ const CheckInPanel = ({
             </button>
             <button
               type="button"
+              onClick={handleCancelTicket}
+              disabled={!selectedPassenger || loading}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-5 py-3 text-sm font-bold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loadingAction === "cancelled" ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-300 border-t-red-700" />
+                  Đang hủy...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[20px]">cancel</span>
+                  Hủy vé
+                </>
+              )}
+            </button>
+            <button
+              type="button"
               onClick={handleCheckIn}
               disabled={!selectedPassenger || loading}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? (
+              {loadingAction === "checked_in" ? (
                 <>
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                   Đang xử lý...

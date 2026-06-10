@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { getDriverTripsAllStatuses, getTripPassengers, getTripRoute, updateTrip } from "../../api/driver";
+import { checkInPassenger, getDriverTripsAllStatuses, getTripPassengers, getTripRoute, updateTrip } from "../../api/driver";
 import { useToast } from "../../context/ToastContext";
 import PassengerList from "../../components/driver/PassengerList";
 import CheckInPanel from "../../components/driver/CheckInPanel";
@@ -106,6 +106,11 @@ const isCheckedInStatus = (status) => {
 const isCheckInStatusValue = (status) => {
   const normalizedStatus = String(status || "").toLowerCase();
   return ["checked_in", "checked-in", "checkedin", "confirmed", "present", "no_show", "no-show", "noshow"].includes(normalizedStatus);
+};
+
+const isCancelledTicketStatus = (status) => {
+  const normalizedStatus = String(status || "").toLowerCase();
+  return ["cancelled", "canceled"].includes(normalizedStatus);
 };
 
 const normalizeTrip = (trip = {}) => {
@@ -321,6 +326,7 @@ export default function TripDetail() {
   const [updating, setUpdating] = useState(false);
   const [passengerNextCursor, setPassengerNextCursor] = useState(null);
   const [loadingMorePassengers, setLoadingMorePassengers] = useState(false);
+  const [cancellingPassengerId, setCancellingPassengerId] = useState(null);
 
   const fetchTripDetails = useCallback(async ({ silent = false, apply = true } = {}) => {
     try {
@@ -453,29 +459,62 @@ export default function TripDetail() {
     }
   }, [addToast, loadingMorePassengers, passengerNextCursor, tripId]);
 
-  const handleCheckInSuccess = async (passengerId, ticket) => {
+  const handleCheckInSuccess = async (passengerId, ticket, actionStatus = "checked_in") => {
     const checkedPassengerId = passengerId || selectedPassengerId;
 
     if (!checkedPassengerId) return false;
+
+    const responseTicketStatus =
+      ticket?.ticketStatus ||
+      ticket?.ticket_status ||
+      ticket?.status ||
+      "";
+    const nextTicketStatus =
+      actionStatus === "cancelled" ?
+      "cancelled" :
+      isCheckedInStatus(responseTicketStatus) ?
+      responseTicketStatus :
+      "checked_in";
+    const cancelled = isCancelledTicketStatus(nextTicketStatus);
+    const checkedIn = !cancelled && (actionStatus === "checked_in" || isCheckedInStatus(nextTicketStatus));
+    const nextPassengerStatus = checkedIn ? "checked_in" : "pending";
 
     setPassengers((currentPassengers) =>
       currentPassengers.map((passenger) =>
         Number(passenger.id) === Number(checkedPassengerId)
           ? {
               ...passenger,
-              rawStatus: "checked_in",
-              ticketStatus: ticket?.ticketStatus || ticket?.ticket_status || ticket?.status || "checked_in",
-              status: "checked_in",
+              rawStatus: nextPassengerStatus,
+              ticketStatus: nextTicketStatus,
+              status: nextPassengerStatus,
             }
           : passenger
       )
     );
 
-    addToast("Check-in thành công", "success");
+    addToast(cancelled ? "Hủy vé thành công" : "Check-in thành công", "success");
     setShowCheckInPanel(false);
     setSelectedPassengerId(null);
 
     return true;
+  };
+
+  const handleCancelPassengerTicket = async (passengerId) => {
+    const passenger = passengers.find((item) => Number(item.id) === Number(passengerId));
+    if (!passenger) return;
+
+    const confirmed = window.confirm(`Hủy vé của ${passenger.name}?`);
+    if (!confirmed) return;
+
+    try {
+      setCancellingPassengerId(passengerId);
+      const response = await checkInPassenger(tripId, passengerId, "cancelled");
+      await handleCheckInSuccess(passengerId, response.data?.ticket || response.data, "cancelled");
+    } catch (error) {
+      addToast(error.response?.data?.message || "Hủy vé thất bại", "error");
+    } finally {
+      setCancellingPassengerId(null);
+    }
   };
 
   const checkedInCount = useMemo(
@@ -487,7 +526,10 @@ export default function TripDetail() {
     [passengers]
   );
   const passengerCount = trip?.passengerCount || passengers.length;
-  const pendingCount = Math.max(passengers.length - checkedInCount, 0);
+  const pendingCount = useMemo(
+    () => passengers.filter((passenger) => passenger.status !== "checked_in" && !isCancelledTicketStatus(passenger.ticketStatus)).length,
+    [passengers]
+  );
   const checkInProgress = passengers.length ? Math.round((checkedInCount / passengers.length) * 100) : 0;
 
   if (loading) {
@@ -611,7 +653,9 @@ export default function TripDetail() {
             passengers={passengers}
             hasMore={Boolean(passengerNextCursor)}
             loadingMore={loadingMorePassengers}
+            cancellingPassengerId={cancellingPassengerId}
             onCheckIn={handleOpenCheckIn}
+            onCancelTicket={handleCancelPassengerTicket}
             onLoadMore={handleLoadMorePassengers}
           />
 

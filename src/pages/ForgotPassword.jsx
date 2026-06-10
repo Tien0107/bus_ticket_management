@@ -32,10 +32,6 @@ const passwordRules = [
 
 
 const getApiErrorMessage = (err, fallback) => {
-  if (err.response?.status >= 500) {
-    return "Máy chủ đang lỗi khi đặt lại mật khẩu. Vui lòng thử lại sau hoặc báo backend kiểm tra /auth/reset-password.";
-  }
-
   const data = err.response?.data;
 
   if (Array.isArray(data?.issues) && data.issues.length > 0) {
@@ -45,7 +41,14 @@ const getApiErrorMessage = (err, fallback) => {
     join(". ");
   }
 
-  return data?.message || data?.error || fallback;
+  const message = data?.message || data?.error || data?.detail;
+  if (message) return message;
+
+  if (err.response?.status >= 500) {
+    return "Máy chủ đang lỗi khi đặt lại mật khẩu. Vui lòng thử lại sau hoặc báo backend kiểm tra /auth/reset-password.";
+  }
+
+  return fallback;
 };
 
 function ForgotPassword() {
@@ -127,6 +130,11 @@ function ForgotPassword() {
 
     if (!newPassword || !confirmPassword) {
       setError("Vui lòng nhập mật khẩu");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự.");
       return;
     }
 
