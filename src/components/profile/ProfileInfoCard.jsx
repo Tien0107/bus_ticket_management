@@ -8,7 +8,7 @@ import { getStoredUser, setStoredToken, setStoredUser } from "../../utils/authSt
 import OtpInput from "../common/OtpInput";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_REGEX = /^\d{11}$/;
+const PHONE_REGEX = /^\d{10}$/;
 const OTP_REGEX = /^\d{4,8}$/;
 
 const FIELD_LABELS = {
