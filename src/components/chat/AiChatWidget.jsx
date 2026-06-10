@@ -53,6 +53,7 @@ export default function AiChatWidget() {
   const [messages, setMessages] = useState(() => [
     createMessage("assistant", AI_WELCOME),
   ]);
+  const [chatPanelOpen, setChatPanelOpen] = useState(false);
   // latestAgentState được lấy trực tiếp từ response server, không tự chỉnh sửa hay clone ở FE.
   const latestAgentStateRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -64,6 +65,7 @@ export default function AiChatWidget() {
       setCanUseAi(nextCanUseAi);
       if (!nextCanUseAi) {
         setOpen(false);
+        setChatPanelOpen(false);
         latestAgentStateRef.current = null;
         setMessages(() => [
           createMessage("assistant", AI_WELCOME),
@@ -155,10 +157,33 @@ export default function AiChatWidget() {
     event.currentTarget.form?.requestSubmit();
   };
 
-  if (!canUseAi) return null;
+  // Listen for regular chat being opened so we can close/suppress AI (prevents AI covering the chat panel)
+  useEffect(() => {
+    const handleChatOpened = () => {
+      setChatPanelOpen(true);
+      if (open) setOpen(false);
+    };
+    const handleChatClosed = () => setChatPanelOpen(false);
+
+    window.addEventListener("chat:opened", handleChatOpened);
+    window.addEventListener("chat:closed", handleChatClosed);
+    return () => {
+      window.removeEventListener("chat:opened", handleChatOpened);
+      window.removeEventListener("chat:closed", handleChatClosed);
+    };
+  }, [open]);
+
+  // Dispatch when AI opens so ChatWidget can close itself (mutual exclusion)
+  useEffect(() => {
+    if (open) {
+      window.dispatchEvent(new CustomEvent("ai-chat:opened"));
+    }
+  }, [open]);
+
+  if (!canUseAi || chatPanelOpen) return null;
 
   return (
-    <div className="fixed bottom-[92px] right-5 z-50 flex flex-col items-end gap-3">
+    <div className={`fixed bottom-[92px] right-5 flex flex-col items-end gap-3 ${open ? "z-[60]" : "z-50"}`}>
       {!open && (
         <button
           type="button"
