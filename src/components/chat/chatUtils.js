@@ -6,7 +6,7 @@ export const SOCKET_URL =
 process.env.REACT_APP_SOCKET_SERVER_URL ||
 process.env.REACT_APP_SOCKET_URL ||
 process.env.VITE_SOCKET_URL ||
-"https://socket-server-production-db1a.up.railway.app";
+"https://busgo-ws.up.railway.app";
 
 export const getStoredUser = () => getAuthStoredUser(null);
 
