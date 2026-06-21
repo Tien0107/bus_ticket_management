@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ChatBoxList from "./ChatBoxList";
 import CreateChatForm from "./CreateChatForm";
@@ -60,8 +60,34 @@ export default function ChatWidget() {
     navigate("/login");
   };
 
+  // Dispatch events so other widgets (e.g. AiChatWidget) can coordinate (hide/close when chat panel opens)
+  const prevChatOpenRef = useRef(chat.open);
+  useEffect(() => {
+    if (prevChatOpenRef.current !== chat.open) {
+      window.dispatchEvent(new CustomEvent(chat.open ? "chat:opened" : "chat:closed"));
+      prevChatOpenRef.current = chat.open;
+    }
+  }, [chat.open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep latest open state in a ref so the AI listener effect below doesn't need unstable 'chat' dep
+  const chatOpenRef = useRef(chat.open);
+  useEffect(() => {
+    chatOpenRef.current = chat.open;
+  }, [chat.open]);
+
+  // Mutual exclusion: if AI chat opens, close this one
+  useEffect(() => {
+    const handleAiOpened = () => {
+      if (chatOpenRef.current) {
+        chat.handleClose();
+      }
+    };
+    window.addEventListener("ai-chat:opened", handleAiOpened);
+    return () => window.removeEventListener("ai-chat:opened", handleAiOpened);
+  }, [chat.handleClose]);
+
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
+    <div className={`fixed bottom-5 right-5 flex flex-col items-end gap-3 ${chat.open ? "z-[65]" : "z-50"}`}>
       {!chat.open &&
       <div className="flex items-end gap-3">
           {showLoginPrompt &&

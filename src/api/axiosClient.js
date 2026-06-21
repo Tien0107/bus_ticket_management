@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { clearAuthSession, getStoredToken } from "../utils/authStorage";
 
 const axiosClient = axios.create({
-  baseURL: "https://busgo.servecounterstrike.com",
+  baseURL: "https://busgo.up.railway.app",
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -16,6 +16,8 @@ const publicEndpoints = [
   "/auth/sign-in",
   "/auth/google/verify-token",
   "/auth/facebook/verify-token",
+  "/auth/contact/check",
+  "/auth/contact/verify",
   "/customer/sign-in",
   "/customer/sign-up",
   "/customer/google/verify-token",
@@ -77,6 +79,7 @@ axiosClient.interceptors.response.use(
     const requestUrl = error.response?.config?.url || "";
     const isLogoutRequest = requestUrl.includes("/auth/logout");
     const isLoggingOut = window.__isLoggingOut === true;
+    const isPublicEndpoint = publicEndpoints.some((endpoint) => requestUrl?.startsWith(endpoint));
 
     window.lastError = {
       status,
@@ -84,7 +87,7 @@ axiosClient.interceptors.response.use(
       data,
     };
 
-    if (!isLogoutRequest && !isLoggingOut && isSessionExpiredError(status, data)) {
+    if (!isLogoutRequest && !isLoggingOut && !isPublicEndpoint && isSessionExpiredError(status, data)) {
       redirectToLogin();
     }
 

@@ -24,6 +24,9 @@ export default function SupportRegisterForm() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // When true: the contact fields switch to OTP verification mode (triggered on register click)
+  const [verificationPhase, setVerificationPhase] = useState(false);
+
   const [emailVer, setEmailVer] = useState({ checked: false, sent: false, verified: false, checking: false, sending: false, verifying: false, otp: "", error: "" });
   const [phoneVer, setPhoneVer] = useState({ checked: false, sent: false, verified: false, checking: false, sending: false, verifying: false, otp: "", error: "" });
 
@@ -33,11 +36,13 @@ export default function SupportRegisterForm() {
   };
 
   const handleEmailChange = (val) => {
+    if (verificationPhase) return;
     setForm((current) => ({ ...current, email: val }));
     setEmailVer((v) => (v.checked || v.sent || v.verified ? { checked: false, sent: false, verified: false, checking: false, sending: false, verifying: false, otp: "", error: "" } : v));
   };
 
   const handlePhoneChange = (val) => {
+    if (verificationPhase) return;
     setForm((current) => ({ ...current, phone: val }));
     setPhoneVer((v) => (v.checked || v.sent || v.verified ? { checked: false, sent: false, verified: false, checking: false, sending: false, verifying: false, otp: "", error: "" } : v));
   };
@@ -54,7 +59,7 @@ export default function SupportRegisterForm() {
     return "";
   };
 
-  // Verification helpers
+  // Helpers (used for both pre-check and the OTP verification phase)
   const getVerState = (field) => (field === "email" ? emailVer : phoneVer);
   const setVerState = (field) => (field === "email" ? setEmailVer : setPhoneVer);
   const currentFormValue = (field) => (field === "email" ? form.email : form.phone);
@@ -82,17 +87,33 @@ export default function SupportRegisterForm() {
     }
   };
 
+  // ---- OTP verification handlers (used after user clicks Đăng ký) ----
   const handleSendVerification = async (field) => {
     const value = currentFormValue(field).trim();
     const setter = setVerState(field);
     const state = getVerState(field);
-    if (!state.checked) { setter((s) => ({ ...s, error: "Vui lòng kiểm tra trước." })); return; }
+
+    if (!state.checked) {
+      // Auto check if not yet checked (defensive)
+      setter((s) => ({ ...s, checking: true, error: "" }));
+      try {
+        await contactCheck({ field, value });
+        setter((s) => ({ ...s, checked: true, checking: false }));
+      } catch (err) {
+        const msg = err.response?.data?.message || "Không kiểm tra được khả dụng.";
+        setter((s) => ({ ...s, checking: false, error: msg }));
+        return;
+      }
+    }
+
     setter((s) => ({ ...s, sending: true, error: "" }));
+
     try {
       await sendOtp({ field, value });
       setter((s) => ({ ...s, sent: true, sending: false, otp: "", error: "" }));
     } catch (err) {
-      setter((s) => ({ ...s, sending: false, error: err.response?.data?.message || "Gửi mã thất bại." }));
+      const msg = err.response?.data?.message || "Không thể gửi mã xác thực.";
+      setter((s) => ({ ...s, sending: false, error: msg }));
     }
   };
 
@@ -101,40 +122,49 @@ export default function SupportRegisterForm() {
     const state = getVerState(field);
     const setter = setVerState(field);
     const otp = (state.otp || "").trim();
-    if (!otp) { setter((s) => ({ ...s, error: "Nhập mã OTP." })); return; }
-    if (!state.sent) { setter((s) => ({ ...s, error: "Gửi mã trước." })); return; }
+
+    if (!otp) {
+      setter((s) => ({ ...s, error: "Vui lòng nhập mã OTP." }));
+      return;
+    }
+
     setter((s) => ({ ...s, verifying: true, error: "" }));
+
     try {
       await contactVerify({ field, value, otp });
       setter((s) => ({ ...s, verified: true, verifying: false, error: "", _verifiedValue: value }));
+
+      if (field === "email") {
+        // Auto-advance: send OTP for phone now
+        const phoneValue = currentFormValue("phone").trim();
+        try {
+          if (!phoneVer.checked) {
+            await contactCheck({ field: "phone", value: phoneValue });
+            setPhoneVer((s) => ({ ...s, checked: true, error: "" }));
+          }
+          await sendOtp({ field: "phone", value: phoneValue });
+          setPhoneVer((s) => ({ ...s, sent: true, otp: "", error: "" }));
+        } catch (advErr) {
+          const msg = advErr.response?.data?.message || "Gửi mã cho số điện thoại thất bại.";
+          setPhoneVer((s) => ({ ...s, error: msg }));
+        }
+      } else if (field === "phone") {
+        // Both verified → perform the actual signup
+        await performSignUp();
+      }
     } catch (err) {
-      setter((s) => ({ ...s, verifying: false, error: err.response?.data?.message || "OTP sai." }));
+      const msg = err.response?.data?.message || "Mã OTP không hợp lệ hoặc đã hết hạn.";
+      setter((s) => ({ ...s, verifying: false, error: msg }));
     }
   };
 
   const handleResend = async (field) => {
-    setVerState(field)((s) => ({ ...s, sent: false, otp: "", error: "" }));
+    const setter = setVerState(field);
+    setter((s) => ({ ...s, sent: false, otp: "", error: "" }));
     await handleSendVerification(field);
   };
 
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError("");
-
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    const emailOk = emailVer.verified && form.email.trim() === (emailVer._verifiedValue || form.email).trim();
-    const phoneOk = phoneVer.verified && form.phone.trim() === (phoneVer._verifiedValue || form.phone).trim();
-    if (!emailOk || !phoneOk) {
-      setError("Vui lòng xác thực email và số điện thoại trước khi đăng ký.");
-      return;
-    }
-
+  const performSignUp = async () => {
     const payload = {
       fullName: form.fullName,
       contactInfo: {
@@ -182,6 +212,46 @@ export default function SupportRegisterForm() {
     }
   };
 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
+
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const emailVal = form.email.trim();
+      const phoneVal = form.phone.trim();
+
+      // 1. Ensure availability right before sending OTPs
+      await contactCheck({ field: "email", value: emailVal });
+      setEmailVer((s) => ({ ...s, checked: true, sent: false, verified: false, error: "" }));
+
+      await contactCheck({ field: "phone", value: phoneVal });
+      setPhoneVer((s) => ({ ...s, checked: true, sent: false, verified: false, error: "" }));
+
+      // 2. Enter verification phase
+      setVerificationPhase(true);
+
+      // 3. Send OTP for email first
+      await sendOtp({ field: "email", value: emailVal });
+      setEmailVer((s) => ({ ...s, sent: true, otp: "", error: "" }));
+    } catch (err) {
+      const msg = err.response?.data?.message || "Email hoặc số điện thoại không khả dụng. Vui lòng kiểm tra lại.";
+      setError(msg);
+      setVerificationPhase(false);
+      setEmailVer((s) => ({ ...s, checked: false }));
+      setPhoneVer((s) => ({ ...s, checked: false }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
@@ -201,6 +271,7 @@ export default function SupportRegisterForm() {
           value={form.fullName}
           onChange={handleChange}
           required
+          disabled={verificationPhase}
         />
       </div>
 
@@ -216,6 +287,8 @@ export default function SupportRegisterForm() {
           onSendVerification={() => handleSendVerification("email")}
           onVerifyOtp={() => handleVerifyOtp("email")}
           onResend={() => handleResend("email")}
+          requireOtpVerification={verificationPhase}
+          inputDisabled={verificationPhase}
           placeholder="example@email.com"
         />
         <VerifiedContactField
@@ -229,6 +302,8 @@ export default function SupportRegisterForm() {
           onSendVerification={() => handleSendVerification("phone")}
           onVerifyOtp={() => handleVerifyOtp("phone")}
           onResend={() => handleResend("phone")}
+          requireOtpVerification={verificationPhase}
+          inputDisabled={verificationPhase}
           placeholder="09xx xxx xxx"
         />
       </div>
@@ -237,6 +312,7 @@ export default function SupportRegisterForm() {
         value={form.companyId}
         onChange={(id) => setForm((c) => ({ ...c, companyId: id }))}
         label="Chọn công ty hỗ trợ"
+        disabled={verificationPhase}
       />
 
       <p className="text-xs text-on-surface-variant bg-surface-container-low rounded-lg px-3 py-2 flex items-start gap-2">
@@ -256,6 +332,7 @@ export default function SupportRegisterForm() {
               value={form.password}
               onChange={handleChange}
               required
+              disabled={verificationPhase}
             />
             <button
               type="button"
@@ -278,24 +355,34 @@ export default function SupportRegisterForm() {
             value={form.confirmPassword}
             onChange={handleChange}
             required
+            disabled={verificationPhase}
           />
         </div>
       </div>
 
+      {/* During verificationPhase the real signup happens after both OTPs succeed */}
       <button
         type="submit"
-        disabled={loading || !emailVer.verified || !phoneVer.verified}
+        disabled={loading || verificationPhase}
         className="w-full bg-gradient-to-r from-primary to-primary-container text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading ? (
           <>
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            <span>Đang đăng ký...</span>
+            <span>{verificationPhase ? "Đang gửi mã xác thực..." : "Đang xử lý..."}</span>
           </>
+        ) : verificationPhase ? (
+          <span>Đang xác thực email &amp; số điện thoại...</span>
         ) : (
           <span>Đăng ký nhân viên hỗ trợ</span>
         )}
       </button>
+
+      {verificationPhase && (
+        <p className="text-center text-xs text-on-surface-variant">
+          Vui lòng nhập mã OTP đã gửi đến email và số điện thoại của bạn để hoàn tất đăng ký.
+        </p>
+      )}
     </form>
   );
 }
